@@ -111,17 +111,17 @@ const Index = () => {
     },
   });
 
-  const { mutate: submitForm, isLoading } = useQuery({
+  const { data, isLoading, refetch } = useQuery({
     queryKey: ['recommendations'],
     queryFn: () => fetchRecommendations(form.getValues()),
     enabled: false,
-    onSuccess: (data) => {
-      setRecommendations(data);
-    },
   });
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
-    submitForm();
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    await refetch();
+    if (data) {
+      setRecommendations(data);
+    }
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -141,13 +141,13 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
       <Navbar />
       
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 pt-24 pb-8"> {/* Added pt-24 for proper spacing from navbar */}
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-4xl font-bold text-center mb-8">
+          <h1 className="text-4xl font-bold text-center mb-8 animate-fade-up">
             Voter Information Tool
           </h1>
           
-          <Card className="mb-8">
+          <Card className="mb-8 animate-fade-up">
             <CardContent className="pt-6">
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -240,7 +240,7 @@ const Index = () => {
           </Card>
 
           {recommendations && (
-            <Card>
+            <Card className="animate-fade-up">
               <CardHeader>
                 <CardTitle>Your Recommendations</CardTitle>
               </CardHeader>
