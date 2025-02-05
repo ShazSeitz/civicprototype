@@ -8,6 +8,23 @@ import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Navbar from '../components/Navbar';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 // Form validation schema
 const formSchema = z.object({
@@ -18,8 +35,53 @@ const formSchema = z.object({
   priorities: z.array(z.string().max(200, "Priority must not exceed 200 characters")).length(6, "Please enter all 6 priorities"),
 });
 
+interface SortablePriorityProps {
+  id: string;
+  index: number;
+  field: any;
+}
+
+const SortablePriority = ({ id, index, field }: SortablePriorityProps) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <FormItem ref={setNodeRef} style={style} className="cursor-move">
+      <FormControl>
+        <div className="flex items-center gap-2">
+          <div {...attributes} {...listeners} className="p-2">
+            ⋮⋮
+          </div>
+          <Input
+            placeholder={`Priority ${index + 1}`}
+            {...field}
+            className="flex-1"
+          />
+        </div>
+      </FormControl>
+      <FormMessage />
+    </FormItem>
+  );
+};
+
 const Index = () => {
   const [recommendations, setRecommendations] = useState<any>(null);
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -43,6 +105,19 @@ const Index = () => {
         },
       ],
     });
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (over && active.id !== over.id) {
+      const oldIndex = parseInt(active.id);
+      const newIndex = parseInt(over.id);
+      
+      const currentPriorities = form.getValues("priorities");
+      const newPriorities = arrayMove(currentPriorities, oldIndex, newIndex);
+      form.setValue("priorities", newPriorities);
+    }
   };
 
   return (
@@ -111,24 +186,32 @@ const Index = () => {
                   <div className="space-y-4">
                     <FormLabel>Your Priorities</FormLabel>
                     <p className="text-sm text-muted-foreground">Enter your top 6 concerns and values</p>
-                    {[0, 1, 2, 3, 4, 5].map((index) => (
-                      <FormField
-                        key={index}
-                        control={form.control}
-                        name={`priorities.${index}`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormControl>
-                              <Input
-                                placeholder={`Priority ${index + 1}`}
-                                {...field}
+                    <DndContext
+                      sensors={sensors}
+                      collisionDetection={closestCenter}
+                      onDragEnd={handleDragEnd}
+                    >
+                      <SortableContext
+                        items={[0, 1, 2, 3, 4, 5].map(String)}
+                        strategy={verticalListSortingStrategy}
+                      >
+                        {[0, 1, 2, 3, 4, 5].map((index) => (
+                          <FormField
+                            key={index}
+                            control={form.control}
+                            name={`priorities.${index}`}
+                            render={({ field }) => (
+                              <SortablePriority
+                                key={index}
+                                id={index.toString()}
+                                index={index}
+                                field={field}
                               />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    ))}
+                            )}
+                          />
+                        ))}
+                      </SortableContext>
+                    </DndContext>
                   </div>
 
                   <Button type="submit" className="w-full">
