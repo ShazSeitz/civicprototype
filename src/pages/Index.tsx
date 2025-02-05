@@ -15,7 +15,7 @@ const formSchema = z.object({
     required_error: "Please select a mode.",
   }),
   zipCode: z.string().length(5, "ZIP code must be exactly 5 digits").regex(/^\d+$/, "ZIP code must contain only numbers"),
-  priorities: z.array(z.string().max(200, "Priority must not exceed 200 characters")).min(1, "At least one priority is required"),
+  priorities: z.array(z.string().max(200, "Priority must not exceed 200 characters")).length(6, "Please enter all 6 priorities"),
 });
 
 const Index = () => {
@@ -26,7 +26,7 @@ const Index = () => {
     defaultValues: {
       mode: "current",
       zipCode: "",
-      priorities: [""],
+      priorities: ["", "", "", "", "", ""],
     },
   });
 
@@ -56,10 +56,7 @@ const Index = () => {
           </h1>
           
           <Card className="mb-8">
-            <CardHeader>
-              <CardTitle>Enter Your Information</CardTitle>
-            </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                   <FormField
@@ -111,26 +108,28 @@ const Index = () => {
                     )}
                   />
 
-                  <FormField
-                    control={form.control}
-                    name="priorities"
-                    render={() => (
-                      <FormItem>
-                        <FormLabel>Your Priorities</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="Enter your first priority"
-                            onChange={(e) => {
-                              const priorities = [...form.getValues("priorities")];
-                              priorities[0] = e.target.value;
-                              form.setValue("priorities", priorities);
-                            }}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <div className="space-y-4">
+                    <FormLabel>Your Priorities</FormLabel>
+                    <p className="text-sm text-muted-foreground">Enter your top 6 concerns and values</p>
+                    {[0, 1, 2, 3, 4, 5].map((index) => (
+                      <FormField
+                        key={index}
+                        control={form.control}
+                        name={`priorities.${index}`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <Input
+                                placeholder={`Priority ${index + 1}`}
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    ))}
+                  </div>
 
                   <Button type="submit" className="w-full">
                     Get Recommendations
