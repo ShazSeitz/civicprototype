@@ -25,6 +25,7 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { useQuery } from '@tanstack/react-query';
 
 // Form validation schema
 const formSchema = z.object({
@@ -74,6 +75,24 @@ const SortablePriority = ({ id, index, field }: SortablePriorityProps) => {
   );
 };
 
+// API functions
+const fetchRecommendations = async ({ zipCode, mode, priorities }: z.infer<typeof formSchema>) => {
+  // This is a mock API call - replace with your actual API endpoint
+  const response = await fetch(`https://api.example.com/recommendations`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ zipCode, mode, priorities }),
+  });
+  
+  if (!response.ok) {
+    throw new Error('Failed to fetch recommendations');
+  }
+  
+  return response.json();
+};
+
 const Index = () => {
   const [recommendations, setRecommendations] = useState<any>(null);
   const sensors = useSensors(
@@ -92,27 +111,25 @@ const Index = () => {
     },
   });
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    console.log(values);
-    // TODO: Implement API calls and data processing
-    setRecommendations({
-      region: "Sample Region",
-      candidates: [
-        {
-          name: "Sample Candidate",
-          office: "Sample Office",
-          highlights: ["Sample highlight 1", "Sample highlight 2"],
-        },
-      ],
-    });
+  const { mutate: submitForm, isLoading } = useQuery({
+    queryKey: ['recommendations'],
+    queryFn: () => fetchRecommendations(form.getValues()),
+    enabled: false,
+    onSuccess: (data) => {
+      setRecommendations(data);
+    },
+  });
+
+  const onSubmit = (values: z.infer<typeof formSchema>) => {
+    submitForm();
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     
     if (over && active.id !== over.id) {
-      const oldIndex = parseInt(active.id);
-      const newIndex = parseInt(over.id);
+      const oldIndex = parseInt(active.id.toString());
+      const newIndex = parseInt(over.id.toString());
       
       const currentPriorities = form.getValues("priorities");
       const newPriorities = arrayMove(currentPriorities, oldIndex, newIndex);
@@ -214,8 +231,8 @@ const Index = () => {
                     </DndContext>
                   </div>
 
-                  <Button type="submit" className="w-full">
-                    Get Recommendations
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? "Loading..." : "Get Recommendations"}
                   </Button>
                 </form>
               </Form>
