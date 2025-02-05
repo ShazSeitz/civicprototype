@@ -1,94 +1,173 @@
-import { useEffect } from 'react';
+import { useState } from 'react';
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Navbar from '../components/Navbar';
-import FeatureCard from '../components/FeatureCard';
-import { Zap, Shield, Smartphone } from 'lucide-react';
+
+// Form validation schema
+const formSchema = z.object({
+  mode: z.enum(["current", "demo"], {
+    required_error: "Please select a mode.",
+  }),
+  zipCode: z.string().length(5, "ZIP code must be exactly 5 digits").regex(/^\d+$/, "ZIP code must contain only numbers"),
+  priorities: z.array(z.string().max(200, "Priority must not exceed 200 characters")).min(1, "At least one priority is required"),
+});
 
 const Index = () => {
-  useEffect(() => {
-    const observerOptions = {
-      root: null,
-      rootMargin: '0px',
-      threshold: 0.1
-    };
+  const [recommendations, setRecommendations] = useState<any>(null);
 
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('animate-fade-up');
-          observer.unobserve(entry.target);
-        }
-      });
-    }, observerOptions);
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      mode: "current",
+      zipCode: "",
+      priorities: [""],
+    },
+  });
 
-    document.querySelectorAll('.reveal').forEach((element) => {
-      observer.observe(element);
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    console.log(values);
+    // TODO: Implement API calls and data processing
+    setRecommendations({
+      region: "Sample Region",
+      candidates: [
+        {
+          name: "Sample Candidate",
+          office: "Sample Office",
+          highlights: ["Sample highlight 1", "Sample highlight 2"],
+        },
+      ],
     });
-
-    return () => observer.disconnect();
-  }, []);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
       <Navbar />
       
-      {/* Hero Section */}
-      <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto text-center">
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight animate-fade-up">
-            <span className="bg-gradient-to-r from-purple-600 to-blue-500 bg-clip-text text-transparent">
-              Build Something Amazing
-            </span>
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-4xl mx-auto">
+          <h1 className="text-4xl font-bold text-center mb-8">
+            Voter Information Tool
           </h1>
-          <p className="mt-6 text-xl text-gray-600 max-w-2xl mx-auto animate-fade-up">
-            Create beautiful, responsive web applications with our modern platform.
-            Start building your next great idea today.
-          </p>
-          <div className="mt-10 animate-fade-up">
-            <button className="bg-gradient-to-r from-purple-600 to-blue-500 text-white px-8 py-3 rounded-full text-lg font-medium hover:opacity-90 transition-opacity">
-              Get Started Now
-            </button>
-          </div>
-        </div>
-      </section>
+          
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle>Enter Your Information</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                  <FormField
+                    control={form.control}
+                    name="mode"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Select Mode</FormLabel>
+                        <FormControl>
+                          <RadioGroup
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                            className="flex flex-col space-y-1"
+                          >
+                            <FormItem className="flex items-center space-x-3 space-y-0">
+                              <FormControl>
+                                <RadioGroupItem value="current" />
+                              </FormControl>
+                              <FormLabel className="font-normal">
+                                Current Date
+                              </FormLabel>
+                            </FormItem>
+                            <FormItem className="flex items-center space-x-3 space-y-0">
+                              <FormControl>
+                                <RadioGroupItem value="demo" />
+                              </FormControl>
+                              <FormLabel className="font-normal">
+                                DEMO: November 2024 Election
+                              </FormLabel>
+                            </FormItem>
+                          </RadioGroup>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-      {/* Features Section */}
-      <section id="features" className="py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-12 reveal">
-            Amazing Features
-          </h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            <FeatureCard
-              title="Lightning Fast"
-              description="Built for speed and performance, ensuring your applications run smoothly."
-              Icon={Zap}
-            />
-            <FeatureCard
-              title="Secure by Default"
-              description="Enterprise-grade security features to protect your data and users."
-              Icon={Shield}
-            />
-            <FeatureCard
-              title="Mobile Ready"
-              description="Responsive design that works perfectly on all devices and screens."
-              Icon={Smartphone}
-            />
-          </div>
-        </div>
-      </section>
+                  <FormField
+                    control={form.control}
+                    name="zipCode"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>ZIP Code</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter your 5-digit ZIP code" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-      {/* CTA Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 reveal">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl font-bold mb-8">Ready to Get Started?</h2>
-          <p className="text-xl text-gray-600 mb-10">
-            Join thousands of developers building amazing applications
-          </p>
-          <button className="bg-gradient-to-r from-purple-600 to-blue-500 text-white px-8 py-3 rounded-full text-lg font-medium hover:opacity-90 transition-opacity">
-            Start Building
-          </button>
+                  <FormField
+                    control={form.control}
+                    name="priorities"
+                    render={() => (
+                      <FormItem>
+                        <FormLabel>Your Priorities</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Enter your first priority"
+                            onChange={(e) => {
+                              const priorities = [...form.getValues("priorities")];
+                              priorities[0] = e.target.value;
+                              form.setValue("priorities", priorities);
+                            }}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <Button type="submit" className="w-full">
+                    Get Recommendations
+                  </Button>
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
+
+          {recommendations && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Your Recommendations</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <p className="font-medium">Region: {recommendations.region}</p>
+                  <div>
+                    <h3 className="font-semibold mb-2">Candidates:</h3>
+                    {recommendations.candidates.map((candidate: any, index: number) => (
+                      <div key={index} className="mb-4">
+                        <p className="font-medium">{candidate.name}</p>
+                        <p className="text-sm text-gray-600">{candidate.office}</p>
+                        <ul className="list-disc list-inside mt-2">
+                          {candidate.highlights.map((highlight: string, hIndex: number) => (
+                            <li key={hIndex} className="text-sm">{highlight}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
-      </section>
+      </div>
     </div>
   );
 };
