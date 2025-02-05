@@ -40,14 +40,19 @@ const Index = () => {
     queryKey: ['recommendations', formData],
     queryFn: () => formData ? fetchRecommendations(formData) : null,
     enabled: false,
-    onSuccess: (data) => {
-      setRecommendations(data);
-    },
+    meta: {
+      onSuccess: (data: any) => {
+        setRecommendations(data);
+      }
+    }
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setFormData(values);
-    await refetch();
+    const result = await refetch();
+    if (result.data) {
+      setRecommendations(result.data);
+    }
   };
 
   return (
