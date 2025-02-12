@@ -21,7 +21,7 @@ const Index = () => {
   const { toast } = useToast();
   const recommendationsRef = useRef<HTMLDivElement>(null);
 
-  const { data: recommendations, refetch, isLoading } = useQuery({
+  const { data: recommendations, isLoading } = useQuery({
     queryKey: ['recommendations', formData],
     queryFn: async () => {
       if (!formData) return null;
@@ -41,6 +41,15 @@ const Index = () => {
           return null;
         }
 
+        if (!data) {
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "No recommendations available. Please try again.",
+          });
+          return null;
+        }
+
         return data;
       } catch (error) {
         console.error('Error fetching recommendations:', error);
@@ -52,11 +61,9 @@ const Index = () => {
         return null;
       }
     },
-    enabled: false,
+    enabled: Boolean(formData),
     retry: false,
-    retryOnMount: false,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false
+    refetchOnWindowFocus: false
   });
 
   useEffect(() => {
@@ -68,9 +75,8 @@ const Index = () => {
     }
   }, [recommendations]);
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+  const onSubmit = (values: z.infer<typeof formSchema>) => {
     setFormData(values);
-    await refetch();
   };
 
   return (
