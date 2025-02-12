@@ -24,6 +24,32 @@ import {
 } from '@dnd-kit/sortable';
 import { SortablePriority } from "./SortablePriority";
 
+// Test personas data
+const testPersonas = {
+  persona1: {
+    zipCode: "94105",
+    priorities: [
+      "Climate change and environmental protection",
+      "Affordable housing in the Bay Area",
+      "Public transportation improvements",
+      "Tech industry regulation",
+      "Homelessness solutions",
+      "Local business support"
+    ]
+  },
+  persona2: {
+    zipCode: "10001",
+    priorities: [
+      "Public safety and crime reduction",
+      "Education system improvement",
+      "Small business recovery",
+      "Affordable healthcare access",
+      "Immigration reform",
+      "Arts and culture funding"
+    ]
+  }
+};
+
 // Form validation schema
 const formSchema = z.object({
   mode: z.enum(["current", "demo"], {
@@ -68,9 +94,33 @@ export const VoterForm = ({ onSubmit, isLoading }: VoterFormProps) => {
     }
   };
 
+  const loadPersona = (persona: 'persona1' | 'persona2') => {
+    const selectedPersona = testPersonas[persona];
+    form.setValue('zipCode', selectedPersona.zipCode);
+    form.setValue('priorities', selectedPersona.priorities);
+  };
+
   return (
     <Card className="mb-8 animate-fade-up">
       <CardContent className="pt-6">
+        {/* Test Persona Buttons */}
+        <div className="flex gap-4 mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => loadPersona('persona1')}
+          >
+            Load SF Persona
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => loadPersona('persona2')}
+          >
+            Load NYC Persona
+          </Button>
+        </div>
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <FormField
