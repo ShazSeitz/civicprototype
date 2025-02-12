@@ -41,14 +41,16 @@ const Index = () => {
           throw new Error('No data returned from analysis');
         }
 
+        // If the response indicates no active elections, show the message but still return the data
+        if (data.noActiveElections) {
+          setNoElectionsMessage("There are no active elections in this zip code, but you can still see recommendations for contacting your representatives as well as interest groups and petitions that map to your priorities.");
+        } else {
+          setNoElectionsMessage(null);
+        }
+
         return data;
       } catch (err: any) {
         console.error('Error in analyze-priorities:', err);
-        // Set the informative message for users when there are no active elections
-        if (err.message?.includes('No active elections')) {
-          setNoElectionsMessage("There are no active elections in this zip code, but you can still see recommendations for contacting your representatives as well as interest groups and petitions that map to your priorities.");
-          return null;
-        }
         throw err;
       }
     },

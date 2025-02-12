@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 
@@ -153,35 +152,58 @@ serve(async (req) => {
     const contentAnalysis = await contentResponse.json();
     console.log('Content analysis completed');
 
-    if (mode === "current") {
-      const response = {
-        region: region,
-        mode: "current",
-        priorities: contentAnalysis.mappedPriorities,
-        analysis: contentAnalysis.analysis,
-        candidates: representatives.map((rep: any) => ({
-          name: rep.name,
-          office: rep.office,
-          highlights: [
-            `Contact: ${rep.email}`,
-            rep.channels?.map((c: any) => `${c.type}: ${c.id}`).join(', ') || 'No social media available'
-          ]
-        })),
-        draftEmails: contentAnalysis.emailDrafts,
-        interestGroups: contentAnalysis.interestGroups,
-        petitions: contentAnalysis.petitions
-      };
+    // Base response object for all cases
+    const baseResponse = {
+      region: region,
+      mode: mode,
+      priorities: contentAnalysis.mappedPriorities,
+      analysis: contentAnalysis.analysis,
+      draftEmails: contentAnalysis.emailDrafts,
+      interestGroups: contentAnalysis.interestGroups,
+      petitions: contentAnalysis.petitions
+    };
 
-      return new Response(JSON.stringify(response), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    if (mode === "current") {
+      try {
+        const electionData = await getElectionData(zipCode);
+        return new Response(JSON.stringify({
+          ...baseResponse,
+          candidates: representatives.map((rep: any) => ({
+            name: rep.name,
+            office: rep.office,
+            highlights: [
+              `Contact: ${rep.email}`,
+              rep.channels?.map((c: any) => `${c.type}: ${c.id}`).join(', ') || 'No social media available'
+            ]
+          }))
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      } catch (error: any) {
+        if (error.message === 'No active elections') {
+          // Return current representatives and other data without election info
+          return new Response(JSON.stringify({
+            ...baseResponse,
+            noActiveElections: true,
+            candidates: representatives.map((rep: any) => ({
+              name: rep.name,
+              office: rep.office,
+              highlights: [
+                `Contact: ${rep.email}`,
+                rep.channels?.map((c: any) => `${c.type}: ${c.id}`).join(', ') || 'No social media available'
+              ]
+            }))
+          }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        throw error;
+      }
     }
 
     if (mode === "demo") {
       try {
         const electionData = await getElectionData(zipCode);
-        console.log('Retrieved election data:', electionData);
-
         const candidates = [];
         const ballotMeasures = [];
 
@@ -206,43 +228,25 @@ serve(async (req) => {
           }
         }
 
-        const response = {
-          region: region,
-          mode: "demo",
-          priorities: contentAnalysis.mappedPriorities,
-          analysis: contentAnalysis.analysis,
+        return new Response(JSON.stringify({
+          ...baseResponse,
           candidates,
-          ballotMeasures,
-          draftEmails: contentAnalysis.emailDrafts,
-          interestGroups: contentAnalysis.interestGroups,
-          petitions: contentAnalysis.petitions
-        };
-
-        return new Response(JSON.stringify(response), {
+          ballotMeasures
+        }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       } catch (error: any) {
         if (error.message === 'No active elections') {
-          // Return a successful response with all available data except election-specific info
-          const response = {
-            region: region,
-            mode: "demo",
-            priorities: contentAnalysis.mappedPriorities,
-            analysis: contentAnalysis.analysis,
+          return new Response(JSON.stringify({
+            ...baseResponse,
+            noActiveElections: true,
             candidates: [],
-            ballotMeasures: [],
-            draftEmails: contentAnalysis.emailDrafts,
-            interestGroups: contentAnalysis.interestGroups,
-            petitions: contentAnalysis.petitions,
-            noActiveElections: true
-          };
-
-          return new Response(JSON.stringify(response), {
+            ballotMeasures: []
+          }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           });
         }
-        console.error('Error fetching election data:', error);
-        throw new Error('Unable to fetch election data for this location');
+        throw error;
       }
     }
 
@@ -250,17 +254,6 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in analyze-priorities function:', error);
-    // If it's a "no active elections" error, return a 200 response with the message
-    if (error.message === 'No active elections') {
-      return new Response(JSON.stringify({ 
-        error: 'No active elections',
-        message: 'There are no active elections in this zip code.'
-      }), {
-        status: 200,  // Return 200 instead of 500
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-    
     return new Response(JSON.stringify({ 
       error: error.message || 'An unknown error occurred'
     }), {
