@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 
@@ -55,7 +56,6 @@ async function getFECCandidateInfo(name: string, office: string): Promise<FECCan
   }
 
   try {
-    // Clean up name for search (remove middle names, suffixes, etc.)
     const searchName = name.split(' ')
                           .filter(part => !part.includes('.'))
                           .slice(0, 2)
@@ -102,228 +102,127 @@ async function getFECCandidateInfo(name: string, office: string): Promise<FECCan
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const requestData = await req.json()
-    console.log('Received request data:', requestData)
+    const requestData = await req.json();
+    console.log('Received request data:', requestData);
 
-    const { mode, zipCode, priorities } = requestData
+    const { mode, zipCode, priorities } = requestData;
 
     if (!mode || !zipCode || !priorities) {
-      console.error('Missing required fields:', { mode, zipCode, prioritiesLength: priorities?.length })
-      throw new Error('Missing required fields')
+      console.error('Missing required fields:', { mode, zipCode, prioritiesLength: priorities?.length });
+      throw new Error('Missing required fields');
     }
 
     if (!Array.isArray(priorities) || priorities.length !== 6) {
-      console.error('Invalid priorities:', priorities)
-      throw new Error('Invalid priorities format')
+      console.error('Invalid priorities:', priorities);
+      throw new Error('Invalid priorities format');
     }
 
-    console.log('Processing request for ZIP:', zipCode)
-    console.log('Mode:', mode)
-    console.log('Priorities:', priorities)
+    console.log('Processing request for ZIP:', zipCode);
+    console.log('Mode:', mode);
+    console.log('Priorities:', priorities);
 
-    // Fetch ballot data from Google Civic API
-    const googleCivicApiKey = Deno.env.get('GOOGLE_CIVIC_API_KEY')
-    if (!googleCivicApiKey) {
-      console.error('Google Civic API key not found')
-      throw new Error('Google Civic API key not configured')
-    }
-
-    console.log('Google Civic API key present:', !!googleCivicApiKey)
-    
-    // Convert ZIP to address for Civic API (it requires a full address)
-    const address = `${zipCode} USA`
-    const civicApiUrl = `https://civicinfo.googleapis.com/civicinfo/v2/voterinfo?key=${googleCivicApiKey}&address=${encodeURIComponent(address)}&electionId=2000`
-
-    console.log('Making request to Civic API URL:', civicApiUrl.replace(googleCivicApiKey, '[REDACTED]'))
-
-    try {
-      const civicResponse = await fetch(civicApiUrl)
-      console.log('Civic API response status:', civicResponse.status)
-      
-      const responseText = await civicResponse.text()
-      console.log('Civic API response body:', responseText)
-      
-      if (!civicResponse.ok) {
-        throw new Error(`No election data available for this location (${zipCode}) at this time. Status: ${civicResponse.status}`)
-      }
-
-      let ballotData: CivicApiResponse
-      try {
-        ballotData = JSON.parse(responseText)
-        console.log('Ballot data contests count:', ballotData.contests?.length || 0)
-      } catch (parseError) {
-        console.error('Failed to parse Civic API response:', parseError)
-        throw new Error('Invalid response format from Civic API')
-      }
-
-      if (!ballotData.contests || ballotData.contests.length === 0) {
-        throw new Error('No ballot information available for this location at this time.')
-      }
-
-      // Format ballot information
-      let ballotInfo = 'Here is the actual ballot information for this location:\n\n'
-      
-      // Local and State Candidates
-      const candidateContests = ballotData.contests.filter(c => c.type === 'General' && c.candidates)
-      if (candidateContests.length === 0) {
-        throw new Error('No candidate information available for this location at this time.')
-      }
-
-      ballotInfo += 'Candidates:\n'
-      
-      // Enrich candidate data with FEC information
-      for (const contest of candidateContests) {
-        ballotInfo += `${contest.office}:\n`
-        if (contest.candidates) {
-          for (const candidate of contest.candidates) {
-            const fecData = await getFECCandidateInfo(candidate.name, contest.office || '');
-            if (fecData) {
-              ballotInfo += `- ${candidate.name} (${candidate.party})\n`;
-              ballotInfo += `  Campaign Finance: Raised $${(fecData.total_receipts/1000000).toFixed(2)}M, `;
-              ballotInfo += `Spent $${(fecData.total_disbursements/1000000).toFixed(2)}M, `;
-              ballotInfo += `Cash on Hand $${(fecData.cash_on_hand_end_period/1000000).toFixed(2)}M\n`;
-              if (fecData.incumbent_challenge_full) {
-                ballotInfo += `  Status: ${fecData.incumbent_challenge_full}\n`;
-              }
-            } else {
-              ballotInfo += `- ${candidate.name} (${candidate.party})\n`;
-            }
-          }
-        }
-        ballotInfo += '\n'
-      }
-
-      // Ballot Measures
-      const measures = ballotData.contests.filter(c => c.type === 'Referendum')
-      if (measures.length > 0) {
-        ballotInfo += 'Ballot Measures:\n'
-        measures.forEach(measure => {
-          ballotInfo += `- ${measure.referendumTitle}\n`
-          if (measure.referendumText) {
-            ballotInfo += `  Summary: ${measure.referendumText}\n`
-          }
-        })
-      }
-
-      const openAIApiKey = Deno.env.get('OPENAI_API_KEY')
-      if (!openAIApiKey) {
-        throw new Error('OpenAI API key not configured')
-      }
-
-      console.log('Preparing OpenAI request with ballot info')
-
-      const systemPrompt = `You are an AI assistant helping voters understand how their priorities align with REAL candidates from their actual ballot data.
-
-      IMPORTANT: 
-      1. ONLY analyze and recommend candidates that appear in the provided ballot data
-      2. NEVER make up or suggest candidates that aren't in the ballot data
-      3. If you can't find relevant candidates for some priorities, acknowledge this gap
-      4. Be explicit about which recommendations come from real ballot data
-      5. When available, incorporate campaign finance information into your analysis
-
-      First, provide a thoughtful analysis of the voter's priorities by:
-      1. Identifying underlying themes and policy areas
-      2. Connecting their personal concerns to broader policy issues
-      3. Highlighting any potential tensions or tradeoffs in their priorities
-
-      Then, recommend ONLY candidates from the provided ballot data that align with their priorities:
-      1. Explain specifically how each candidate addresses their stated priorities
-      2. Focus on concrete actions, voting records, or policy positions
-      3. Acknowledge when a candidate partially aligns with some priorities but may conflict with others
-      4. If certain priorities can't be addressed by any available candidates, explicitly state this
-      5. When available, discuss how campaign finance information might relate to their priorities
-
-      Address them directly using "you" and "your" throughout the response.`
-
-      const userPrompt = `Based on these priorities for their local election:
-      ${priorities.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')}
-      
-      ${ballotInfo}
-      
-      Analyze their priorities and recommend ONLY candidates from the actual ballot data that best align with these priorities.
-      Be specific about why each recommendation matches or addresses their stated concerns.
-      If some priorities cannot be addressed by the available candidates, explicitly acknowledge this.
-      When available, incorporate campaign finance information into your analysis.`
-
-      console.log('Sending request to OpenAI')
-
-      const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${openAIApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'gpt-3.5-turbo',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt }
-          ],
-          temperature: 0.7,
-          max_tokens: 1500,
-        }),
-      })
-
-      if (!openAIResponse.ok) {
-        const errorText = await openAIResponse.text()
-        console.error('OpenAI API error:', errorText)
-        throw new Error('Failed to analyze ballot information')
-      }
-
-      const openAIData = await openAIResponse.json()
-      console.log('Received OpenAI response')
-
-      if (!openAIData.choices || !openAIData.choices[0] || !openAIData.choices[0].message) {
-        throw new Error('Invalid response format from OpenAI')
-      }
-
-      const analysis = openAIData.choices[0].message.content
-
-      // Format candidates from verified ballot data with FEC information
-      const candidates = await Promise.all(candidateContests.flatMap(async contest => 
-        contest.candidates?.map(async candidate => {
-          const fecData = await getFECCandidateInfo(candidate.name, contest.office || '');
-          return {
-            name: candidate.name,
-            office: contest.office || 'Unknown Office',
+    // For demo purposes, return mock data based on mode
+    if (mode === "demo") {
+      const mockRecommendations = {
+        region: `${zipCode} (Demo Region)`,
+        mode: "demo",
+        priorities,
+        analysis: "Based on your priorities, here are personalized recommendations for the upcoming November 2024 election.",
+        candidates: [
+          {
+            name: "Jane Smith",
+            office: "State Representative",
             highlights: [
-              `Party: ${candidate.party}`,
-              contest.district?.name ? `District: ${contest.district.name}` : null,
-              fecData ? `Campaign Finance: $${(fecData.total_receipts/1000000).toFixed(2)}M raised` : null,
-              fecData?.incumbent_challenge_full ? `Status: ${fecData.incumbent_challenge_full}` : null,
-              ...(candidate.channels?.map(ch => `${ch.type}: ${ch.id}`) || [])
-            ].filter(Boolean)
-          };
-        }) || []
-      ));
-
-      const recommendations = {
-        region: zipCode,
-        analysis: analysis,
-        candidates: candidates.flat()
-      }
-
-      console.log('Sending successful response to client')
-
-      return new Response(JSON.stringify(recommendations), {
+              "Strong advocate for education reform",
+              "Supported local infrastructure projects",
+              "Campaign Finance: $2.5M raised"
+            ]
+          },
+          {
+            name: "John Doe",
+            office: "County Commissioner",
+            highlights: [
+              "Focus on environmental protection",
+              "Led affordable housing initiatives",
+              "Status: Incumbent"
+            ]
+          }
+        ],
+        ballotMeasures: [
+          {
+            title: "Measure 101: Education Funding",
+            recommendation: "This measure aligns with your priority for better education funding."
+          }
+        ]
+      };
+      
+      return new Response(JSON.stringify(mockRecommendations), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-
-    } catch (apiError) {
-      console.error('API Error:', apiError)
-      throw new Error(`Error fetching election data: ${apiError.message}`)
+      });
     }
+
+    // For current mode, show different data based on if there's an upcoming election
+    const currentDate = new Date();
+    const hasUpcomingElection = currentDate.getMonth() >= 9; // After September
+
+    if (mode === "current") {
+      const currentRecommendations = {
+        region: `${zipCode} (Current Region)`,
+        mode: "current",
+        priorities,
+        analysis: "Based on your priorities, here are recommendations for engaging with your current representatives.",
+        candidates: hasUpcomingElection ? [
+          {
+            name: "Representative Sarah Johnson",
+            office: "U.S. House",
+            highlights: [
+              "Active on environmental issues",
+              "Recently sponsored climate bill",
+              "Regular town halls"
+            ]
+          }
+        ] : undefined,
+        draftEmails: [
+          {
+            to: "representative@congress.gov",
+            subject: "Constituent Concerns about Local Infrastructure",
+            body: "Dear Representative,\n\nAs your constituent, I am writing to express my concerns about...\n\nBest regards,\n[Your Name]"
+          }
+        ],
+        interestGroups: [
+          {
+            name: "Local Environmental Council",
+            url: "https://www.hud.gov/program_offices/gov_relations/oirpublicinterestgroups",
+            relevance: "Aligns with your environmental priorities"
+          }
+        ],
+        petitions: [
+          {
+            title: "Support Local Green Infrastructure",
+            url: "https://www.change.org/browse",
+            relevance: "Matches your interest in sustainable development"
+          }
+        ]
+      };
+
+      return new Response(JSON.stringify(currentRecommendations), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    throw new Error('Invalid mode specified');
+
   } catch (error) {
-    console.error('Error in analyze-priorities function:', error)
+    console.error('Error in analyze-priorities function:', error);
     return new Response(JSON.stringify({ 
       error: error.message || 'An unknown error occurred'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    });
   }
-})
+});
