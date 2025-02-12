@@ -8,7 +8,6 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -35,23 +34,25 @@ serve(async (req) => {
       throw new Error('OpenAI API key not configured')
     }
 
-    // Construct the prompt for GPT
-    const systemPrompt = `You are an expert political analyst helping voters make informed decisions. 
-    Analyze the voter's priorities and provide recommendations for local elections.
-    Focus on how these priorities align with current candidates and issues.
-    Be objective and factual in your analysis.
-    Provide your response in clear paragraphs with line breaks between sections.`
+    const systemPrompt = `You are an AI assistant helping match voters with candidates for the November 2024 election.
+    Based on the voter's priorities, recommend specific candidates from:
+    - Presidential candidates (limited to Biden, Trump, RFK Jr., and Jill Stein)
+    - Local candidates for their area
+    - Relevant ballot measures
+    
+    Provide personal, first-person recommendations addressing the voter directly ("Based on your priorities..." instead of "the voter").
+    Focus on matching specific candidates and ballot measures to their stated priorities.
+    Be concise and direct about why each recommendation matches their priorities.
+    Structure the response in clear sections for Presidential, Local, and Ballot Measures.`
 
-    const userPrompt = `Based on these voter details:
-    Mode: ${mode}
-    Location: ZIP code ${zipCode}
-    Top 6 Priorities (in order of importance):
+    const userPrompt = `Based on these priorities for the November 2024 election in ZIP code ${zipCode}:
+    Your top 6 priorities in order of importance:
     ${priorities.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')}
     
     Please provide:
-    1. A brief analysis of how these priorities relate to current political issues in their area
-    2. Specific recommendations for local elections
-    3. Key points the voter should consider when making their decision`
+    1. Specific candidate recommendations that align with these priorities
+    2. Your best matches for Presidential, local candidates, and ballot measures
+    3. Clear explanations of why each recommendation matches your stated priorities`
 
     console.log('Sending request to OpenAI')
 
@@ -91,7 +92,7 @@ serve(async (req) => {
     const recommendations = {
       region: zipCode,
       analysis: analysis,
-      candidates: [] // Empty array for now
+      candidates: [] // Empty array for now, as candidates are included in the analysis text
     }
 
     console.log('Sending response to client')
