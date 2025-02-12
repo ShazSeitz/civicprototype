@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 
@@ -202,7 +201,7 @@ serve(async (req) => {
       };
     }).filter((rep: any) => rep.email) || [];
 
-    // Get content analysis from our new function
+    // Get content analysis from our analyze-content function
     const contentResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/analyze-content`, {
       method: 'POST',
       headers: {
@@ -216,6 +215,28 @@ serve(async (req) => {
     });
 
     const contentAnalysis = await contentResponse.json();
+
+    if (mode === "current") {
+      return new Response(JSON.stringify({
+        region: `${zipCode} (${repData.normalizedInput?.state || 'Unknown Region'})`,
+        mode: "current",
+        priorities: contentAnalysis.mappedPriorities,
+        analysis: contentAnalysis.analysis,
+        candidates: representatives.map((rep: any) => ({
+          name: rep.name,
+          office: rep.office,
+          highlights: [
+            `Contact: ${rep.email}`,
+            rep.channels?.map((c: any) => `${c.type}: ${c.id}`).join(', ') || 'No social media available'
+          ]
+        })),
+        draftEmails: contentAnalysis.emailDrafts,
+        interestGroups: contentAnalysis.interestGroups,
+        petitions: contentAnalysis.petitions
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     if (mode === "demo") {
       try {
@@ -267,28 +288,6 @@ serve(async (req) => {
         console.error('Error fetching election data:', error);
         throw new Error('Unable to fetch election data for this location');
       }
-    }
-
-    if (mode === "current") {
-      return new Response(JSON.stringify({
-        region: `${zipCode} (${repData.normalizedInput?.state || 'Unknown Region'})`,
-        mode: "current",
-        priorities: contentAnalysis.mappedPriorities,
-        analysis: contentAnalysis.analysis,
-        candidates: representatives.map((rep: any) => ({
-          name: rep.name,
-          office: rep.office,
-          highlights: [
-            `Contact: ${rep.email}`,
-            rep.channels?.map((c: any) => `${c.type}: ${c.id}`).join(', ') || 'No social media available'
-          ]
-        })),
-        draftEmails: contentAnalysis.emailDrafts,
-        interestGroups: contentAnalysis.interestGroups,
-        petitions: contentAnalysis.petitions
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
     }
 
     throw new Error('Invalid mode specified');

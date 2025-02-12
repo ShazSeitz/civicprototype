@@ -27,7 +27,7 @@ const Index = () => {
       if (!formData) return null;
       
       try {
-        const { data, error } = await supabase.functions.invoke('analyze-content', {
+        const { data, error } = await supabase.functions.invoke('analyze-priorities', {
           body: { ...formData }
         });
 
@@ -42,13 +42,11 @@ const Index = () => {
 
         return data;
       } catch (err) {
-        console.error('Error in analyze-content:', err);
+        console.error('Error in analyze-priorities:', err);
         toast({
           variant: "destructive",
           title: "Error",
-          description: formData.mode === "demo" 
-            ? "Unable to process demo request. Please try again."
-            : "No election data available for this location at this time. Please try a different ZIP code.",
+          description: "Unable to process request. No active elections in this area, but you can still see recommendations for interest groups and petitions.",
         });
         throw err;
       }
