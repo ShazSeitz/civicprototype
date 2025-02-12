@@ -30,7 +30,7 @@ const formSchema = z.object({
     required_error: "Please select a mode.",
   }),
   zipCode: z.string().length(5, "ZIP code must be exactly 5 digits").regex(/^\d+$/, "ZIP code must contain only numbers"),
-  priorities: z.array(z.string().max(200, "Priority must not exceed 200 characters")).length(6, "Please enter all 6 priorities"),
+  priorities: z.array(z.string().max(250, "Priority must not exceed 250 characters")).length(6, "Please enter all 6 priorities"),
 });
 
 interface VoterFormProps {
@@ -124,7 +124,7 @@ export const VoterForm = ({ onSubmit, isLoading }: VoterFormProps) => {
 
             <div className="space-y-4">
               <FormLabel>Your Priorities</FormLabel>
-              <p className="text-sm text-muted-foreground">Enter your top 6 concerns and values (max 200 characters each)</p>
+              <p className="text-sm text-muted-foreground">Enter your top 6 concerns and values (max 250 characters each)</p>
               <DndContext
                 sensors={sensors}
                 collisionDetection={closestCenter}
@@ -146,7 +146,7 @@ export const VoterForm = ({ onSubmit, isLoading }: VoterFormProps) => {
                           index={index}
                           field={field}
                           characterCount={field.value.length}
-                          maxLength={200}
+                          maxLength={250}
                         />
                       )}
                     />
