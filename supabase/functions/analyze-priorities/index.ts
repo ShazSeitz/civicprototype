@@ -23,8 +23,17 @@ serve(async (req) => {
       throw new Error('Missing required fields')
     }
 
+    if (!Array.isArray(priorities) || priorities.length !== 6) {
+      throw new Error('Invalid priorities format')
+    }
+
     console.log('Processing request for ZIP:', zipCode)
     console.log('Priorities:', priorities)
+
+    const openAIApiKey = Deno.env.get('OPENAI_API_KEY')
+    if (!openAIApiKey) {
+      throw new Error('OpenAI API key not configured')
+    }
 
     // Construct the prompt for GPT
     const systemPrompt = `You are an expert political analyst helping voters make informed decisions. 
@@ -49,26 +58,32 @@ serve(async (req) => {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+        'Authorization': `Bearer ${openAIApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4',
+        model: 'gpt-4o-mini',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
+        temperature: 0.7,
+        max_tokens: 1000,
       }),
     })
 
     if (!response.ok) {
       const errorText = await response.text()
       console.error('OpenAI API error:', errorText)
-      throw new Error(`OpenAI API error: ${response.statusText}`)
+      throw new Error(`OpenAI API error: ${response.statusText}. Details: ${errorText}`)
     }
 
     const data = await response.json()
     console.log('Received OpenAI response')
+
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      throw new Error('Invalid response format from OpenAI')
+    }
 
     const analysis = data.choices[0].message.content
 
