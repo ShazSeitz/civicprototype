@@ -126,9 +126,11 @@ serve(async (req) => {
     // Fetch ballot data from Google Civic API
     const googleCivicApiKey = Deno.env.get('GOOGLE_CIVIC_API_KEY')
     if (!googleCivicApiKey) {
+      console.error('Google Civic API key not found')
       throw new Error('Google Civic API key not configured')
     }
 
+    console.log('Retrieved Google Civic API key:', googleCivicApiKey ? 'Present' : 'Missing')
     console.log('Fetching ballot data from Google Civic API')
     
     // Convert ZIP to address for Civic API (it requires a full address)
@@ -138,19 +140,29 @@ serve(async (req) => {
     console.log('Civic API URL:', civicApiUrl)
 
     try {
+      console.log('Making request to Civic API...')
       const civicResponse = await fetch(civicApiUrl)
-      const responseText = await civicResponse.text()
       console.log('Civic API response status:', civicResponse.status)
-      console.log('Civic API response:', responseText)
+      
+      const responseText = await civicResponse.text()
+      console.log('Civic API raw response:', responseText)
       
       if (!civicResponse.ok) {
+        console.error('Civic API error response:', responseText)
         throw new Error(`No election data available for this location (${zipCode}) at this time. Status: ${civicResponse.status}`)
       }
 
-      const ballotData: CivicApiResponse = JSON.parse(responseText)
-      console.log('Successfully parsed ballot data:', ballotData)
+      let ballotData: CivicApiResponse
+      try {
+        ballotData = JSON.parse(responseText)
+        console.log('Successfully parsed ballot data:', ballotData)
+      } catch (parseError) {
+        console.error('Failed to parse Civic API response:', parseError)
+        throw new Error('Invalid response format from Civic API')
+      }
 
       if (!ballotData.contests || ballotData.contests.length === 0) {
+        console.log('No contests found in ballot data')
         throw new Error('No ballot information available for this location at this time.')
       }
 
@@ -305,12 +317,12 @@ serve(async (req) => {
 
     } catch (apiError) {
       console.error('API Error:', apiError)
-      throw new Error(`${apiError.message}`)
+      throw new Error(`Error fetching election data: ${apiError.message}`)
     }
   } catch (error) {
     console.error('Error in analyze-priorities function:', error)
     return new Response(JSON.stringify({ 
-      error: error.message
+      error: error.message || 'An unknown error occurred'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
