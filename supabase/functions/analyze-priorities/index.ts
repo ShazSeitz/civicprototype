@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 
@@ -100,6 +99,66 @@ async function getFECCandidateInfo(name: string, office: string): Promise<FECCan
   }
 }
 
+async function getElectionData(zipCode: string): Promise<any> {
+  const civicApiKey = Deno.env.get('CIVIC_API_KEY');
+  if (!civicApiKey) {
+    console.error('Civic API key not configured');
+    throw new Error('Election data service not configured');
+  }
+
+  const address = encodeURIComponent(zipCode);
+  const url = `https://www.googleapis.com/civicinfo/v2/voterinfo?key=${civicApiKey}&address=${address}&electionId=2000`;
+  
+  console.log('Fetching election data for ZIP:', zipCode);
+  
+  const response = await fetch(url);
+  if (!response.ok) {
+    console.error('Civic API error:', response.status);
+    throw new Error('Error fetching election data');
+  }
+
+  return response.json();
+}
+
+const PRESET_PRESIDENTIAL_CANDIDATES = [
+  {
+    name: "Candidate A",
+    party: "Party A",
+    highlights: [
+      "Economic policy focus",
+      "Foreign policy experience",
+      "Infrastructure plan"
+    ]
+  },
+  {
+    name: "Candidate B",
+    party: "Party B",
+    highlights: [
+      "Healthcare reform",
+      "Environmental initiatives",
+      "Education policy"
+    ]
+  },
+  {
+    name: "Candidate C",
+    party: "Party C",
+    highlights: [
+      "Technology innovation",
+      "Job creation plan",
+      "Immigration reform"
+    ]
+  },
+  {
+    name: "Candidate D",
+    party: "Party D",
+    highlights: [
+      "Fiscal responsibility",
+      "National security",
+      "Social programs"
+    ]
+  }
+];
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -125,44 +184,58 @@ serve(async (req) => {
     console.log('Mode:', mode);
     console.log('Priorities:', priorities);
 
-    // For demo purposes, return mock data based on mode
     if (mode === "demo") {
-      const mockRecommendations = {
-        region: `${zipCode} (Demo Region)`,
-        mode: "demo",
-        priorities,
-        analysis: "Based on your priorities, here are personalized recommendations for the upcoming November 2024 election.",
-        candidates: [
-          {
-            name: "Jane Smith",
-            office: "State Representative",
-            highlights: [
-              "Strong advocate for education reform",
-              "Supported local infrastructure projects",
-              "Campaign Finance: $2.5M raised"
-            ]
-          },
-          {
-            name: "John Doe",
-            office: "County Commissioner",
-            highlights: [
-              "Focus on environmental protection",
-              "Led affordable housing initiatives",
-              "Status: Incumbent"
-            ]
+      try {
+        const electionData = await getElectionData(zipCode);
+        console.log('Retrieved election data:', electionData);
+
+        // Process real election data, but use preset presidential candidates
+        const candidates = [];
+        const ballotMeasures = [];
+
+        if (electionData.contests) {
+          for (const contest of electionData.contests) {
+            if (contest.office === 'President of the United States') {
+              // Use preset presidential candidates instead of real ones
+              candidates.push(...PRESET_PRESIDENTIAL_CANDIDATES);
+            } else if (contest.type === 'General' && contest.office) {
+              // Add real candidates for non-presidential races
+              const candidateInfo = await getFECCandidateInfo(contest.candidates[0].name, contest.office);
+              candidates.push({
+                name: contest.candidates[0].name,
+                office: contest.office,
+                highlights: [
+                  `Party: ${contest.candidates[0].party}`,
+                  candidateInfo ? `Campaign Finance: $${(candidateInfo.total_receipts / 1000000).toFixed(1)}M raised` : 'Campaign finance data unavailable',
+                  candidateInfo?.incumbent_challenge_full ? `Status: ${candidateInfo.incumbent_challenge_full}` : 'Status unavailable'
+                ]
+              });
+            } else if (contest.type === 'Referendum') {
+              // Add real ballot measures
+              ballotMeasures.push({
+                title: contest.referendumTitle,
+                recommendation: `${contest.referendumSubtitle}\n\n${contest.referendumText}`
+              });
+            }
           }
-        ],
-        ballotMeasures: [
-          {
-            title: "Measure 101: Education Funding",
-            recommendation: "This measure aligns with your priority for better education funding."
-          }
-        ]
-      };
-      
-      return new Response(JSON.stringify(mockRecommendations), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+        }
+
+        const recommendations = {
+          region: `${zipCode} (${electionData.state?.[0]?.name || 'Unknown Region'})`,
+          mode: "demo",
+          priorities,
+          analysis: "Based on your priorities, here are personalized recommendations for the November 2024 election using real ballot data, with preset presidential candidates.",
+          candidates,
+          ballotMeasures
+        };
+
+        return new Response(JSON.stringify(recommendations), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      } catch (error) {
+        console.error('Error fetching election data:', error);
+        throw new Error('Unable to fetch election data for this location');
+      }
     }
 
     // For current mode, show different data based on if there's an upcoming election
