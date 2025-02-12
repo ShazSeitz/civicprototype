@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import Navbar from '../components/Navbar';
 import { VoterForm } from '@/components/VoterForm';
 import { RecommendationsList } from '@/components/RecommendationsList';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 
 const formSchema = z.object({
   mode: z.enum(["current", "demo"], {
@@ -26,24 +26,37 @@ const Index = () => {
     queryFn: async () => {
       if (!formData) return null;
       
-      const { data, error } = await supabase.functions.invoke('analyze-priorities', {
-        body: formData
-      });
+      try {
+        const { data, error } = await supabase.functions.invoke('analyze-priorities', {
+          body: formData
+        });
 
-      if (error) {
-        console.error('Supabase function error:', error);
+        if (error) {
+          console.error('Supabase function error:', error);
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "No election data available for this location at this time. Please try a different ZIP code.",
+          });
+          return null;
+        }
+
+        return data;
+      } catch (error) {
+        console.error('Error fetching recommendations:', error);
         toast({
           variant: "destructive",
           title: "Error",
-          description: "No election data available for this location at this time. Please try a different ZIP code.",
+          description: "Failed to fetch recommendations. Please try again.",
         });
-        throw error;
+        return null;
       }
-
-      return data;
     },
     enabled: false,
-    retry: false
+    retry: false,
+    retryOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false
   });
 
   useEffect(() => {
@@ -56,7 +69,6 @@ const Index = () => {
   }, [recommendations]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    console.log('Form submitted with values:', values);
     setFormData(values);
     await refetch();
   };
