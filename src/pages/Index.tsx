@@ -20,6 +20,7 @@ const Index = () => {
   const [formData, setFormData] = useState<z.infer<typeof formSchema> | null>(null);
   const { toast } = useToast();
   const recommendationsRef = useRef<HTMLDivElement>(null);
+  const [noElectionsMessage, setNoElectionsMessage] = useState<string | null>(null);
 
   const { data: recommendations, isLoading, isError, error } = useQuery({
     queryKey: ['recommendations', formData],
@@ -41,13 +42,13 @@ const Index = () => {
         }
 
         return data;
-      } catch (err) {
+      } catch (err: any) {
         console.error('Error in analyze-priorities:', err);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Unable to process request. No active elections in this area, but you can still see recommendations for interest groups and petitions.",
-        });
+        // Set the informative message for users when there are no active elections
+        if (err.message?.includes('No active elections')) {
+          setNoElectionsMessage("There are no active elections in this zip code, but you can still see recommendations for contacting your representatives as well as interest groups and petitions that map to your priorities.");
+          return null;
+        }
         throw err;
       }
     },
@@ -66,6 +67,7 @@ const Index = () => {
   }, [recommendations]);
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
+    setNoElectionsMessage(null); // Reset message on new submission
     setFormData(values);
   };
 
@@ -83,6 +85,12 @@ const Index = () => {
             onSubmit={onSubmit} 
             isLoading={isLoading} 
           />
+          
+          {noElectionsMessage && (
+            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg text-blue-700">
+              {noElectionsMessage}
+            </div>
+          )}
           
           <div ref={recommendationsRef}>
             {recommendations && <RecommendationsList recommendations={recommendations} />}
