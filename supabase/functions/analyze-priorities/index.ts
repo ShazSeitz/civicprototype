@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 
@@ -113,14 +112,17 @@ serve(async (req) => {
     const { mode, zipCode, priorities } = requestData
 
     if (!mode || !zipCode || !priorities) {
+      console.error('Missing required fields:', { mode, zipCode, prioritiesLength: priorities?.length })
       throw new Error('Missing required fields')
     }
 
     if (!Array.isArray(priorities) || priorities.length !== 6) {
+      console.error('Invalid priorities:', priorities)
       throw new Error('Invalid priorities format')
     }
 
     console.log('Processing request for ZIP:', zipCode)
+    console.log('Mode:', mode)
     console.log('Priorities:', priorities)
 
     // Fetch ballot data from Google Civic API
@@ -130,39 +132,35 @@ serve(async (req) => {
       throw new Error('Google Civic API key not configured')
     }
 
-    console.log('Retrieved Google Civic API key:', googleCivicApiKey ? 'Present' : 'Missing')
-    console.log('Fetching ballot data from Google Civic API')
+    console.log('Google Civic API key present:', !!googleCivicApiKey)
     
     // Convert ZIP to address for Civic API (it requires a full address)
     const address = `${zipCode} USA`
     const civicApiUrl = `https://civicinfo.googleapis.com/civicinfo/v2/voterinfo?key=${googleCivicApiKey}&address=${encodeURIComponent(address)}&electionId=2000`
 
-    console.log('Civic API URL:', civicApiUrl)
+    console.log('Making request to Civic API URL:', civicApiUrl.replace(googleCivicApiKey, '[REDACTED]'))
 
     try {
-      console.log('Making request to Civic API...')
       const civicResponse = await fetch(civicApiUrl)
       console.log('Civic API response status:', civicResponse.status)
       
       const responseText = await civicResponse.text()
-      console.log('Civic API raw response:', responseText)
+      console.log('Civic API response body:', responseText)
       
       if (!civicResponse.ok) {
-        console.error('Civic API error response:', responseText)
         throw new Error(`No election data available for this location (${zipCode}) at this time. Status: ${civicResponse.status}`)
       }
 
       let ballotData: CivicApiResponse
       try {
         ballotData = JSON.parse(responseText)
-        console.log('Successfully parsed ballot data:', ballotData)
+        console.log('Ballot data contests count:', ballotData.contests?.length || 0)
       } catch (parseError) {
         console.error('Failed to parse Civic API response:', parseError)
         throw new Error('Invalid response format from Civic API')
       }
 
       if (!ballotData.contests || ballotData.contests.length === 0) {
-        console.log('No contests found in ballot data')
         throw new Error('No ballot information available for this location at this time.')
       }
 
@@ -216,7 +214,7 @@ serve(async (req) => {
         throw new Error('OpenAI API key not configured')
       }
 
-      console.log('Preparing OpenAI request with ballot info:', ballotInfo)
+      console.log('Preparing OpenAI request with ballot info')
 
       const systemPrompt = `You are an AI assistant helping voters understand how their priorities align with REAL candidates from their actual ballot data.
 
@@ -272,12 +270,12 @@ serve(async (req) => {
 
       if (!openAIResponse.ok) {
         const errorText = await openAIResponse.text()
-        console.error('OpenAI API error response:', errorText)
-        throw new Error(`Failed to analyze ballot information: ${openAIResponse.status} ${openAIResponse.statusText}`)
+        console.error('OpenAI API error:', errorText)
+        throw new Error('Failed to analyze ballot information')
       }
 
       const openAIData = await openAIResponse.json()
-      console.log('Received OpenAI response:', openAIData)
+      console.log('Received OpenAI response')
 
       if (!openAIData.choices || !openAIData.choices[0] || !openAIData.choices[0].message) {
         throw new Error('Invalid response format from OpenAI')
@@ -309,7 +307,7 @@ serve(async (req) => {
         candidates: candidates.flat()
       }
 
-      console.log('Sending response to client')
+      console.log('Sending successful response to client')
 
       return new Response(JSON.stringify(recommendations), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
