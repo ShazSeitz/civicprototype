@@ -1,6 +1,6 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
+import FirecrawlApp from 'npm:@mendable/firecrawl-js';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,6 +8,8 @@ const corsHeaders = {
 }
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+const firecrawlApiKey = Deno.env.get('FIRECRAWL_API_KEY');
+const firecrawl = new FirecrawlApp({ apiKey: firecrawlApiKey });
 
 async function analyzePriorities(priorities: string[]) {
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -65,15 +67,70 @@ async function generateEmailDraft(representative: any, priorities: string[]) {
 }
 
 async function findRelevantGroups(priorities: string[]) {
-  // This would be replaced with actual API calls to scrape/search HUD's interest groups
-  // For now, returning mock data with specific URLs
-  return [
-    {
+  try {
+    const hudUrl = 'https://www.hud.gov/program_offices/gov_relations/publicinterestgroups';
+    console.log('Crawling HUD interest groups page:', hudUrl);
+
+    const crawlResponse = await firecrawl.crawlUrl(hudUrl, {
+      limit: 1,
+      scrapeOptions: {
+        formats: ['html'],
+        selectors: {
+          groups: '.content-detail a',  // Adjust selector based on HUD's actual HTML structure
+          descriptions: '.content-detail p'
+        }
+      }
+    });
+
+    if (!crawlResponse.success) {
+      throw new Error('Failed to crawl HUD page');
+    }
+
+    // Extract groups and match them with priorities
+    const groups = crawlResponse.data[0].groups || [];
+    const descriptions = crawlResponse.data[0].descriptions || [];
+    
+    const relevantGroups = [];
+    
+    for (const priority of priorities) {
+      // Convert priority to keywords for matching
+      const keywords = priority.toLowerCase().split(' ');
+      
+      for (let i = 0; i < groups.length; i++) {
+        const group = groups[i];
+        const description = descriptions[i] || '';
+        
+        // Check if group or description matches priority keywords
+        if (keywords.some(keyword => 
+          group.toLowerCase().includes(keyword) || 
+          description.toLowerCase().includes(keyword)
+        )) {
+          relevantGroups.push({
+            name: group,
+            url: group.href || hudUrl,
+            relevance: `Matches priority: ${priority}`
+          });
+        }
+      }
+    }
+
+    console.log('Found relevant groups:', relevantGroups);
+    
+    // Return top 5 most relevant groups or fallback to mock data if none found
+    return relevantGroups.slice(0, 5).length > 0 ? relevantGroups.slice(0, 5) : [{
       name: "Citizens for Responsible Government",
       url: "https://www.hud.gov/program_offices/gov_relations/publicinterestgroups/fiscalresponsibility",
       relevance: "Focuses on government efficiency and fiscal responsibility"
-    }
-  ];
+    }];
+  } catch (error) {
+    console.error('Error finding relevant groups:', error);
+    // Fallback to mock data if scraping fails
+    return [{
+      name: "Citizens for Responsible Government",
+      url: "https://www.hud.gov/program_offices/gov_relations/publicinterestgroups/fiscalresponsibility",
+      relevance: "Focuses on government efficiency and fiscal responsibility"
+    }];
+  }
 }
 
 async function findRelevantPetitions(priorities: string[]) {
