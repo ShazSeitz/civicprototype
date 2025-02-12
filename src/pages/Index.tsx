@@ -26,40 +26,21 @@ const Index = () => {
     queryFn: async () => {
       if (!formData) return null;
       
-      try {
-        const { data, error } = await supabase.functions.invoke('analyze-priorities', {
-          body: formData
-        });
+      const { data, error } = await supabase.functions.invoke('analyze-priorities', {
+        body: formData
+      });
 
-        if (error) {
-          console.error('Supabase function error:', error);
-          toast({
-            variant: "destructive",
-            title: "Error",
-            description: "No election data available for this location at this time. Please try a different ZIP code.",
-          });
-          return null;
-        }
-
-        if (!data) {
-          toast({
-            variant: "destructive",
-            title: "Error",
-            description: "No recommendations available. Please try again.",
-          });
-          return null;
-        }
-
-        return data;
-      } catch (error) {
-        console.error('Error fetching recommendations:', error);
+      if (error || !data) {
+        console.error('Supabase function error:', error);
         toast({
           variant: "destructive",
           title: "Error",
-          description: "Failed to fetch recommendations. Please try again.",
+          description: "No election data available for this location at this time. Please try a different ZIP code.",
         });
         return null;
       }
+
+      return data;
     },
     enabled: Boolean(formData),
     retry: false,
