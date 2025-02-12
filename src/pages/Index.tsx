@@ -21,7 +21,7 @@ const Index = () => {
   const { toast } = useToast();
   const recommendationsRef = useRef<HTMLDivElement>(null);
 
-  const { data: recommendations, refetch, isLoading } = useQuery({
+  const { data: recommendations, refetch, isLoading, isError, error } = useQuery({
     queryKey: ['recommendations', formData],
     queryFn: async () => {
       if (!formData) return null;
@@ -33,27 +33,24 @@ const Index = () => {
 
         if (error) {
           console.error('Supabase function error:', error);
-          toast({
-            variant: "destructive",
-            title: "Error",
-            description: "Failed to get recommendations. Please try again.",
-          });
           throw error;
         }
 
-        console.log('Received recommendations:', data);
         return data;
       } catch (error) {
         console.error('Error fetching recommendations:', error);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to get recommendations. Please try again.",
-        });
         throw error;
       }
     },
-    enabled: false
+    enabled: false,
+    retry: false,
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to get recommendations. Please try again.",
+      });
+    }
   });
 
   useEffect(() => {
