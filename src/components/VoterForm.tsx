@@ -103,7 +103,7 @@ export const VoterForm = ({ onSubmit, isLoading }: VoterFormProps) => {
     <Card className="mb-8 animate-fade-up">
       <CardContent className="pt-6">
         {/* Test Persona Buttons */}
-        <div className="flex gap-4 mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+        <div className="flex gap-4 mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
           <span className="flex items-center text-sm text-muted-foreground font-medium">
             Run test personas:
           </span>
@@ -127,58 +127,54 @@ export const VoterForm = ({ onSubmit, isLoading }: VoterFormProps) => {
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="flex gap-8 items-start">
-              <FormField
-                control={form.control}
-                name="mode"
-                render={({ field }) => (
-                  <FormItem className="space-y-1">
-                    <FormLabel>Select Mode</FormLabel>
-                    <FormControl>
-                      <RadioGroup
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        className="flex gap-4"
-                      >
-                        <FormItem className="flex items-center space-x-2 space-y-0">
-                          <FormControl>
-                            <RadioGroupItem value="current" />
-                          </FormControl>
-                          <FormLabel className="font-normal">
-                            Current Date
-                          </FormLabel>
-                        </FormItem>
-                        <FormItem className="flex items-center space-x-2 space-y-0">
-                          <FormControl>
-                            <RadioGroupItem value="demo" />
-                          </FormControl>
-                          <FormLabel className="font-normal">
-                            DEMO: November 2024 Election
-                          </FormLabel>
-                        </FormItem>
-                      </RadioGroup>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            <FormField
+              control={form.control}
+              name="mode"
+              render={({ field }) => (
+                <FormItem className="space-y-1">
+                  <FormLabel>Select Mode</FormLabel>
+                  <FormControl>
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      className="flex gap-4"
+                    >
+                      <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl>
+                          <RadioGroupItem value="current" />
+                        </FormControl>
+                        <FormLabel className="font-normal">
+                          Current Date
+                        </FormLabel>
+                      </FormItem>
+                      <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl>
+                          <RadioGroupItem value="demo" />
+                        </FormControl>
+                        <FormLabel className="font-normal">
+                          DEMO: November 2024 Election
+                        </FormLabel>
+                      </FormItem>
+                    </RadioGroup>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-              <FormField
-                control={form.control}
-                name="zipCode"
-                render={({ field }) => (
-                  <FormItem>
-                    <div className="flex items-center gap-3">
-                      <FormLabel className="mb-0">ZIP Code</FormLabel>
-                      <FormControl>
-                        <Input placeholder="00000" {...field} className="w-[80px]" />
-                      </FormControl>
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+            <FormField
+              control={form.control}
+              name="zipCode"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>ZIP Code</FormLabel>
+                  <FormControl>
+                    <Input placeholder="00000" {...field} className="w-[80px]" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <div className="space-y-3">
               <FormLabel>Your Priorities</FormLabel>
