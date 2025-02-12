@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import * as z from "zod";
 import { supabase } from '@/integrations/supabase/client';
@@ -19,6 +19,7 @@ const formSchema = z.object({
 const Index = () => {
   const [formData, setFormData] = useState<z.infer<typeof formSchema> | null>(null);
   const { toast } = useToast();
+  const recommendationsRef = useRef<HTMLDivElement>(null);
 
   const { data: recommendations, refetch, isLoading } = useQuery({
     queryKey: ['recommendations', formData],
@@ -55,6 +56,15 @@ const Index = () => {
     enabled: false
   });
 
+  useEffect(() => {
+    if (recommendations && recommendationsRef.current) {
+      recommendationsRef.current.scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'start'
+      });
+    }
+  }, [recommendations]);
+
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     console.log('Form submitted with values:', values);
     setFormData(values);
@@ -73,7 +83,9 @@ const Index = () => {
           
           <VoterForm onSubmit={onSubmit} isLoading={isLoading} />
           
-          {recommendations && <RecommendationsList recommendations={recommendations} />}
+          <div ref={recommendationsRef}>
+            {recommendations && <RecommendationsList recommendations={recommendations} />}
+          </div>
         </div>
       </div>
     </div>

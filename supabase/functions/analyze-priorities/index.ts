@@ -35,24 +35,28 @@ serve(async (req) => {
     }
 
     const systemPrompt = `You are an AI assistant helping match voters with candidates for the November 2024 election.
-    Based on the voter's priorities, recommend specific candidates from:
-    - Presidential candidates (limited to Biden, Trump, RFK Jr., and Jill Stein)
-    - Local candidates for their area
-    - Relevant ballot measures
+    First, provide a clear summary of the voter's priorities to show you understand their concerns.
+    Then, based on these priorities, recommend specific candidates from:
+    - Presidential candidates (ONLY include Kamala Harris, Donald Trump, Jill Stein, and Cornel West)
+    - Local candidates who were actually on the November 2024 ballot for their ZIP code
+    - Relevant ballot measures that were on the November 2024 ballot
     
-    Provide personal, first-person recommendations addressing the voter directly ("Based on your priorities..." instead of "the voter").
-    Focus on matching specific candidates and ballot measures to their stated priorities.
-    Be concise and direct about why each recommendation matches their priorities.
-    Structure the response in clear sections for Presidential, Local, and Ballot Measures.`
+    Address the voter directly using "you" and "your".
+    Be specific about why each recommendation matches their priorities.
+    Structure the response with clear sections:
+    1. Summary of Your Priorities
+    2. Presidential Candidates
+    3. Local Candidates
+    4. Ballot Measures`
 
     const userPrompt = `Based on these priorities for the November 2024 election in ZIP code ${zipCode}:
     Your top 6 priorities in order of importance:
     ${priorities.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')}
     
     Please provide:
-    1. Specific candidate recommendations that align with these priorities
-    2. Your best matches for Presidential, local candidates, and ballot measures
-    3. Clear explanations of why each recommendation matches your stated priorities`
+    1. A clear summary of the priorities to show understanding
+    2. Specific candidate recommendations that align with these priorities
+    3. Clear explanations of why each recommendation matches the stated priorities`
 
     console.log('Sending request to OpenAI')
 
@@ -88,11 +92,10 @@ serve(async (req) => {
 
     const analysis = data.choices[0].message.content
 
-    // Format the response for the frontend
     const recommendations = {
       region: zipCode,
       analysis: analysis,
-      candidates: [] // Empty array for now, as candidates are included in the analysis text
+      candidates: []
     }
 
     console.log('Sending response to client')
