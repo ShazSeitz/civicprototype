@@ -37,69 +37,6 @@ interface CivicApiResponse {
   }>;
 }
 
-interface FECCandidate {
-  candidate_id: string;
-  name: string;
-  party_full: string;
-  incumbent_challenge_full: string;
-  total_receipts: number;
-  total_disbursements: number;
-  cash_on_hand_end_period: number;
-  office_full: string;
-}
-
-async function getFECCandidateInfo(name: string, office: string): Promise<FECCandidate | null> {
-  const fecApiKey = Deno.env.get('FEC_API_KEY');
-  if (!fecApiKey) {
-    console.log('FEC API key not configured, skipping FEC data enrichment');
-    return null;
-  }
-
-  try {
-    const searchName = name.split(' ')
-                          .filter(part => !part.includes('.'))
-                          .slice(0, 2)
-                          .join(' ');
-
-    const searchUrl = `https://api.open.fec.gov/v1/candidates/search/?api_key=${fecApiKey}&q=${encodeURIComponent(searchName)}&sort=name&per_page=1`;
-    console.log('Fetching FEC data for:', searchName);
-    
-    const response = await fetch(searchUrl);
-    if (!response.ok) {
-      console.error('FEC API error:', response.status, await response.text());
-      return null;
-    }
-
-    const data = await response.json();
-    if (!data.results || data.results.length === 0) {
-      console.log('No FEC data found for:', searchName);
-      return null;
-    }
-
-    const candidateId = data.results[0].candidate_id;
-    const detailsUrl = `https://api.open.fec.gov/v1/candidate/${candidateId}/totals/?api_key=${fecApiKey}&sort=-cycle&per_page=1`;
-    
-    const detailsResponse = await fetch(detailsUrl);
-    if (!detailsResponse.ok) {
-      console.error('FEC API details error:', detailsResponse.status);
-      return null;
-    }
-
-    const details = await detailsResponse.json();
-    if (!details.results || details.results.length === 0) {
-      return null;
-    }
-
-    return {
-      ...data.results[0],
-      ...details.results[0]
-    };
-  } catch (error) {
-    console.error('Error fetching FEC data:', error);
-    return null;
-  }
-}
-
 async function getElectionData(zipCode: string): Promise<any> {
   const civicApiKey = Deno.env.get('CIVIC_API_KEY');
   if (!civicApiKey) {
@@ -120,45 +57,6 @@ async function getElectionData(zipCode: string): Promise<any> {
 
   return response.json();
 }
-
-const PRESET_PRESIDENTIAL_CANDIDATES = [
-  {
-    name: "Candidate A",
-    party: "Party A",
-    highlights: [
-      "Economic policy focus",
-      "Foreign policy experience",
-      "Infrastructure plan"
-    ]
-  },
-  {
-    name: "Candidate B",
-    party: "Party B",
-    highlights: [
-      "Healthcare reform",
-      "Environmental initiatives",
-      "Education policy"
-    ]
-  },
-  {
-    name: "Candidate C",
-    party: "Party C",
-    highlights: [
-      "Technology innovation",
-      "Job creation plan",
-      "Immigration reform"
-    ]
-  },
-  {
-    name: "Candidate D",
-    party: "Party D",
-    highlights: [
-      "Fiscal responsibility",
-      "National security",
-      "Social programs"
-    ]
-  }
-];
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -187,9 +85,14 @@ serve(async (req) => {
 
     // Get representatives data from Google Civic API
     const civicApiKey = Deno.env.get('CIVIC_API_KEY');
+    if (!civicApiKey) {
+      throw new Error('CIVIC_API_KEY is not configured');
+    }
+
     const representativesUrl = `https://www.googleapis.com/civicinfo/v2/representatives?key=${civicApiKey}&address=${encodeURIComponent(zipCode)}`;
-    const repResponse = await fetch(representativesUrl);
+    console.log('Fetching representatives from:', representativesUrl);
     
+    const repResponse = await fetch(representativesUrl);
     if (!repResponse.ok) {
       console.error('Civic API error:', await repResponse.text());
       throw new Error('Failed to fetch representative data');
@@ -203,19 +106,26 @@ serve(async (req) => {
       throw new Error('Invalid response from Civic API');
     }
 
+    // Create a mapping of official indices to their offices
+    const officialToOffice = {};
+    repData.offices?.forEach((office: any) => {
+      office.officialIndices.forEach((index: number) => {
+        officialToOffice[index] = office.name;
+      });
+    });
+
+    // Extract representatives with their correct offices
+    const representatives = repData.officials?.map((official: any, index: number) => ({
+      name: official.name,
+      office: officialToOffice[index] || 'Unknown Office',
+      email: official.emails?.[0],
+      channels: official.channels
+    })).filter((rep: any) => rep.email) || [];
+
+    console.log('Extracted representatives:', representatives);
+
     const region = `${zipCode} (${repData.normalizedInput.city}, ${repData.normalizedInput.state})`;
     console.log('Extracted region:', region);
-    
-    // Extract current representatives with their contact info
-    const representatives = repData.offices?.map((office: any) => {
-      const official = repData.officials[office.officialIndices[0]];
-      return {
-        name: official.name,
-        office: office.name,
-        email: official.emails?.[0],
-        channels: official.channels
-      };
-    }).filter((rep: any) => rep.email) || [];
 
     // Get content analysis from our analyze-content function
     const contentResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/analyze-content`, {
@@ -230,10 +140,16 @@ serve(async (req) => {
       })
     });
 
+    if (!contentResponse.ok) {
+      console.error('Content analysis error:', await contentResponse.text());
+      throw new Error('Failed to analyze content');
+    }
+
     const contentAnalysis = await contentResponse.json();
+    console.log('Content analysis completed');
 
     if (mode === "current") {
-      return new Response(JSON.stringify({
+      const response = {
         region: region,
         mode: "current",
         priorities: contentAnalysis.mappedPriorities,
@@ -249,7 +165,11 @@ serve(async (req) => {
         draftEmails: contentAnalysis.emailDrafts,
         interestGroups: contentAnalysis.interestGroups,
         petitions: contentAnalysis.petitions
-      }), {
+      };
+
+      console.log('Sending response for current mode:', response);
+
+      return new Response(JSON.stringify(response), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -259,36 +179,32 @@ serve(async (req) => {
         const electionData = await getElectionData(zipCode);
         console.log('Retrieved election data:', electionData);
 
-        // Process election data as before
         const candidates = [];
         const ballotMeasures = [];
 
         if (electionData.contests) {
           for (const contest of electionData.contests) {
-            if (contest.office === 'President of the United States') {
-              candidates.push(...PRESET_PRESIDENTIAL_CANDIDATES);
-            } else if (contest.type === 'General' && contest.office) {
-              const candidateInfo = await getFECCandidateInfo(contest.candidates[0].name, contest.office);
+            if (contest.type === 'General' && contest.office) {
               candidates.push({
-                name: contest.candidates[0].name,
+                name: contest.candidates?.[0]?.name || 'Unknown Candidate',
                 office: contest.office,
                 highlights: [
-                  `Party: ${contest.candidates[0].party}`,
-                  candidateInfo ? `Campaign Finance: $${(candidateInfo.total_receipts / 1000000).toFixed(1)}M raised` : 'Campaign finance data unavailable',
-                  candidateInfo?.incumbent_challenge_full ? `Status: ${candidateInfo.incumbent_challenge_full}` : 'Status unavailable'
+                  `Party: ${contest.candidates?.[0]?.party || 'Unknown Party'}`,
+                  'Campaign finance data unavailable',
+                  'Status unavailable'
                 ]
               });
             } else if (contest.type === 'Referendum') {
               ballotMeasures.push({
-                title: contest.referendumTitle,
-                recommendation: `${contest.referendumSubtitle}\n\n${contest.referendumText}`
+                title: contest.referendumTitle || 'Untitled Measure',
+                recommendation: `${contest.referendumSubtitle || ''}\n\n${contest.referendumText || ''}`
               });
             }
           }
         }
 
-        return new Response(JSON.stringify({
-          region: `${zipCode} (${electionData.state?.[0]?.name || 'Unknown Region'})`,
+        const response = {
+          region: region,
           mode: "demo",
           priorities: contentAnalysis.mappedPriorities,
           analysis: contentAnalysis.analysis,
@@ -297,7 +213,11 @@ serve(async (req) => {
           draftEmails: contentAnalysis.emailDrafts,
           interestGroups: contentAnalysis.interestGroups,
           petitions: contentAnalysis.petitions
-        }), {
+        };
+
+        console.log('Sending response for demo mode:', response);
+
+        return new Response(JSON.stringify(response), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       } catch (error) {

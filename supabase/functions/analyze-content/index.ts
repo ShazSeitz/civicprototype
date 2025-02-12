@@ -23,7 +23,7 @@ async function analyzePriorities(priorities: string[]) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4',  // Fixed model name
         messages: [
           {
             role: 'system',
@@ -46,9 +46,12 @@ async function analyzePriorities(priorities: string[]) {
     }
 
     const data = await response.json();
+    console.log('OpenAI response:', data);
+    
     if (!data.choices?.[0]?.message?.content) {
       throw new Error('Invalid response from OpenAI API');
     }
+    
     return JSON.parse(data.choices[0].message.content);
   } catch (error) {
     console.error('Error in analyzePriorities:', error);
@@ -67,7 +70,7 @@ async function generateEmailDraft(representative: any, priorities: string[]) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4',  // Fixed model name
         messages: [
           {
             role: 'system',
@@ -101,21 +104,46 @@ async function generateEmailDraft(representative: any, priorities: string[]) {
 }
 
 async function findRelevantGroups(priorities: string[]) {
-  console.log('Finding relevant groups for priorities');
-  return [{
-    name: "Citizens for Responsible Government",
-    url: "https://www.hud.gov/program_offices/gov_relations/publicinterestgroups/fiscalresponsibility",
-    relevance: "Focuses on government efficiency and fiscal responsibility"
-  }];
-}
+  console.log('Finding relevant groups for priorities:', priorities);
+  
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openAIApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an expert in civic engagement and advocacy groups. Generate relevant interest groups based on political priorities. Return response as a JSON array of objects with fields: name, url, relevance'
+          },
+          {
+            role: 'user',
+            content: `Suggest 3 relevant interest groups for these priorities: ${JSON.stringify(priorities)}`
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 1000
+      }),
+    });
 
-async function findRelevantPetitions(priorities: string[]) {
-  console.log('Finding relevant petitions for priorities');
-  return [{
-    title: "Reform Local Infrastructure Spending",
-    url: "https://www.change.org/p/local-infrastructure-reform-2024",
-    relevance: "Addresses fiscal responsibility in infrastructure projects"
-  }];
+    if (!response.ok) {
+      throw new Error('Failed to get interest group suggestions');
+    }
+
+    const data = await response.json();
+    return JSON.parse(data.choices[0].message.content);
+  } catch (error) {
+    console.error('Error finding interest groups:', error);
+    return [{
+      name: "Default Civic Action Group",
+      url: "https://www.usa.gov/advocacy-groups",
+      relevance: "General civic engagement resources"
+    }];
+  }
 }
 
 serve(async (req) => {
@@ -125,20 +153,12 @@ serve(async (req) => {
   }
 
   try {
-    const { mode, zipCode, priorities } = await req.json();
-    console.log('Received request:', { mode, zipCode, priorities });
+    const { priorities, representatives } = await req.json();
+    console.log('Received request:', { priorities, representativesCount: representatives?.length });
 
     if (!Array.isArray(priorities) || priorities.length !== 6) {
       throw new Error('Invalid priorities format');
     }
-
-    // Mock representatives for demo mode
-    const representatives = mode === 'demo' ? [
-      { name: "Jane Smith", office: "State Senator", email: "jane.smith@state.gov" },
-      { name: "John Doe", office: "House Representative", email: "john.doe@house.gov" }
-    ] : [];
-
-    console.log('Using representatives:', representatives);
 
     // Get analyzed priorities and overall analysis
     const priorityAnalysis = await analyzePriorities(priorities);
@@ -146,7 +166,7 @@ serve(async (req) => {
 
     // Generate email drafts for each representative
     const emailDrafts = await Promise.all(
-      representatives.map(async (rep) => ({
+      (representatives || []).map(async (rep) => ({
         to: rep.email,
         subject: `Constituent Priorities for ${rep.name}`,
         body: await generateEmailDraft(rep, priorities)
@@ -154,27 +174,21 @@ serve(async (req) => {
     );
     console.log('Email drafts generated');
 
-    // Find relevant interest groups and petitions
-    const [interestGroups, petitions] = await Promise.all([
-      findRelevantGroups(priorities),
-      findRelevantPetitions(priorities)
-    ]);
-    console.log('Found relevant groups and petitions');
+    // Find relevant interest groups
+    const interestGroups = await findRelevantGroups(priorities);
+    console.log('Found relevant groups');
+
+    // For demonstration purposes, generating example petitions
+    const petitions = priorities.map((priority, index) => ({
+      title: `Petition related to: ${priority.slice(0, 50)}...`,
+      url: `https://www.change.org/search?q=${encodeURIComponent(priority.slice(0, 20))}`,
+      relevance: `Based on priority #${index + 1}`
+    })).slice(0, 3);
 
     const response = {
-      region: `${zipCode} (Demo Region)`,
-      mode: mode,
-      priorities: priorityAnalysis.mappedPriorities,
+      mappedPriorities: priorityAnalysis.mappedPriorities,
       analysis: priorityAnalysis.analysis,
-      candidates: representatives.map(rep => ({
-        name: rep.name,
-        office: rep.office,
-        highlights: [
-          `Contact: ${rep.email}`,
-          'Demo representative for testing'
-        ]
-      })),
-      draftEmails: emailDrafts,
+      emailDrafts,
       interestGroups,
       petitions
     };
