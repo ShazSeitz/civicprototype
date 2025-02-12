@@ -105,37 +105,42 @@ export const VoterForm = ({ onSubmit, isLoading }: VoterFormProps) => {
       <CardContent className="pt-6">
         {/* Test Persona Buttons */}
         <div className="flex gap-4 mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+          <span className="flex items-center text-sm text-muted-foreground font-medium">
+            Run test personas:
+          </span>
           <Button
             type="button"
             variant="outline"
             onClick={() => loadPersona('persona1')}
+            className="h-8 px-3"
           >
-            Load SF Persona
+            Persona 1
           </Button>
           <Button
             type="button"
             variant="outline"
             onClick={() => loadPersona('persona2')}
+            className="h-8 px-3"
           >
-            Load NYC Persona
+            Persona 2
           </Button>
         </div>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="mode"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="space-y-1">
                   <FormLabel>Select Mode</FormLabel>
                   <FormControl>
                     <RadioGroup
                       onValueChange={field.onChange}
                       defaultValue={field.value}
-                      className="flex flex-col space-y-1"
+                      className="flex gap-4"
                     >
-                      <FormItem className="flex items-center space-x-3 space-y-0">
+                      <FormItem className="flex items-center space-x-2 space-y-0">
                         <FormControl>
                           <RadioGroupItem value="current" />
                         </FormControl>
@@ -143,7 +148,7 @@ export const VoterForm = ({ onSubmit, isLoading }: VoterFormProps) => {
                           Current Date
                         </FormLabel>
                       </FormItem>
-                      <FormItem className="flex items-center space-x-3 space-y-0">
+                      <FormItem className="flex items-center space-x-2 space-y-0">
                         <FormControl>
                           <RadioGroupItem value="demo" />
                         </FormControl>
@@ -165,14 +170,14 @@ export const VoterForm = ({ onSubmit, isLoading }: VoterFormProps) => {
                 <FormItem>
                   <FormLabel>ZIP Code</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter your 5-digit ZIP code" {...field} />
+                    <Input placeholder="Enter your 5-digit ZIP code" {...field} className="max-w-[200px]" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            <div className="space-y-4">
+            <div className="space-y-3">
               <FormLabel>Your Priorities</FormLabel>
               <p className="text-sm text-muted-foreground">Enter your top 6 concerns and values (max 250 characters each)</p>
               <DndContext
