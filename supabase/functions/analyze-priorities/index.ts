@@ -80,7 +80,7 @@ serve(async (req) => {
       console.log('Civic API response:', responseText)
       
       if (!civicResponse.ok) {
-        throw new Error(`Failed to fetch ballot data: ${civicResponse.status} ${civicResponse.statusText}. Response: ${responseText}`)
+        throw new Error(`No election data available for this location (${zipCode}) at this time. Status: ${civicResponse.status}`)
       }
 
       const ballotData: CivicApiResponse = JSON.parse(responseText)
@@ -90,21 +90,23 @@ serve(async (req) => {
         throw new Error('No ballot information available for this location at this time.')
       }
 
-      // Prepare ballot information for the AI
+      // Format ballot information
       let ballotInfo = 'Here is the actual ballot information for this location:\n\n'
       
       // Local and State Candidates
       const candidateContests = ballotData.contests.filter(c => c.type === 'General' && c.candidates)
-      if (candidateContests.length > 0) {
-        ballotInfo += 'Candidates:\n'
-        candidateContests.forEach(contest => {
-          ballotInfo += `${contest.office}:\n`
-          contest.candidates?.forEach(candidate => {
-            ballotInfo += `- ${candidate.name} (${candidate.party})\n`
-          })
-          ballotInfo += '\n'
-        })
+      if (candidateContests.length === 0) {
+        throw new Error('No candidate information available for this location at this time.')
       }
+
+      ballotInfo += 'Candidates:\n'
+      candidateContests.forEach(contest => {
+        ballotInfo += `${contest.office}:\n`
+        contest.candidates?.forEach(candidate => {
+          ballotInfo += `- ${candidate.name} (${candidate.party})\n`
+        })
+        ballotInfo += '\n'
+      })
 
       // Ballot Measures
       const measures = ballotData.contests.filter(c => c.type === 'Referendum')
@@ -125,41 +127,35 @@ serve(async (req) => {
 
       console.log('Preparing OpenAI request with ballot info:', ballotInfo)
 
-      const systemPrompt = `You are an AI assistant helping voters understand their priorities and match them with candidates from the November 2024 election ballot.
+      const systemPrompt = `You are an AI assistant helping voters understand how their priorities align with REAL candidates from their actual ballot data.
+
+      IMPORTANT: 
+      1. ONLY analyze and recommend candidates that appear in the provided ballot data
+      2. NEVER make up or suggest candidates that aren't in the ballot data
+      3. If you can't find relevant candidates for some priorities, acknowledge this gap
+      4. Be explicit about which recommendations come from real ballot data
 
       First, provide a thoughtful analysis of the voter's priorities by:
       1. Identifying underlying themes and policy areas
       2. Connecting their personal concerns to broader policy issues
       3. Highlighting any potential tensions or tradeoffs in their priorities
 
-      Then, recommend specific candidates from their November 2024 ballot in this order:
-      1. Local candidates (city council, county positions, etc.)
-      2. State candidates (state legislature, etc.)
-      3. Local and state ballot measures
-      4. Presidential candidates (ONLY include Kamala Harris, Donald Trump, Jill Stein, and Oliver)
+      Then, recommend ONLY candidates from the provided ballot data that align with their priorities:
+      1. Explain specifically how each candidate addresses their stated priorities
+      2. Focus on concrete actions, voting records, or policy positions
+      3. Acknowledge when a candidate partially aligns with some priorities but may conflict with others
+      4. If certain priorities can't be addressed by any available candidates, explicitly state this
 
-      For each recommendation:
-      - Explain specifically how the candidate or measure addresses their stated priorities
-      - Focus on concrete actions, voting records, or policy positions
-      - Acknowledge when a candidate partially aligns with some priorities but may conflict with others
+      Address them directly using "you" and "your" throughout the response.`
 
-      Address them directly using "you" and "your" throughout the response.
-
-      Response structure:
-      1. Summary of Your Priorities (detailed analysis connecting personal concerns to policy areas)
-      2. Local Candidates
-      3. State Candidates
-      4. Ballot Measures
-      5. Presidential Candidates`
-
-      const userPrompt = `Based on these priorities for the November 2024 election in ZIP code ${zipCode}:
+      const userPrompt = `Based on these priorities for their local election:
       ${priorities.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')}
       
       ${ballotInfo}
       
-      First, provide a thoughtful analysis of how their personal priorities connect to broader policy issues.
-      Then, recommend specific candidates from their actual November 2024 ballot that best align with these priorities.
-      Be specific about why each recommendation matches or addresses their stated concerns.`
+      Analyze their priorities and recommend ONLY candidates from the actual ballot data that best align with these priorities.
+      Be specific about why each recommendation matches or addresses their stated concerns.
+      If some priorities cannot be addressed by the available candidates, explicitly acknowledge this.`
 
       console.log('Sending request to OpenAI')
 
@@ -195,22 +191,18 @@ serve(async (req) => {
 
       const analysis = openAIData.choices[0].message.content
 
-      // Format candidates from ballot data
-      const candidates = ballotData.contests
-        .filter(c => c.type === 'General' && c.candidates)
-        .flatMap(contest => contest.candidates?.map(candidate => ({
+      // Format candidates from verified ballot data
+      const candidates = candidateContests.flatMap(contest => 
+        contest.candidates?.map(candidate => ({
           name: candidate.name,
           office: contest.office || 'Unknown Office',
           highlights: [
             `Party: ${candidate.party}`,
             contest.district?.name ? `District: ${contest.district.name}` : null,
-            candidate.channels?.map(ch => `${ch.type}: ${ch.id}`),
-          ].filter(Boolean) as string[]
-        })) || []);
-
-      if (candidates.length === 0) {
-        throw new Error('No candidate information available for this location at this time.')
-      }
+            ...(candidate.channels?.map(ch => `${ch.type}: ${ch.id}`) || [])
+          ].filter(Boolean)
+        })) || []
+      )
 
       const recommendations = {
         region: zipCode,
@@ -226,13 +218,12 @@ serve(async (req) => {
 
     } catch (apiError) {
       console.error('API Error:', apiError)
-      throw new Error(`API Error: ${apiError.message}`)
+      throw new Error(`${apiError.message}`)
     }
   } catch (error) {
     console.error('Error in analyze-priorities function:', error)
     return new Response(JSON.stringify({ 
-      error: error.message,
-      details: error.stack
+      error: error.message
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
