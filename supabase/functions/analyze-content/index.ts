@@ -1,7 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
-import FirecrawlApp from 'npm:@mendable/firecrawl-js';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -9,8 +8,6 @@ const corsHeaders = {
 }
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-const firecrawlApiKey = Deno.env.get('FIRECRAWL_API_KEY');
-const firecrawl = new FirecrawlApp({ apiKey: firecrawlApiKey });
 
 async function analyzePriorities(priorities: string[]) {
   console.log('Analyzing priorities:', priorities);
@@ -23,7 +20,7 @@ async function analyzePriorities(priorities: string[]) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4-turbo-preview',
         messages: [
           {
             role: 'system',
@@ -62,7 +59,7 @@ async function generateEmailDraft(representative: any, priorities: string[]) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4-turbo-preview',
         messages: [
           {
             role: 'system',
@@ -152,9 +149,19 @@ serve(async (req) => {
     console.log('Found relevant groups and petitions');
 
     const response = {
-      mappedPriorities: priorityAnalysis.mappedPriorities,
+      region: `${zipCode} (Demo Region)`,
+      mode: mode,
+      priorities: priorityAnalysis.mappedPriorities,
       analysis: priorityAnalysis.analysis,
-      emailDrafts,
+      candidates: representatives.map(rep => ({
+        name: rep.name,
+        office: rep.office,
+        highlights: [
+          `Contact: ${rep.email}`,
+          'Demo representative for testing'
+        ]
+      })),
+      draftEmails: emailDrafts,
       interestGroups,
       petitions
     };
