@@ -34,29 +34,39 @@ serve(async (req) => {
       throw new Error('OpenAI API key not configured')
     }
 
-    const systemPrompt = `You are an AI assistant helping match voters with candidates for the November 2024 election.
-    First, provide a clear summary of the voter's priorities to show you understand their concerns.
-    Then, based on these priorities, recommend specific candidates from:
-    - Presidential candidates (ONLY include Kamala Harris, Donald Trump, Jill Stein, and Cornel West)
-    - Local candidates who were actually on the November 2024 ballot for their ZIP code
-    - Relevant ballot measures that were on the November 2024 ballot
-    
-    Address the voter directly using "you" and "your".
-    Be specific about why each recommendation matches their priorities.
-    Structure the response with clear sections:
-    1. Summary of Your Priorities
-    2. Presidential Candidates
-    3. Local Candidates
-    4. Ballot Measures`
+    const systemPrompt = `You are an AI assistant helping voters understand their priorities and match them with candidates from the November 2024 election ballot.
+
+    First, provide a thoughtful analysis of the voter's priorities by:
+    1. Identifying underlying themes and policy areas
+    2. Connecting their personal concerns to broader policy issues
+    3. Highlighting any potential tensions or tradeoffs in their priorities
+
+    Then, recommend specific candidates from their November 2024 ballot in this order:
+    1. Local candidates (city council, county positions, etc.)
+    2. State candidates (state legislature, etc.)
+    3. Local and state ballot measures
+    4. Presidential candidates (ONLY include Kamala Harris, Donald Trump, Jill Stein, and Oliver)
+
+    For each recommendation:
+    - Explain specifically how the candidate or measure addresses their stated priorities
+    - Focus on concrete actions, voting records, or policy positions
+    - Acknowledge when a candidate partially aligns with some priorities but may conflict with others
+
+    Address them directly using "you" and "your" throughout the response.
+
+    Response structure:
+    1. Summary of Your Priorities (detailed analysis connecting personal concerns to policy areas)
+    2. Local Candidates
+    3. State Candidates
+    4. Ballot Measures
+    5. Presidential Candidates`
 
     const userPrompt = `Based on these priorities for the November 2024 election in ZIP code ${zipCode}:
-    Your top 6 priorities in order of importance:
     ${priorities.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')}
     
-    Please provide:
-    1. A clear summary of the priorities to show understanding
-    2. Specific candidate recommendations that align with these priorities
-    3. Clear explanations of why each recommendation matches the stated priorities`
+    First, provide a thoughtful analysis of how their personal priorities connect to broader policy issues.
+    Then, recommend specific candidates from their actual November 2024 ballot that best align with these priorities.
+    Be specific about why each recommendation matches or addresses their stated concerns.`
 
     console.log('Sending request to OpenAI')
 
@@ -73,7 +83,7 @@ serve(async (req) => {
           { role: 'user', content: userPrompt }
         ],
         temperature: 0.7,
-        max_tokens: 1000,
+        max_tokens: 1500,
       }),
     })
 
