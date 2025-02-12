@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 import FirecrawlApp from 'npm:@mendable/firecrawl-js';
@@ -36,6 +37,10 @@ async function analyzePriorities(priorities: string[]) {
     }),
   });
 
+  if (!response.ok) {
+    throw new Error('Failed to analyze priorities');
+  }
+
   const data = await response.json();
   return JSON.parse(data.choices[0].message.content);
 }
@@ -61,6 +66,10 @@ async function generateEmailDraft(representative: any, priorities: string[]) {
       ],
     }),
   });
+
+  if (!response.ok) {
+    throw new Error('Failed to generate email draft');
+  }
 
   const data = await response.json();
   return data.choices[0].message.content;
@@ -124,7 +133,6 @@ async function findRelevantGroups(priorities: string[]) {
     }];
   } catch (error) {
     console.error('Error finding relevant groups:', error);
-    // Fallback to mock data if scraping fails
     return [{
       name: "Citizens for Responsible Government",
       url: "https://www.hud.gov/program_offices/gov_relations/publicinterestgroups/fiscalresponsibility",
@@ -152,14 +160,11 @@ async function findRelevantPetitions(priorities: string[]) {
     return await response.json();
   } catch (error) {
     console.error('Error in findRelevantPetitions:', error);
-    // Fallback to mock data if the petition search fails
-    return [
-      {
-        title: "Reform Local Infrastructure Spending",
-        url: "https://www.change.org/p/local-infrastructure-reform-2024",
-        relevance: "Addresses fiscal responsibility in infrastructure projects"
-      }
-    ];
+    return [{
+      title: "Reform Local Infrastructure Spending",
+      url: "https://www.change.org/p/local-infrastructure-reform-2024",
+      relevance: "Addresses fiscal responsibility in infrastructure projects"
+    }];
   }
 }
 
@@ -169,14 +174,20 @@ serve(async (req) => {
   }
 
   try {
-    const { priorities, representatives } = await req.json();
+    const { mode, priorities } = await req.json();
     
+    // Mock representatives for demo mode
+    const representatives = mode === 'demo' ? [
+      { name: "Jane Smith", office: "State Senator", email: "jane.smith@state.gov" },
+      { name: "John Doe", office: "House Representative", email: "john.doe@house.gov" }
+    ] : [];
+
     // Get analyzed priorities and overall analysis
     const priorityAnalysis = await analyzePriorities(priorities);
     
     // Generate email drafts for each representative
     const emailDrafts = await Promise.all(
-      representatives.map(async (rep: any) => ({
+      representatives.map(async (rep) => ({
         to: rep.email,
         subject: `Constituent Priorities for ${rep.name}`,
         body: await generateEmailDraft(rep, priorities)
@@ -184,8 +195,10 @@ serve(async (req) => {
     );
 
     // Find relevant interest groups and petitions
-    const interestGroups = await findRelevantGroups(priorities);
-    const petitions = await findRelevantPetitions(priorities);
+    const [interestGroups, petitions] = await Promise.all([
+      findRelevantGroups(priorities),
+      findRelevantPetitions(priorities)
+    ]);
 
     return new Response(JSON.stringify({
       mappedPriorities: priorityAnalysis.mappedPriorities,
@@ -198,7 +211,9 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error('Error in analyze-content function:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ 
+      error: error.message || 'An unexpected error occurred'
+    }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

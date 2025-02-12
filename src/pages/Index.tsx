@@ -21,26 +21,37 @@ const Index = () => {
   const { toast } = useToast();
   const recommendationsRef = useRef<HTMLDivElement>(null);
 
-  const { data: recommendations, isLoading } = useQuery({
+  const { data: recommendations, isLoading, isError, error } = useQuery({
     queryKey: ['recommendations', formData],
     queryFn: async () => {
       if (!formData) return null;
       
-      const { data, error } = await supabase.functions.invoke('analyze-content', {
-        body: formData
-      });
+      try {
+        const { data, error } = await supabase.functions.invoke('analyze-content', {
+          body: { ...formData }
+        });
 
-      if (error || !data) {
-        console.error('Supabase function error:', error);
+        if (error) {
+          console.error('Supabase function error:', error);
+          throw new Error(error.message || 'Failed to analyze content');
+        }
+
+        if (!data) {
+          throw new Error('No data returned from analysis');
+        }
+
+        return data;
+      } catch (err) {
+        console.error('Error in analyze-content:', err);
         toast({
           variant: "destructive",
           title: "Error",
-          description: "No election data available for this location at this time. Please try a different ZIP code.",
+          description: formData.mode === "demo" 
+            ? "Unable to process demo request. Please try again."
+            : "No election data available for this location at this time. Please try a different ZIP code.",
         });
-        return null;
+        throw err;
       }
-
-      return data;
     },
     enabled: Boolean(formData),
     retry: false,
@@ -70,7 +81,10 @@ const Index = () => {
             Voter Information Tool
           </h1>
           
-          <VoterForm onSubmit={onSubmit} isLoading={isLoading} />
+          <VoterForm 
+            onSubmit={onSubmit} 
+            isLoading={isLoading} 
+          />
           
           <div ref={recommendationsRef}>
             {recommendations && <RecommendationsList recommendations={recommendations} />}
