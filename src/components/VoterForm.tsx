@@ -1,3 +1,4 @@
+
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -123,7 +124,7 @@ export const VoterForm = ({ onSubmit, isLoading }: VoterFormProps) => {
 
             <div className="space-y-4">
               <FormLabel>Your Priorities</FormLabel>
-              <p className="text-sm text-muted-foreground">Enter your top 6 concerns and values</p>
+              <p className="text-sm text-muted-foreground">Enter your top 6 concerns and values (max 200 characters each)</p>
               <DndContext
                 sensors={sensors}
                 collisionDetection={closestCenter}
@@ -144,6 +145,8 @@ export const VoterForm = ({ onSubmit, isLoading }: VoterFormProps) => {
                           id={index.toString()}
                           index={index}
                           field={field}
+                          characterCount={field.value.length}
+                          maxLength={200}
                         />
                       )}
                     />
