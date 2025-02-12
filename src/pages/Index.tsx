@@ -20,40 +20,33 @@ const Index = () => {
   const [formData, setFormData] = useState<z.infer<typeof formSchema> | null>(null);
   const { toast } = useToast();
   const recommendationsRef = useRef<HTMLDivElement>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { data: recommendations, refetch, isLoading, isError } = useQuery({
+  const { data: recommendations, refetch, isLoading } = useQuery({
     queryKey: ['recommendations', formData],
     queryFn: async () => {
       if (!formData) return null;
       
-      try {
-        const { data, error } = await supabase.functions.invoke('analyze-priorities', {
-          body: formData
-        });
+      const { data, error } = await supabase.functions.invoke('analyze-priorities', {
+        body: formData
+      });
 
-        if (error) {
-          console.error('Supabase function error:', error);
-          toast({
-            variant: "destructive",
-            title: "Error",
-            description: "Failed to get recommendations. Please try again.",
-          });
-          throw error;
-        }
-
-        return data;
-      } catch (error) {
-        console.error('Error fetching recommendations:', error);
+      if (error) {
+        console.error('Supabase function error:', error);
+        const errorMessage = error.message || "Failed to get recommendations. Please try again.";
         toast({
           variant: "destructive",
-            title: "Error",
-            description: error instanceof Error ? error.message : "Failed to get recommendations. Please try again.",
+          title: "Error",
+          description: errorMessage,
         });
         throw error;
       }
+
+      return data;
     },
     enabled: false,
-    retry: false
+    retry: 0,
+    gcTime: 0
   });
 
   useEffect(() => {
@@ -66,9 +59,16 @@ const Index = () => {
   }, [recommendations]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    console.log('Form submitted with values:', values);
-    setFormData(values);
-    await refetch();
+    if (isSubmitting) return;
+    
+    try {
+      setIsSubmitting(true);
+      console.log('Form submitted with values:', values);
+      setFormData(values);
+      await refetch();
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -81,7 +81,7 @@ const Index = () => {
             Voter Information Tool
           </h1>
           
-          <VoterForm onSubmit={onSubmit} isLoading={isLoading} />
+          <VoterForm onSubmit={onSubmit} isLoading={isLoading || isSubmitting} />
           
           <div ref={recommendationsRef}>
             {recommendations && <RecommendationsList recommendations={recommendations} />}
