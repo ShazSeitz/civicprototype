@@ -13,178 +13,127 @@ const firecrawlApiKey = Deno.env.get('FIRECRAWL_API_KEY');
 const firecrawl = new FirecrawlApp({ apiKey: firecrawlApiKey });
 
 async function analyzePriorities(priorities: string[]) {
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${openAIApiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: `You are a political analyst expert in converting casual language about political priorities into formal policy positions. 
-          Format the response as JSON with two fields:
-          1. "mappedPriorities": array of formal policy positions
-          2. "analysis": comprehensive but concise analysis of the overall political perspective`
-        },
-        {
-          role: 'user',
-          content: `Analyze these political priorities and map them to formal policy positions: ${JSON.stringify(priorities)}`
-        }
-      ],
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to analyze priorities');
-  }
-
-  const data = await response.json();
-  return JSON.parse(data.choices[0].message.content);
-}
-
-async function generateEmailDraft(representative: any, priorities: string[]) {
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${openAIApiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are an expert in constituent communication. Write a professional, convincing email that clearly communicates the constituent\'s priorities.'
-        },
-        {
-          role: 'user',
-          content: `Write an email to ${representative.name} (${representative.office}) expressing these priorities: ${JSON.stringify(priorities)}`
-        }
-      ],
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to generate email draft');
-  }
-
-  const data = await response.json();
-  return data.choices[0].message.content;
-}
-
-async function findRelevantGroups(priorities: string[]) {
+  console.log('Analyzing priorities:', priorities);
+  
   try {
-    const hudUrl = 'https://www.hud.gov/program_offices/gov_relations/publicinterestgroups';
-    console.log('Crawling HUD interest groups page:', hudUrl);
-
-    const crawlResponse = await firecrawl.crawlUrl(hudUrl, {
-      limit: 1,
-      scrapeOptions: {
-        formats: ['html'],
-        selectors: {
-          groups: '.content-detail a',  // Adjust selector based on HUD's actual HTML structure
-          descriptions: '.content-detail p'
-        }
-      }
-    });
-
-    if (!crawlResponse.success) {
-      throw new Error('Failed to crawl HUD page');
-    }
-
-    // Extract groups and match them with priorities
-    const groups = crawlResponse.data[0].groups || [];
-    const descriptions = crawlResponse.data[0].descriptions || [];
-    
-    const relevantGroups = [];
-    
-    for (const priority of priorities) {
-      // Convert priority to keywords for matching
-      const keywords = priority.toLowerCase().split(' ');
-      
-      for (let i = 0; i < groups.length; i++) {
-        const group = groups[i];
-        const description = descriptions[i] || '';
-        
-        // Check if group or description matches priority keywords
-        if (keywords.some(keyword => 
-          group.toLowerCase().includes(keyword) || 
-          description.toLowerCase().includes(keyword)
-        )) {
-          relevantGroups.push({
-            name: group,
-            url: group.href || hudUrl,
-            relevance: `Matches priority: ${priority}`
-          });
-        }
-      }
-    }
-
-    console.log('Found relevant groups:', relevantGroups);
-    
-    // Return top 5 most relevant groups or fallback to mock data if none found
-    return relevantGroups.slice(0, 5).length > 0 ? relevantGroups.slice(0, 5) : [{
-      name: "Citizens for Responsible Government",
-      url: "https://www.hud.gov/program_offices/gov_relations/publicinterestgroups/fiscalresponsibility",
-      relevance: "Focuses on government efficiency and fiscal responsibility"
-    }];
-  } catch (error) {
-    console.error('Error finding relevant groups:', error);
-    return [{
-      name: "Citizens for Responsible Government",
-      url: "https://www.hud.gov/program_offices/gov_relations/publicinterestgroups/fiscalresponsibility",
-      relevance: "Focuses on government efficiency and fiscal responsibility"
-    }];
-  }
-}
-
-async function findRelevantPetitions(priorities: string[]) {
-  try {
-    const response = await fetch('http://localhost:54321/functions/v1/search-petitions', {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
+        'Authorization': `Bearer ${openAIApiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ priorities }),
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a political analyst expert in converting casual language about political priorities into formal policy positions. Format the response as JSON with two fields: 1. "mappedPriorities": array of formal policy positions, 2. "analysis": comprehensive but concise analysis of the overall political perspective'
+          },
+          {
+            role: 'user',
+            content: `Analyze these political priorities and map them to formal policy positions: ${JSON.stringify(priorities)}`
+          }
+        ],
+      }),
     });
 
     if (!response.ok) {
-      console.error('Error fetching petitions:', await response.text());
-      throw new Error('Failed to fetch petitions');
+      const errorText = await response.text();
+      console.error('OpenAI API error:', errorText);
+      throw new Error('Failed to analyze priorities');
     }
 
-    return await response.json();
+    const data = await response.json();
+    return JSON.parse(data.choices[0].message.content);
   } catch (error) {
-    console.error('Error in findRelevantPetitions:', error);
-    return [{
-      title: "Reform Local Infrastructure Spending",
-      url: "https://www.change.org/p/local-infrastructure-reform-2024",
-      relevance: "Addresses fiscal responsibility in infrastructure projects"
-    }];
+    console.error('Error in analyzePriorities:', error);
+    throw error;
   }
 }
 
+async function generateEmailDraft(representative: any, priorities: string[]) {
+  console.log('Generating email draft for:', representative.name);
+  
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openAIApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an expert in constituent communication. Write a professional, convincing email that clearly communicates the constituent\'s priorities.'
+          },
+          {
+            role: 'user',
+            content: `Write an email to ${representative.name} (${representative.office}) expressing these priorities: ${JSON.stringify(priorities)}`
+          }
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('OpenAI API error:', errorText);
+      throw new Error('Failed to generate email draft');
+    }
+
+    const data = await response.json();
+    return data.choices[0].message.content;
+  } catch (error) {
+    console.error('Error in generateEmailDraft:', error);
+    throw error;
+  }
+}
+
+async function findRelevantGroups(priorities: string[]) {
+  console.log('Finding relevant groups for priorities');
+  return [{
+    name: "Citizens for Responsible Government",
+    url: "https://www.hud.gov/program_offices/gov_relations/publicinterestgroups/fiscalresponsibility",
+    relevance: "Focuses on government efficiency and fiscal responsibility"
+  }];
+}
+
+async function findRelevantPetitions(priorities: string[]) {
+  console.log('Finding relevant petitions for priorities');
+  return [{
+    title: "Reform Local Infrastructure Spending",
+    url: "https://www.change.org/p/local-infrastructure-reform-2024",
+    relevance: "Addresses fiscal responsibility in infrastructure projects"
+  }];
+}
+
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { mode, priorities } = await req.json();
-    
+    const { mode, zipCode, priorities } = await req.json();
+    console.log('Received request:', { mode, zipCode, priorities });
+
+    if (!Array.isArray(priorities) || priorities.length !== 6) {
+      throw new Error('Invalid priorities format');
+    }
+
     // Mock representatives for demo mode
     const representatives = mode === 'demo' ? [
       { name: "Jane Smith", office: "State Senator", email: "jane.smith@state.gov" },
       { name: "John Doe", office: "House Representative", email: "john.doe@house.gov" }
     ] : [];
 
+    console.log('Using representatives:', representatives);
+
     // Get analyzed priorities and overall analysis
     const priorityAnalysis = await analyzePriorities(priorities);
-    
+    console.log('Priority analysis completed');
+
     // Generate email drafts for each representative
     const emailDrafts = await Promise.all(
       representatives.map(async (rep) => ({
@@ -193,26 +142,32 @@ serve(async (req) => {
         body: await generateEmailDraft(rep, priorities)
       }))
     );
+    console.log('Email drafts generated');
 
     // Find relevant interest groups and petitions
     const [interestGroups, petitions] = await Promise.all([
       findRelevantGroups(priorities),
       findRelevantPetitions(priorities)
     ]);
+    console.log('Found relevant groups and petitions');
 
-    return new Response(JSON.stringify({
+    const response = {
       mappedPriorities: priorityAnalysis.mappedPriorities,
       analysis: priorityAnalysis.analysis,
       emailDrafts,
       interestGroups,
       petitions
-    }), {
+    };
+
+    console.log('Sending successful response');
+    return new Response(JSON.stringify(response), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
     console.error('Error in analyze-content function:', error);
     return new Response(JSON.stringify({ 
-      error: error.message || 'An unexpected error occurred'
+      error: error.message || 'An unexpected error occurred',
+      details: error.toString()
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
