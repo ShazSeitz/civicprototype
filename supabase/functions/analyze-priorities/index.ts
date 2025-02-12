@@ -50,12 +50,17 @@ async function getElectionData(zipCode: string): Promise<any> {
   console.log('Fetching election data for ZIP:', zipCode);
   
   const response = await fetch(url);
+  const data = await response.json();
+  
   if (!response.ok) {
-    console.error('Civic API error:', response.status);
+    if (data.error?.message?.includes('Election unknown')) {
+      throw new Error('No active elections');
+    }
+    console.error('Civic API error:', response.status, data);
     throw new Error('Error fetching election data');
   }
 
-  return response.json();
+  return data;
 }
 
 serve(async (req) => {
@@ -167,8 +172,6 @@ serve(async (req) => {
         petitions: contentAnalysis.petitions
       };
 
-      console.log('Sending response for current mode:', response);
-
       return new Response(JSON.stringify(response), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -215,12 +218,29 @@ serve(async (req) => {
           petitions: contentAnalysis.petitions
         };
 
-        console.log('Sending response for demo mode:', response);
-
         return new Response(JSON.stringify(response), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
-      } catch (error) {
+      } catch (error: any) {
+        if (error.message === 'No active elections') {
+          // Return a successful response with all available data except election-specific info
+          const response = {
+            region: region,
+            mode: "demo",
+            priorities: contentAnalysis.mappedPriorities,
+            analysis: contentAnalysis.analysis,
+            candidates: [],
+            ballotMeasures: [],
+            draftEmails: contentAnalysis.emailDrafts,
+            interestGroups: contentAnalysis.interestGroups,
+            petitions: contentAnalysis.petitions,
+            noActiveElections: true
+          };
+
+          return new Response(JSON.stringify(response), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
         console.error('Error fetching election data:', error);
         throw new Error('Unable to fetch election data for this location');
       }
@@ -230,6 +250,17 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in analyze-priorities function:', error);
+    // If it's a "no active elections" error, return a 200 response with the message
+    if (error.message === 'No active elections') {
+      return new Response(JSON.stringify({ 
+        error: 'No active elections',
+        message: 'There are no active elections in this zip code.'
+      }), {
+        status: 200,  // Return 200 instead of 500
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
     return new Response(JSON.stringify({ 
       error: error.message || 'An unknown error occurred'
     }), {
