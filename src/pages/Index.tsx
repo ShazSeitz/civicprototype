@@ -20,7 +20,6 @@ const Index = () => {
   const [formData, setFormData] = useState<z.infer<typeof formSchema> | null>(null);
   const { toast } = useToast();
   const recommendationsRef = useRef<HTMLDivElement>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { data: recommendations, refetch, isLoading } = useQuery({
     queryKey: ['recommendations', formData],
@@ -33,11 +32,10 @@ const Index = () => {
 
       if (error) {
         console.error('Supabase function error:', error);
-        const errorMessage = error.message || "Failed to get recommendations. Please try again.";
         toast({
           variant: "destructive",
           title: "Error",
-          description: errorMessage,
+          description: "No election data available for this location at this time. Please try a different ZIP code.",
         });
         throw error;
       }
@@ -45,8 +43,7 @@ const Index = () => {
       return data;
     },
     enabled: false,
-    retry: 0,
-    gcTime: 0
+    retry: false
   });
 
   useEffect(() => {
@@ -59,16 +56,9 @@ const Index = () => {
   }, [recommendations]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    if (isSubmitting) return;
-    
-    try {
-      setIsSubmitting(true);
-      console.log('Form submitted with values:', values);
-      setFormData(values);
-      await refetch();
-    } finally {
-      setIsSubmitting(false);
-    }
+    console.log('Form submitted with values:', values);
+    setFormData(values);
+    await refetch();
   };
 
   return (
@@ -81,7 +71,7 @@ const Index = () => {
             Voter Information Tool
           </h1>
           
-          <VoterForm onSubmit={onSubmit} isLoading={isLoading || isSubmitting} />
+          <VoterForm onSubmit={onSubmit} isLoading={isLoading} />
           
           <div ref={recommendationsRef}>
             {recommendations && <RecommendationsList recommendations={recommendations} />}
