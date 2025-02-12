@@ -23,7 +23,7 @@ async function analyzePriorities(priorities: string[]) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4',  // Fixed model name
+        model: 'gpt-4',
         messages: [
           {
             role: 'system',
@@ -70,7 +70,7 @@ async function generateEmailDraft(representative: any, priorities: string[]) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4',  // Fixed model name
+        model: 'gpt-4',
         messages: [
           {
             role: 'system',

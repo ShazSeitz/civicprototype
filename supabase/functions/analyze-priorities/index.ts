@@ -49,18 +49,26 @@ async function getElectionData(zipCode: string): Promise<any> {
   
   console.log('Fetching election data for ZIP:', zipCode);
   
-  const response = await fetch(url);
-  const data = await response.json();
-  
-  if (!response.ok) {
-    if (data.error?.message?.includes('Election unknown')) {
-      throw new Error('No active elections');
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+    
+    console.log('Civic API response status:', response.status);
+    console.log('Civic API response:', data);
+    
+    if (!response.ok) {
+      if (data.error?.message?.includes('Election unknown')) {
+        throw new Error('No active elections');
+      }
+      console.error('Civic API error:', response.status, data);
+      throw new Error('Error fetching election data');
     }
-    console.error('Civic API error:', response.status, data);
-    throw new Error('Error fetching election data');
-  }
 
-  return data;
+    return data;
+  } catch (error) {
+    console.error('Error in getElectionData:', error);
+    throw error;
+  }
 }
 
 async function getRepresentatives(zipCode: string) {
@@ -72,60 +80,76 @@ async function getRepresentatives(zipCode: string) {
   const representativesUrl = `https://www.googleapis.com/civicinfo/v2/representatives?key=${civicApiKey}&address=${encodeURIComponent(zipCode)}`;
   console.log('Fetching representatives from:', representativesUrl);
   
-  const repResponse = await fetch(representativesUrl);
-  if (!repResponse.ok) {
-    console.error('Civic API error:', await repResponse.text());
-    throw new Error('Failed to fetch representative data');
-  }
-  
-  const repData = await repResponse.json();
-  console.log('Civic API response:', repData);
+  try {
+    const repResponse = await fetch(representativesUrl);
+    if (!repResponse.ok) {
+      console.error('Civic API error:', await repResponse.text());
+      throw new Error('Failed to fetch representative data');
+    }
+    
+    const repData = await repResponse.json();
+    console.log('Civic API response:', repData);
 
-  if (!repData.normalizedInput) {
-    console.error('No normalized input in Civic API response');
-    throw new Error('Invalid response from Civic API');
-  }
+    if (!repData.normalizedInput) {
+      console.error('No normalized input in Civic API response');
+      throw new Error('Invalid response from Civic API');
+    }
 
-  // Create a mapping of official indices to their offices
-  const officialToOffice = {};
-  repData.offices?.forEach((office: any) => {
-    office.officialIndices.forEach((index: number) => {
-      officialToOffice[index] = office.name;
+    // Create a mapping of official indices to their offices
+    const officialToOffice = {};
+    repData.offices?.forEach((office: any) => {
+      office.officialIndices.forEach((index: number) => {
+        officialToOffice[index] = office.name;
+      });
     });
-  });
 
-  // Extract representatives with their correct offices
-  const representatives = repData.officials?.map((official: any, index: number) => ({
-    name: official.name,
-    office: officialToOffice[index] || 'Unknown Office',
-    email: official.emails?.[0],
-    channels: official.channels
-  })).filter((rep: any) => rep.email) || [];
+    // Extract representatives with their correct offices
+    const representatives = repData.officials?.map((official: any, index: number) => ({
+      name: official.name,
+      office: officialToOffice[index] || 'Unknown Office',
+      email: official.emails?.[0],
+      channels: official.channels
+    })).filter((rep: any) => rep.email) || [];
 
-  const region = `${zipCode} (${repData.normalizedInput.city}, ${repData.normalizedInput.state})`;
+    const region = `${zipCode} (${repData.normalizedInput.city}, ${repData.normalizedInput.state})`;
 
-  return { representatives, region };
+    return { representatives, region };
+  } catch (error) {
+    console.error('Error in getRepresentatives:', error);
+    throw error;
+  }
 }
 
 async function analyzeContent(priorities: string[], representatives: any[]) {
-  const contentResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/analyze-content`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      priorities,
-      representatives
-    })
-  });
+  console.log('Starting content analysis with priorities:', priorities);
+  console.log('Representatives:', representatives);
 
-  if (!contentResponse.ok) {
-    console.error('Content analysis error:', await contentResponse.text());
-    throw new Error('Failed to analyze content');
+  try {
+    const contentResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/analyze-content`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        priorities,
+        representatives
+      })
+    });
+
+    if (!contentResponse.ok) {
+      const errorText = await contentResponse.text();
+      console.error('Content analysis error:', errorText);
+      throw new Error(`Failed to analyze content: ${errorText}`);
+    }
+
+    const result = await contentResponse.json();
+    console.log('Content analysis completed successfully');
+    return result;
+  } catch (error) {
+    console.error('Error in analyzeContent:', error);
+    throw error;
   }
-
-  return await contentResponse.json();
 }
 
 function buildBaseResponse(region: string, mode: string, contentAnalysis: any) {
@@ -187,6 +211,7 @@ function buildDemoModeResponse(baseResponse: any, electionData: any) {
 }
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -211,62 +236,72 @@ serve(async (req) => {
     console.log('Mode:', mode);
     console.log('Priorities:', priorities);
 
-    // Get representatives data
-    const { representatives, region } = await getRepresentatives(zipCode);
-    console.log('Extracted representatives:', representatives);
+    try {
+      // Get representatives data
+      const { representatives, region } = await getRepresentatives(zipCode);
+      console.log('Extracted representatives:', representatives);
 
-    // Get content analysis
-    const contentAnalysis = await analyzeContent(priorities, representatives);
-    console.log('Content analysis completed');
+      if (!representatives || representatives.length === 0) {
+        console.warn('No representatives found for ZIP:', zipCode);
+      }
 
-    // Build base response
-    const baseResponse = buildBaseResponse(region, mode, contentAnalysis);
+      // Get content analysis
+      const contentAnalysis = await analyzeContent(priorities, representatives);
+      console.log('Content analysis completed');
 
-    if (mode === "current") {
-      try {
-        await getElectionData(zipCode);
-        return new Response(
-          JSON.stringify(buildCurrentModeResponse(baseResponse, representatives)),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      } catch (error: any) {
-        if (error.message === 'No active elections') {
+      // Build base response
+      const baseResponse = buildBaseResponse(region, mode, contentAnalysis);
+
+      if (mode === "current") {
+        try {
+          await getElectionData(zipCode);
           return new Response(
-            JSON.stringify({
-              ...buildCurrentModeResponse(baseResponse, representatives),
-              noActiveElections: true
-            }),
+            JSON.stringify(buildCurrentModeResponse(baseResponse, representatives)),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
+        } catch (error: any) {
+          if (error.message === 'No active elections') {
+            return new Response(
+              JSON.stringify({
+                ...buildCurrentModeResponse(baseResponse, representatives),
+                noActiveElections: true
+              }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
+          throw error;
         }
-        throw error;
       }
-    }
 
-    if (mode === "demo") {
-      try {
-        const electionData = await getElectionData(zipCode);
-        return new Response(
-          JSON.stringify(buildDemoModeResponse(baseResponse, electionData)),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      } catch (error: any) {
-        if (error.message === 'No active elections') {
+      if (mode === "demo") {
+        try {
+          const electionData = await getElectionData(zipCode);
           return new Response(
-            JSON.stringify({
-              ...baseResponse,
-              noActiveElections: true,
-              candidates: [],
-              ballotMeasures: []
-            }),
+            JSON.stringify(buildDemoModeResponse(baseResponse, electionData)),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
+        } catch (error: any) {
+          if (error.message === 'No active elections') {
+            return new Response(
+              JSON.stringify({
+                ...baseResponse,
+                noActiveElections: true,
+                candidates: [],
+                ballotMeasures: []
+              }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
+          throw error;
         }
-        throw error;
       }
-    }
 
-    throw new Error('Invalid mode specified');
+      throw new Error('Invalid mode specified');
+
+    } catch (error) {
+      console.error('Error processing request:', error);
+      throw error;
+    }
 
   } catch (error) {
     console.error('Error in analyze-priorities function:', error);
