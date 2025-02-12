@@ -1,4 +1,3 @@
-
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -169,10 +168,12 @@ export const VoterForm = ({ onSubmit, isLoading }: VoterFormProps) => {
                 name="zipCode"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>ZIP Code</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter your 5-digit ZIP code" {...field} className="max-w-[200px]" />
-                    </FormControl>
+                    <div className="flex items-center gap-3">
+                      <FormLabel className="mb-0">ZIP Code</FormLabel>
+                      <FormControl>
+                        <Input placeholder="00000" {...field} className="w-[80px]" />
+                      </FormControl>
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
