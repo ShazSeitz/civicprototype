@@ -26,7 +26,7 @@ const Index = () => {
     queryFn: async () => {
       if (!formData) return null;
       
-      const { data, error } = await supabase.functions.invoke('analyze-priorities', {
+      const { data, error } = await supabase.functions.invoke('analyze-content', {
         body: formData
       });
 
