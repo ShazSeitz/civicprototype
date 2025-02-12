@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 
@@ -184,22 +185,52 @@ serve(async (req) => {
     console.log('Mode:', mode);
     console.log('Priorities:', priorities);
 
+    // Get representatives data from Google Civic API
+    const civicApiKey = Deno.env.get('CIVIC_API_KEY');
+    const representativesUrl = `https://www.googleapis.com/civicinfo/v2/representatives?key=${civicApiKey}&address=${encodeURIComponent(zipCode)}`;
+    const repResponse = await fetch(representativesUrl);
+    const repData = await repResponse.json();
+    
+    // Extract current representatives with their contact info
+    const representatives = repData.offices?.map((office: any) => {
+      const official = repData.officials[office.officialIndices[0]];
+      return {
+        name: official.name,
+        office: office.name,
+        email: official.emails?.[0],
+        channels: official.channels
+      };
+    }).filter((rep: any) => rep.email) || [];
+
+    // Get content analysis from our new function
+    const contentResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/analyze-content`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        priorities,
+        representatives
+      })
+    });
+
+    const contentAnalysis = await contentResponse.json();
+
     if (mode === "demo") {
       try {
         const electionData = await getElectionData(zipCode);
         console.log('Retrieved election data:', electionData);
 
-        // Process real election data, but use preset presidential candidates
+        // Process election data as before
         const candidates = [];
         const ballotMeasures = [];
 
         if (electionData.contests) {
           for (const contest of electionData.contests) {
             if (contest.office === 'President of the United States') {
-              // Use preset presidential candidates instead of real ones
               candidates.push(...PRESET_PRESIDENTIAL_CANDIDATES);
             } else if (contest.type === 'General' && contest.office) {
-              // Add real candidates for non-presidential races
               const candidateInfo = await getFECCandidateInfo(contest.candidates[0].name, contest.office);
               candidates.push({
                 name: contest.candidates[0].name,
@@ -211,7 +242,6 @@ serve(async (req) => {
                 ]
               });
             } else if (contest.type === 'Referendum') {
-              // Add real ballot measures
               ballotMeasures.push({
                 title: contest.referendumTitle,
                 recommendation: `${contest.referendumSubtitle}\n\n${contest.referendumText}`
@@ -220,16 +250,17 @@ serve(async (req) => {
           }
         }
 
-        const recommendations = {
+        return new Response(JSON.stringify({
           region: `${zipCode} (${electionData.state?.[0]?.name || 'Unknown Region'})`,
           mode: "demo",
-          priorities,
-          analysis: "Based on your priorities, here are personalized recommendations for the November 2024 election using real ballot data, with preset presidential candidates.",
+          priorities: contentAnalysis.mappedPriorities,
+          analysis: contentAnalysis.analysis,
           candidates,
-          ballotMeasures
-        };
-
-        return new Response(JSON.stringify(recommendations), {
+          ballotMeasures,
+          draftEmails: contentAnalysis.emailDrafts,
+          interestGroups: contentAnalysis.interestGroups,
+          petitions: contentAnalysis.petitions
+        }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       } catch (error) {
@@ -238,51 +269,24 @@ serve(async (req) => {
       }
     }
 
-    // For current mode, show different data based on if there's an upcoming election
-    const currentDate = new Date();
-    const hasUpcomingElection = currentDate.getMonth() >= 9; // After September
-
     if (mode === "current") {
-      const currentRecommendations = {
-        region: `${zipCode} (Current Region)`,
+      return new Response(JSON.stringify({
+        region: `${zipCode} (${repData.normalizedInput?.state || 'Unknown Region'})`,
         mode: "current",
-        priorities,
-        analysis: "Based on your priorities, here are recommendations for engaging with your current representatives.",
-        candidates: hasUpcomingElection ? [
-          {
-            name: "Representative Sarah Johnson",
-            office: "U.S. House",
-            highlights: [
-              "Active on environmental issues",
-              "Recently sponsored climate bill",
-              "Regular town halls"
-            ]
-          }
-        ] : undefined,
-        draftEmails: [
-          {
-            to: "representative@congress.gov",
-            subject: "Constituent Concerns about Local Infrastructure",
-            body: "Dear Representative,\n\nAs your constituent, I am writing to express my concerns about...\n\nBest regards,\n[Your Name]"
-          }
-        ],
-        interestGroups: [
-          {
-            name: "Local Environmental Council",
-            url: "https://www.hud.gov/program_offices/gov_relations/oirpublicinterestgroups",
-            relevance: "Aligns with your environmental priorities"
-          }
-        ],
-        petitions: [
-          {
-            title: "Support Local Green Infrastructure",
-            url: "https://www.change.org/browse",
-            relevance: "Matches your interest in sustainable development"
-          }
-        ]
-      };
-
-      return new Response(JSON.stringify(currentRecommendations), {
+        priorities: contentAnalysis.mappedPriorities,
+        analysis: contentAnalysis.analysis,
+        candidates: representatives.map((rep: any) => ({
+          name: rep.name,
+          office: rep.office,
+          highlights: [
+            `Contact: ${rep.email}`,
+            rep.channels?.map((c: any) => `${c.type}: ${c.id}`).join(', ') || 'No social media available'
+          ]
+        })),
+        draftEmails: contentAnalysis.emailDrafts,
+        interestGroups: contentAnalysis.interestGroups,
+        petitions: contentAnalysis.petitions
+      }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
