@@ -72,50 +72,51 @@ serve(async (req) => {
     const civicApiUrl = `https://civicinfo.googleapis.com/civicinfo/v2/voterinfo?key=${googleCivicApiKey}&address=${encodeURIComponent(address)}&electionId=2000`
 
     const civicResponse = await fetch(civicApiUrl)
-    let ballotData: CivicApiResponse = {}
     
-    if (civicResponse.ok) {
-      ballotData = await civicResponse.json()
-      console.log('Successfully retrieved ballot data')
-    } else {
-      console.warn('Failed to fetch ballot data:', await civicResponse.text())
-      // Continue with AI analysis even if we can't get ballot data
+    if (!civicResponse.ok) {
+      const errorText = await civicResponse.text()
+      console.error('Failed to fetch ballot data:', errorText)
+      throw new Error('Unable to retrieve ballot information for this location. Please try again later.')
+    }
+
+    const ballotData: CivicApiResponse = await civicResponse.json()
+    console.log('Successfully retrieved ballot data')
+
+    if (!ballotData.contests || ballotData.contests.length === 0) {
+      throw new Error('No ballot information available for this location at this time.')
+    }
+
+    // Prepare ballot information for the AI
+    let ballotInfo = 'Here is the actual ballot information for this location:\n\n'
+    
+    // Local and State Candidates
+    const candidateContests = ballotData.contests.filter(c => c.type === 'General' && c.candidates)
+    if (candidateContests.length > 0) {
+      ballotInfo += 'Candidates:\n'
+      candidateContests.forEach(contest => {
+        ballotInfo += `${contest.office}:\n`
+        contest.candidates?.forEach(candidate => {
+          ballotInfo += `- ${candidate.name} (${candidate.party})\n`
+        })
+        ballotInfo += '\n'
+      })
+    }
+
+    // Ballot Measures
+    const measures = ballotData.contests.filter(c => c.type === 'Referendum')
+    if (measures.length > 0) {
+      ballotInfo += 'Ballot Measures:\n'
+      measures.forEach(measure => {
+        ballotInfo += `- ${measure.referendumTitle}\n`
+        if (measure.referendumText) {
+          ballotInfo += `  Summary: ${measure.referendumText}\n`
+        }
+      })
     }
 
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY')
     if (!openAIApiKey) {
       throw new Error('OpenAI API key not configured')
-    }
-
-    // Prepare ballot information for the AI
-    let ballotInfo = ''
-    if (ballotData.contests) {
-      ballotInfo = `Here is the actual ballot information for this location:\n\n`
-      
-      // Local and State Candidates
-      const candidateContests = ballotData.contests.filter(c => c.type === 'General' && c.candidates)
-      if (candidateContests.length > 0) {
-        ballotInfo += 'Candidates:\n'
-        candidateContests.forEach(contest => {
-          ballotInfo += `${contest.office}:\n`
-          contest.candidates?.forEach(candidate => {
-            ballotInfo += `- ${candidate.name} (${candidate.party})\n`
-          })
-          ballotInfo += '\n'
-        })
-      }
-
-      // Ballot Measures
-      const measures = ballotData.contests.filter(c => c.type === 'Referendum')
-      if (measures.length > 0) {
-        ballotInfo += 'Ballot Measures:\n'
-        measures.forEach(measure => {
-          ballotInfo += `- ${measure.referendumTitle}\n`
-          if (measure.referendumText) {
-            ballotInfo += `  Summary: ${measure.referendumText}\n`
-          }
-        })
-      }
     }
 
     const systemPrompt = `You are an AI assistant helping voters understand their priorities and match them with candidates from the November 2024 election ballot.
@@ -176,20 +177,21 @@ serve(async (req) => {
     if (!response.ok) {
       const errorText = await response.text()
       console.error('OpenAI API error:', errorText)
-      throw new Error(`OpenAI API error: ${response.statusText}. Details: ${errorText}`)
+      throw new Error(`Failed to analyze ballot information. Please try again later.`)
     }
 
     const data = await response.json()
     console.log('Received OpenAI response')
 
     if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-      throw new Error('Invalid response format from OpenAI')
+      throw new Error('Failed to generate ballot analysis. Please try again later.')
     }
 
     const analysis = data.choices[0].message.content
 
     // Format candidates from ballot data
-    const candidates = ballotData.contests?.filter(c => c.type === 'General' && c.candidates)
+    const candidates = ballotData.contests
+      .filter(c => c.type === 'General' && c.candidates)
       .flatMap(contest => contest.candidates?.map(candidate => ({
         name: candidate.name,
         office: contest.office || 'Unknown Office',
@@ -198,7 +200,11 @@ serve(async (req) => {
           contest.district?.name ? `District: ${contest.district.name}` : null,
           candidate.channels?.map(ch => `${ch.type}: ${ch.id}`),
         ].filter(Boolean) as string[]
-      })) || []) || [];
+      })) || []);
+
+    if (candidates.length === 0) {
+      throw new Error('No candidate information available for this location at this time.')
+    }
 
     const recommendations = {
       region: zipCode,
