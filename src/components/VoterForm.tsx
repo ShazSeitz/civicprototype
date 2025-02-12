@@ -27,25 +27,25 @@ import { SortablePriority } from "./SortablePriority";
 // Test personas data
 const testPersonas = {
   persona1: {
-    zipCode: "94105",
+    zipCode: "94925",
     priorities: [
-      "Climate change and environmental protection",
-      "Affordable housing in the Bay Area",
-      "Public transportation improvements",
-      "Tech industry regulation",
-      "Homelessness solutions",
-      "Local business support"
+      "Funding for headstart and after school programs (important for single mom)",
+      "The cost of housing in the Bay Area",
+      "I suspect that there is a lot of waste in government and that many departments need to be made more effective and efficient and accountable",
+      "I support everyone's right to live however they wish to live and to have all of the rights and protections set out in the constitution and BIll of Rights, but I don't want to be asked what my pronouns are!",
+      "Homelessness and fentanyl problem",
+      "Protection of national parks and wildlife sanctuaries"
     ]
   },
   persona2: {
-    zipCode: "10001",
+    zipCode: "15301",
     priorities: [
-      "Public safety and crime reduction",
-      "Education system improvement",
-      "Small business recovery",
-      "Affordable healthcare access",
-      "Immigration reform",
-      "Arts and culture funding"
+      "I am tired of paying so much income tax! I work hard for my money and want some to pass on to my children.",
+      "I think that it is disgraceful that race or gender are used to decide whether or not to hire someone.",
+      "I think climate change is probably a hoax but I'm not sure",
+      "My town desperately needs more and more affordable local transportation options",
+      "I am angry that Jan 6th rioters may get pardoned as many are violent criminals",
+      "I'm afraid AI could lead to scary Sci-fy like stuff, but it's too hard for me to understand."
     ]
   }
 };
