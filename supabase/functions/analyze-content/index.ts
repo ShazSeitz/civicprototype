@@ -8,6 +8,9 @@ const corsHeaders = {
 }
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+if (!openAIApiKey) {
+  throw new Error('OPENAI_API_KEY is not set');
+}
 
 async function analyzePriorities(priorities: string[]) {
   console.log('Analyzing priorities:', priorities);
@@ -20,7 +23,7 @@ async function analyzePriorities(priorities: string[]) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4-turbo-preview',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
@@ -31,16 +34,21 @@ async function analyzePriorities(priorities: string[]) {
             content: `Analyze these political priorities and map them to formal policy positions: ${JSON.stringify(priorities)}`
           }
         ],
+        temperature: 0.7,
+        max_tokens: 1000
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error('OpenAI API error:', errorText);
-      throw new Error('Failed to analyze priorities');
+      throw new Error(`OpenAI API error: ${errorText}`);
     }
 
     const data = await response.json();
+    if (!data.choices?.[0]?.message?.content) {
+      throw new Error('Invalid response from OpenAI API');
+    }
     return JSON.parse(data.choices[0].message.content);
   } catch (error) {
     console.error('Error in analyzePriorities:', error);
@@ -59,7 +67,7 @@ async function generateEmailDraft(representative: any, priorities: string[]) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4-turbo-preview',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
@@ -70,16 +78,21 @@ async function generateEmailDraft(representative: any, priorities: string[]) {
             content: `Write an email to ${representative.name} (${representative.office}) expressing these priorities: ${JSON.stringify(priorities)}`
           }
         ],
+        temperature: 0.7,
+        max_tokens: 1000
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error('OpenAI API error:', errorText);
-      throw new Error('Failed to generate email draft');
+      throw new Error(`OpenAI API error: ${errorText}`);
     }
 
     const data = await response.json();
+    if (!data.choices?.[0]?.message?.content) {
+      throw new Error('Invalid response from OpenAI API');
+    }
     return data.choices[0].message.content;
   } catch (error) {
     console.error('Error in generateEmailDraft:', error);
