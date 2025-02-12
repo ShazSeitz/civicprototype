@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 
@@ -188,7 +189,22 @@ serve(async (req) => {
     const civicApiKey = Deno.env.get('CIVIC_API_KEY');
     const representativesUrl = `https://www.googleapis.com/civicinfo/v2/representatives?key=${civicApiKey}&address=${encodeURIComponent(zipCode)}`;
     const repResponse = await fetch(representativesUrl);
+    
+    if (!repResponse.ok) {
+      console.error('Civic API error:', await repResponse.text());
+      throw new Error('Failed to fetch representative data');
+    }
+    
     const repData = await repResponse.json();
+    console.log('Civic API response:', repData);
+
+    if (!repData.normalizedInput) {
+      console.error('No normalized input in Civic API response');
+      throw new Error('Invalid response from Civic API');
+    }
+
+    const region = `${zipCode} (${repData.normalizedInput.city}, ${repData.normalizedInput.state})`;
+    console.log('Extracted region:', region);
     
     // Extract current representatives with their contact info
     const representatives = repData.offices?.map((office: any) => {
@@ -218,7 +234,7 @@ serve(async (req) => {
 
     if (mode === "current") {
       return new Response(JSON.stringify({
-        region: `${zipCode} (${repData.normalizedInput?.state || 'Unknown Region'})`,
+        region: region,
         mode: "current",
         priorities: contentAnalysis.mappedPriorities,
         analysis: contentAnalysis.analysis,
