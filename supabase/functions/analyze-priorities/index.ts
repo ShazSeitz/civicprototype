@@ -7,6 +7,36 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+interface Contest {
+  type: string;
+  office?: string;
+  district?: {
+    name: string;
+    scope: string;
+  };
+  candidates?: Array<{
+    name: string;
+    party: string;
+    channels?: Array<{
+      type: string;
+      id: string;
+    }>;
+  }>;
+  referendumTitle?: string;
+  referendumSubtitle?: string;
+  referendumText?: string;
+}
+
+interface CivicApiResponse {
+  contests?: Contest[];
+  state?: Array<{
+    electionAdministrationBody: {
+      name: string;
+      electionInfoUrl: string;
+    };
+  }>;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -29,9 +59,63 @@ serve(async (req) => {
     console.log('Processing request for ZIP:', zipCode)
     console.log('Priorities:', priorities)
 
+    // Fetch ballot data from Google Civic API
+    const googleCivicApiKey = Deno.env.get('GOOGLE_CIVIC_API_KEY')
+    if (!googleCivicApiKey) {
+      throw new Error('Google Civic API key not configured')
+    }
+
+    console.log('Fetching ballot data from Google Civic API')
+    
+    // Convert ZIP to address for Civic API (it requires a full address)
+    const address = `${zipCode} USA`
+    const civicApiUrl = `https://civicinfo.googleapis.com/civicinfo/v2/voterinfo?key=${googleCivicApiKey}&address=${encodeURIComponent(address)}&electionId=2000`
+
+    const civicResponse = await fetch(civicApiUrl)
+    let ballotData: CivicApiResponse = {}
+    
+    if (civicResponse.ok) {
+      ballotData = await civicResponse.json()
+      console.log('Successfully retrieved ballot data')
+    } else {
+      console.warn('Failed to fetch ballot data:', await civicResponse.text())
+      // Continue with AI analysis even if we can't get ballot data
+    }
+
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY')
     if (!openAIApiKey) {
       throw new Error('OpenAI API key not configured')
+    }
+
+    // Prepare ballot information for the AI
+    let ballotInfo = ''
+    if (ballotData.contests) {
+      ballotInfo = `Here is the actual ballot information for this location:\n\n`
+      
+      // Local and State Candidates
+      const candidateContests = ballotData.contests.filter(c => c.type === 'General' && c.candidates)
+      if (candidateContests.length > 0) {
+        ballotInfo += 'Candidates:\n'
+        candidateContests.forEach(contest => {
+          ballotInfo += `${contest.office}:\n`
+          contest.candidates?.forEach(candidate => {
+            ballotInfo += `- ${candidate.name} (${candidate.party})\n`
+          })
+          ballotInfo += '\n'
+        })
+      }
+
+      // Ballot Measures
+      const measures = ballotData.contests.filter(c => c.type === 'Referendum')
+      if (measures.length > 0) {
+        ballotInfo += 'Ballot Measures:\n'
+        measures.forEach(measure => {
+          ballotInfo += `- ${measure.referendumTitle}\n`
+          if (measure.referendumText) {
+            ballotInfo += `  Summary: ${measure.referendumText}\n`
+          }
+        })
+      }
     }
 
     const systemPrompt = `You are an AI assistant helping voters understand their priorities and match them with candidates from the November 2024 election ballot.
@@ -63,6 +147,8 @@ serve(async (req) => {
 
     const userPrompt = `Based on these priorities for the November 2024 election in ZIP code ${zipCode}:
     ${priorities.map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')}
+    
+    ${ballotInfo}
     
     First, provide a thoughtful analysis of how their personal priorities connect to broader policy issues.
     Then, recommend specific candidates from their actual November 2024 ballot that best align with these priorities.
@@ -102,10 +188,22 @@ serve(async (req) => {
 
     const analysis = data.choices[0].message.content
 
+    // Format candidates from ballot data
+    const candidates = ballotData.contests?.filter(c => c.type === 'General' && c.candidates)
+      .flatMap(contest => contest.candidates?.map(candidate => ({
+        name: candidate.name,
+        office: contest.office || 'Unknown Office',
+        highlights: [
+          `Party: ${candidate.party}`,
+          contest.district?.name ? `District: ${contest.district.name}` : null,
+          candidate.channels?.map(ch => `${ch.type}: ${ch.id}`),
+        ].filter(Boolean) as string[]
+      })) || []) || [];
+
     const recommendations = {
       region: zipCode,
       analysis: analysis,
-      candidates: []
+      candidates: candidates
     }
 
     console.log('Sending response to client')
