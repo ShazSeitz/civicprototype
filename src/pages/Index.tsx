@@ -1,11 +1,13 @@
+
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import * as z from "zod";
+import { supabase } from '@/integrations/supabase/client';
 import Navbar from '../components/Navbar';
 import { VoterForm } from '@/components/VoterForm';
 import { RecommendationsList } from '@/components/RecommendationsList';
+import { useToast } from '@/components/ui/use-toast';
 
-// Form validation schema (needed for TypeScript)
 const formSchema = z.object({
   mode: z.enum(["current", "demo"], {
     required_error: "Please select a mode.",
@@ -14,45 +16,49 @@ const formSchema = z.object({
   priorities: z.array(z.string().max(200, "Priority must not exceed 200 characters")).length(6, "Please enter all 6 priorities"),
 });
 
-// API functions
-const fetchRecommendations = async (values: z.infer<typeof formSchema>) => {
-  // This is a mock API call - replace with your actual API endpoint
-  const response = await fetch(`https://api.example.com/recommendations`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(values),
-  });
-  
-  if (!response.ok) {
-    throw new Error('Failed to fetch recommendations');
-  }
-  
-  return response.json();
-};
-
 const Index = () => {
   const [formData, setFormData] = useState<z.infer<typeof formSchema> | null>(null);
-  const [recommendations, setRecommendations] = useState<any>(null);
+  const { toast } = useToast();
 
-  const { refetch, isLoading } = useQuery({
+  const { data: recommendations, refetch, isLoading } = useQuery({
     queryKey: ['recommendations', formData],
-    queryFn: () => formData ? fetchRecommendations(formData) : null,
-    enabled: false,
-    meta: {
-      onSuccess: (data: any) => {
-        setRecommendations(data);
+    queryFn: async () => {
+      if (!formData) return null;
+      
+      try {
+        const { data, error } = await supabase.functions.invoke('analyze-priorities', {
+          body: formData
+        });
+
+        if (error) {
+          console.error('Supabase function error:', error);
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Failed to get recommendations. Please try again.",
+          });
+          throw error;
+        }
+
+        console.log('Received recommendations:', data);
+        return data;
+      } catch (error) {
+        console.error('Error fetching recommendations:', error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to get recommendations. Please try again.",
+        });
+        throw error;
       }
-    }
+    },
+    enabled: false
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    console.log('Form submitted with values:', values);
     setFormData(values);
-    const result = await refetch();
-    if (result.data) {
-      setRecommendations(result.data);
-    }
+    await refetch();
   };
 
   return (
