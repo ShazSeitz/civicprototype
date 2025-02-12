@@ -77,15 +77,33 @@ async function findRelevantGroups(priorities: string[]) {
 }
 
 async function findRelevantPetitions(priorities: string[]) {
-  // This would be replaced with actual API calls to search Change.org or similar
-  // For now, returning mock data with specific petition URLs
-  return [
-    {
-      title: "Reform Local Infrastructure Spending",
-      url: "https://www.change.org/p/local-infrastructure-reform-2024",
-      relevance: "Addresses fiscal responsibility in infrastructure projects"
+  try {
+    const response = await fetch('http://localhost:54321/functions/v1/search-petitions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ priorities }),
+    });
+
+    if (!response.ok) {
+      console.error('Error fetching petitions:', await response.text());
+      throw new Error('Failed to fetch petitions');
     }
-  ];
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error in findRelevantPetitions:', error);
+    // Fallback to mock data if the petition search fails
+    return [
+      {
+        title: "Reform Local Infrastructure Spending",
+        url: "https://www.change.org/p/local-infrastructure-reform-2024",
+        relevance: "Addresses fiscal responsibility in infrastructure projects"
+      }
+    ];
+  }
 }
 
 serve(async (req) => {
