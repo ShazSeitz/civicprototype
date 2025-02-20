@@ -64,25 +64,6 @@ export const RecommendationsList = ({ recommendations }: RecommendationsListProp
         <CardTitle>Your Recommendations</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Header Information */}
-        <div className="space-y-4">
-          <div>
-            <h3 className="text-lg font-semibold mb-2">Location</h3>
-            <p>{recommendations.region}</p>
-          </div>
-          
-          {recommendations.priorities && (
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Your Stated Priorities</h3>
-              <ol className="list-decimal list-inside space-y-1">
-                {recommendations.priorities.map((priority, index) => (
-                  <li key={index} className="text-gray-700">{priority}</li>
-                ))}
-              </ol>
-            </div>
-          )}
-        </div>
-
         {/* Analysis */}
         <div>
           <h3 className="text-lg font-semibold mb-2">Analysis</h3>
