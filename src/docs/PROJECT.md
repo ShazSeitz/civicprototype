@@ -18,9 +18,12 @@ To provide an accessible, free tool for US voters that:
    - AI (ChatGPT) restricted to:
      - Natural Language Processing
      - Mapping user inputs to database information
-     - Articulating user priorities and concerns
-     - Translating user language to standardized political terminology
+     - Writing direct, personal responses to users
+     - Translating user priorities into actionable recommendations
    - AI must never generate fictional information
+   - AI must always address users directly using "you" and "your"
+   - AI responses must follow this format for each priority:
+     "Based on your concern about [topic], you may want to support [specific suggestion] related candidates, ballot measures, and petitions."
 
 ## Core Features
 
