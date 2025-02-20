@@ -12,11 +12,11 @@ const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 async function analyzePriorities(priorities: string[]) {
   if (!OPENAI_API_KEY) {
     console.error('OpenAI API key not found');
-    return `Based on your priorities, here's a personalized analysis. Due to technical limitations, we're providing a simplified analysis at this time.`;
+    throw new Error('OpenAI API key not configured');
   }
 
   try {
-    console.log('Analyzing priorities with OpenAI:', priorities);
+    console.log('Starting priority analysis with priorities:', priorities);
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -28,28 +28,26 @@ async function analyzePriorities(priorities: string[]) {
         messages: [
           {
             role: 'system',
-            content: `You are analyzing voter priorities. For each priority the voter shares, you must respond using EXACTLY this format, with no deviations or additional formatting:
+            content: `You are analyzing voter priorities. Your task is to respond to each priority with EXACTLY one sentence in this precise format:
 
-            Based on your concern about [their exact topic], you may want to support [specific actionable suggestion] related candidates, ballot measures, and petitions.
-
-            Example responses:
-            "Based on your concern about education funding, you may want to support school budget reform related candidates, ballot measures, and petitions."
-
-            "Based on your concern about environmental protection, you may want to support environmental conservation related candidates, ballot measures, and petitions."
+            "Based on your concern about [exact topic], you may want to support [specific actionable suggestion] related candidates, ballot measures, and petitions."
 
             Rules:
-            1. Use EXACTLY the format shown above - no extra words or explanations
-            2. One single sentence per priority
-            3. No bullet points, no formatting, no asterisks
-            4. Always start with "Based on your concern about"
-            5. Always include the phrase "you may want to support"
-            6. Always end with "related candidates, ballot measures, and petitions"
-            7. Use their exact wording for the topic, don't rephrase it
-            8. Keep suggestions specific but brief`
+            1. One sentence per priority, no extra text
+            2. No formatting, bullets, or markup
+            3. Must start with "Based on your concern about"
+            4. Must include "you may want to support"
+            5. Must end with "related candidates, ballot measures, and petitions"
+            6. Use their exact topic wording
+            7. Make suggestions specific but brief
+
+            Example output:
+            "Based on your concern about education funding, you may want to support school budget reform related candidates, ballot measures, and petitions."
+            `
           },
           {
             role: 'user',
-            content: `Analyze these voter priorities using the exact format specified: ${priorities.join('; ')}`
+            content: `Generate one response per priority using the exact format: ${priorities.join('; ')}`
           }
         ],
         temperature: 0.3,
@@ -58,15 +56,23 @@ async function analyzePriorities(priorities: string[]) {
     });
 
     if (!response.ok) {
-      console.error('OpenAI API error:', await response.text());
-      throw new Error('Failed to analyze priorities');
+      const errorText = await response.text();
+      console.error('OpenAI API error response:', errorText);
+      throw new Error(`OpenAI API error: ${response.status}`);
     }
 
     const data = await response.json();
+    console.log('OpenAI response received:', data);
+
+    if (!data.choices?.[0]?.message?.content) {
+      console.error('Unexpected OpenAI response structure:', data);
+      throw new Error('Invalid response from OpenAI');
+    }
+
     return data.choices[0].message.content;
   } catch (error) {
-    console.error('Error analyzing priorities:', error);
-    return `Based on your priorities, here's a personal analysis for you. Note: We're experiencing some technical limitations in our analysis system.`;
+    console.error('Error in analyzePriorities:', error);
+    throw error;
   }
 }
 
@@ -77,13 +83,11 @@ serve(async (req) => {
 
   try {
     const { mode, zipCode, priorities } = await req.json();
-    console.log('Received request:', { mode, zipCode, priorities });
+    console.log('Received request with:', { mode, zipCode, priorities });
 
-    // Get priority analysis
     const priorityAnalysis = await analyzePriorities(priorities);
-    console.log('Priority analysis completed');
+    console.log('Analysis completed successfully');
 
-    // Structure the response
     const response = {
       region: `ZIP Code ${zipCode}`,
       mode,
@@ -98,8 +102,10 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    console.error('Error in analyze-priorities:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    console.error('Error in edge function:', error);
+    return new Response(JSON.stringify({ 
+      error: error instanceof Error ? error.message : 'An unknown error occurred'
+    }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
