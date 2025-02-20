@@ -1,1 +1,8 @@
-project_id = "ijssgfvcxnhanluliliw"
+
+[functions.analyze-priorities]
+verify_jwt = false
+import_map = [".*/xhr@.*/mod.ts", ".*/std@.*/http/server.ts"]
+
+[functions.search-petitions]
+verify_jwt = false
+import_map = [".*/xhr@.*/mod.ts", ".*/std@.*/http/server.ts"]

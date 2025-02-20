@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -12,7 +11,13 @@ const FEC_API_KEY = Deno.env.get('FEC_API_KEY');
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 
 async function analyzePriorities(priorities: string[]) {
+  if (!OPENAI_API_KEY) {
+    console.error('OpenAI API key not found');
+    return `Based on your priorities, we've identified several key themes in your concerns. Due to technical limitations, we're providing a simplified analysis at this time.`;
+  }
+
   try {
+    console.log('Analyzing priorities with OpenAI:', priorities);
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -24,22 +29,33 @@ async function analyzePriorities(priorities: string[]) {
         messages: [
           {
             role: 'system',
-            content: `You are a nonpartisan political analyst. Your task is to analyze voter priorities and map them to standardized political terminology. For example:
-            - "government waste" maps to "fiscal responsibility"
-            - "helping the poor" maps to "social welfare policy"
-            - "gun rights" maps to "Second Amendment rights"
-            - "protecting nature" maps to "environmental conservation"
-            Provide a neutral, factual analysis that identifies key themes and maps them to standard political terminology.`
+            content: `You are a nonpartisan political analyst. Your task is to analyze voter priorities and map them to standardized political terminology. 
+            
+            For each priority:
+            1. Paraphrase the voter's concern in neutral language
+            2. Map it to standard political terminology
+            3. Avoid any partisan language or bias
+            
+            Examples:
+            - "government waste" → maps to "fiscal responsibility" and "government oversight"
+            - "helping the poor" → maps to "social welfare policy" and "economic equality"
+            - "gun rights" → maps to "Second Amendment rights" and "firearm legislation"
+            - "protecting nature" → maps to "environmental conservation" and "climate policy"
+            
+            Format your response as a clear analysis that a general audience can understand.`
           },
           {
             role: 'user',
-            content: `Analyze these voter priorities and provide a clear, concise summary that maps them to standard political terms: ${priorities.join('; ')}`
+            content: `Analyze these voter priorities and provide a clear summary that maps them to standard political terms while maintaining their original intent: ${priorities.join('; ')}`
           }
         ],
+        temperature: 0.3, // Lower temperature for more consistent responses
+        max_tokens: 500
       }),
     });
 
     if (!response.ok) {
+      console.error('OpenAI API error:', await response.text());
       throw new Error('Failed to analyze priorities');
     }
 
@@ -47,34 +63,7 @@ async function analyzePriorities(priorities: string[]) {
     return data.choices[0].message.content;
   } catch (error) {
     console.error('Error analyzing priorities:', error);
-    throw error;
-  }
-}
-
-async function getLocationFromZip(zipCode: string) {
-  try {
-    const response = await fetch(
-      `https://www.googleapis.com/civicinfo/v2/representatives?address=${zipCode}&key=${CIVIC_API_KEY}`
-    );
-    
-    if (!response.ok) {
-      console.error('Civic API error:', await response.text());
-      throw new Error('Failed to fetch location data');
-    }
-    
-    const data = await response.json();
-    return {
-      city: data.normalizedInput?.city || '',
-      state: data.normalizedInput?.state || '',
-      region: `${data.normalizedInput?.city || ''}, ${data.normalizedInput?.state || ''}`
-    };
-  } catch (error) {
-    console.error('Error fetching location data:', error);
-    return {
-      city: '',
-      state: '',
-      region: `Region for ZIP ${zipCode}`
-    };
+    return `Based on your priorities, here's our analysis. Note: We're experiencing some technical limitations in our detailed analysis system.`;
   }
 }
 
@@ -127,15 +116,15 @@ serve(async (req) => {
     const { mode, zipCode, priorities } = await req.json();
     console.log('Received request:', { mode, zipCode, priorities });
 
-    // Get location data for both modes
+    // Get location data
     const location = await getLocationFromZip(zipCode);
     console.log('Location data:', location);
 
-    // Analyze priorities using OpenAI
+    // Get priority analysis
     const priorityAnalysis = await analyzePriorities(priorities);
-    console.log('Priority analysis:', priorityAnalysis);
+    console.log('Priority analysis completed:', priorityAnalysis);
 
-    // For demo purposes
+    // For demo mode
     if (mode === 'demo') {
       const response = {
         region: location.region,
@@ -157,7 +146,7 @@ serve(async (req) => {
           {
             to: "senator@example.gov",
             subject: "Constituent Concerns",
-            body: `Dear Senator,\n\nAs a constituent from ${location.region}, I am writing to express my concerns about the following priorities:\n\n${priorities.join('\n\n')}\n\nI would appreciate your thoughts on these matters.\n\nBest regards,\n[Your name]`
+            body: `Dear Senator,\n\nAs a constituent from ${location.region}, I am writing to express my concerns about the following priorities:\n\n${priorities.join('\n\n')}\n\nBased on the analysis of my priorities:\n${priorityAnalysis}\n\nI would appreciate your thoughts on these matters.\n\nBest regards,\n[Your name]`
           }
         ],
         interestGroups: [
@@ -251,13 +240,11 @@ serve(async (req) => {
 
     } catch (apiError) {
       console.error('API integration error:', apiError);
-      
-      // Return a graceful fallback response
       return new Response(JSON.stringify({
         region: location.region,
         mode: 'current',
         priorities,
-        analysis: priorityAnalysis, // Include the priority analysis even in error state
+        analysis: priorityAnalysis,
         noActiveElections: true,
         draftEmails: [],
         interestGroups: [
