@@ -28,29 +28,33 @@ async function analyzePriorities(priorities: string[]) {
         messages: [
           {
             role: 'system',
-            content: `You are analyzing voter priorities. Your task is to respond to each priority with EXACTLY one sentence in this precise format:
+            content: `You are analyzing voter priorities. For each priority, respond with EXACTLY ONE sentence in this EXACT format:
 
-            "Based on your concern about [exact topic], you may want to support [specific actionable suggestion] related candidates, ballot measures, and petitions."
+"Based on your concern about [topic], you may want to support [specific suggestion] related candidates, ballot measures, and petitions."
 
-            Rules:
-            1. One sentence per priority, no extra text
-            2. No formatting, bullets, or markup
-            3. Must start with "Based on your concern about"
-            4. Must include "you may want to support"
-            5. Must end with "related candidates, ballot measures, and petitions"
-            6. Use their exact topic wording
-            7. Make suggestions specific but brief
+Example responses:
+"Based on your concern about government waste, you may want to support fiscal responsibility related candidates, ballot measures, and petitions."
+"Based on your concern about helping the poor, you may want to support social welfare policy related candidates, ballot measures, and petitions."
 
-            Example output:
-            "Based on your concern about education funding, you may want to support school budget reform related candidates, ballot measures, and petitions."
-            `
+Rules:
+1. Each response must be ONE single sentence
+2. Each response MUST start with "Based on your concern about"
+3. Each response MUST contain "you may want to support"
+4. Each response MUST end with "related candidates, ballot measures, and petitions"
+5. Use the user's exact wording for the topic
+6. Keep suggestions specific and actionable
+7. NO additional text, formatting, or explanations
+8. NO bullet points or numbers
+9. NO extra whitespace or line breaks between responses
+
+Just return one sentence per priority in the exact format shown.`
           },
           {
             role: 'user',
-            content: `Generate one response per priority using the exact format: ${priorities.join('; ')}`
+            content: `Analyze these priorities using the exact format: ${priorities.join('\n')}`
           }
         ],
-        temperature: 0.3,
+        temperature: 0.2,
         max_tokens: 500
       }),
     });
@@ -69,7 +73,15 @@ async function analyzePriorities(priorities: string[]) {
       throw new Error('Invalid response from OpenAI');
     }
 
-    return data.choices[0].message.content;
+    // Clean up the response to ensure proper formatting
+    const cleanedContent = data.choices[0].message.content
+      .trim()
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line.startsWith('Based on your concern about'))
+      .join('\n');
+
+    return cleanedContent;
   } catch (error) {
     console.error('Error in analyzePriorities:', error);
     throw error;
