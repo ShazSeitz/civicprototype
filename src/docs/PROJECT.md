@@ -19,6 +19,7 @@ To provide an accessible, free tool for US voters that:
      - Natural Language Processing
      - Mapping user inputs to database information
      - Articulating user priorities and concerns
+     - Translating user language to standardized political terminology
    - AI must never generate fictional information
 
 ## Core Features
@@ -34,6 +35,16 @@ To provide an accessible, free tool for US voters that:
   - 6 free-text priority inputs (250 char limit each)
   - Drag-and-drop priority ranking
   - Real-time updates capability
+- **Priority Analysis**
+  - Natural language understanding of user inputs
+  - Translation to standardized political terms
+  - Example mappings:
+    - "government waste" → "fiscal responsibility"
+    - "helping the poor" → "social welfare policy"
+    - "gun rights" → "Second Amendment rights"
+    - "protecting nature" → "environmental conservation"
+  - Context-aware interpretation
+  - Nonpartisan terminology usage
 
 ### 2. Recommendation Engine
 - **Current Date Mode (With Active Election)**
@@ -53,7 +64,8 @@ To provide an accessible, free tool for US voters that:
 
 ### 3. Output Dashboard
 - Location and mode context
-- Prioritized user concerns
+- Prioritized user concerns with standardized terminology mapping
+- Natural language analysis of user priorities
 - Actionable recommendations
 - One-click email drafts
 - Direct links to resources
@@ -79,6 +91,8 @@ To provide an accessible, free tool for US voters that:
    - Priority conflict detection
    - Natural language processing
    - User input validation
+   - Political terminology standardization
+   - Context-aware interpretation
 
 ### Performance Requirements
 - Support for 100 concurrent users
@@ -93,12 +107,17 @@ To provide an accessible, free tool for US voters that:
    - HUD Public Interest Groups
    - Change.org petitions
    - Official candidate websites
+3. **Language Processing**
+   - Political terminology database
+   - Common phrase mappings
+   - Regional context awareness
 
 ## Future Enhancements (V2)
 1. **Extended Features**
    - PDF export functionality
    - Social sharing capabilities
    - Advanced survey integration
+   - Enhanced terminology mapping
 2. **Infrastructure**
    - Enhanced scalability
    - Additional data sources
@@ -109,6 +128,7 @@ To provide an accessible, free tool for US voters that:
    - User acceptance testing across diverse voter groups
    - Cross-browser compatibility
    - Performance under load
+   - Terminology mapping accuracy
 2. **Deployment Strategy**
    - Cloud hosting with load balancing
    - Regular data source updates
