@@ -1,3 +1,4 @@
+
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -95,8 +96,17 @@ export const VoterForm = ({ onSubmit, isLoading }: VoterFormProps) => {
 
   const loadPersona = (persona: 'persona1' | 'persona2') => {
     const selectedPersona = testPersonas[persona];
+    form.setValue('mode', 'demo');
     form.setValue('zipCode', selectedPersona.zipCode);
     form.setValue('priorities', selectedPersona.priorities);
+  };
+
+  const handleSubmit = async (values: z.infer<typeof formSchema>) => {
+    try {
+      await onSubmit(values);
+    } catch (error) {
+      console.error('Error submitting form:', error);
+    }
   };
 
   return (
@@ -126,7 +136,7 @@ export const VoterForm = ({ onSubmit, isLoading }: VoterFormProps) => {
         </div>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="mode"
