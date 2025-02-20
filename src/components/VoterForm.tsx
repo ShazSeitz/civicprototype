@@ -1,4 +1,3 @@
-
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -56,7 +55,7 @@ const formSchema = z.object({
     required_error: "Please select a mode.",
   }),
   zipCode: z.string().length(5, "ZIP code must be exactly 5 digits").regex(/^\d+$/, "ZIP code must contain only numbers"),
-  priorities: z.array(z.string().max(250, "Priority must not exceed 250 characters")).length(6, "Please enter all 6 priorities"),
+  priorities: z.array(z.string().min(1, "Priority cannot be empty")).length(6, "Please enter all 6 priorities"),
 });
 
 interface VoterFormProps {
@@ -96,17 +95,11 @@ export const VoterForm = ({ onSubmit, isLoading }: VoterFormProps) => {
 
   const loadPersona = (persona: 'persona1' | 'persona2') => {
     const selectedPersona = testPersonas[persona];
-    form.setValue('mode', 'demo');
-    form.setValue('zipCode', selectedPersona.zipCode);
-    form.setValue('priorities', selectedPersona.priorities);
-  };
-
-  const handleSubmit = async (values: z.infer<typeof formSchema>) => {
-    try {
-      await onSubmit(values);
-    } catch (error) {
-      console.error('Error submitting form:', error);
-    }
+    form.reset({
+      mode: 'demo',
+      zipCode: selectedPersona.zipCode,
+      priorities: selectedPersona.priorities,
+    });
   };
 
   return (
@@ -136,7 +129,7 @@ export const VoterForm = ({ onSubmit, isLoading }: VoterFormProps) => {
         </div>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="mode"
@@ -146,7 +139,7 @@ export const VoterForm = ({ onSubmit, isLoading }: VoterFormProps) => {
                   <FormControl>
                     <RadioGroup
                       onValueChange={field.onChange}
-                      defaultValue={field.value}
+                      value={field.value}
                       className="flex gap-4"
                     >
                       <FormItem className="flex items-center space-x-2 space-y-0">

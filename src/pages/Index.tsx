@@ -13,28 +13,34 @@ const formSchema = z.object({
     required_error: "Please select a mode.",
   }),
   zipCode: z.string().length(5, "ZIP code must be exactly 5 digits").regex(/^\d+$/, "ZIP code must contain only numbers"),
-  priorities: z.array(z.string().max(250, "Priority must not exceed 250 characters")).length(6, "Please enter all 6 priorities"),
+  priorities: z.array(z.string().min(1, "Priority cannot be empty")).length(6, "Please enter all 6 priorities"),
 });
 
 const Index = () => {
   const [formData, setFormData] = useState<z.infer<typeof formSchema> | null>(null);
-  const [submitTimestamp, setSubmitTimestamp] = useState<number>(0); // Add this to force query refetch
+  const [submitCount, setSubmitCount] = useState(0);
   const { toast } = useToast();
   const recommendationsRef = useRef<HTMLDivElement>(null);
   const [noElectionsMessage, setNoElectionsMessage] = useState<string | null>(null);
 
   const { data: recommendations, isLoading, isError, error } = useQuery({
-    queryKey: ['recommendations', formData, submitTimestamp], // Add submitTimestamp to queryKey
+    queryKey: ['recommendations', formData, submitCount],
     queryFn: async () => {
       if (!formData) return null;
       
       try {
+        console.log('Submitting form data:', formData);
         const { data, error } = await supabase.functions.invoke('analyze-priorities', {
           body: { ...formData }
         });
 
         if (error) {
           console.error('Supabase function error:', error);
+          toast({
+            title: "Error",
+            description: error.message || 'Failed to analyze content',
+            variant: "destructive",
+          });
           throw new Error(error.message || 'Failed to analyze content');
         }
 
@@ -51,6 +57,11 @@ const Index = () => {
         return data;
       } catch (err: any) {
         console.error('Error in analyze-priorities:', err);
+        toast({
+          title: "Error",
+          description: err.message || 'An error occurred while analyzing priorities',
+          variant: "destructive",
+        });
         throw err;
       }
     },
@@ -69,9 +80,10 @@ const Index = () => {
   }, [recommendations]);
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
+    console.log('Form submitted with values:', values);
     setNoElectionsMessage(null);
     setFormData(values);
-    setSubmitTimestamp(Date.now()); // Add this to force query refetch
+    setSubmitCount(prev => prev + 1);
   };
 
   return (
