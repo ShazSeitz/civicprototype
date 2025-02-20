@@ -210,7 +210,7 @@ export const VoterForm = ({ onSubmit, isLoading }: VoterFormProps) => {
             </div>
 
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Loading..." : "Get Recommendations"}
+              {isLoading ? "Analyzing..." : "Get Recommendations"}
             </Button>
           </form>
         </Form>

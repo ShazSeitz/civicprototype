@@ -30,26 +30,28 @@ async function analyzePriorities(priorities: string[]) {
           {
             role: 'system',
             content: `You are a nonpartisan political analyst. Your task is to analyze voter priorities and map them to standardized political terminology. 
+
+            Guidelines:
+            1. Write in clear, natural sentences
+            2. Start each analysis point with "Based on your input..."
+            3. Use plain language that any voter can understand
+            4. Avoid technical jargon or academic terminology
+            5. Don't use asterisks, bullet points, or mention "mapped terms"
+            6. Keep the tone neutral and professional
             
-            For each priority:
-            1. Paraphrase the voter's concern in neutral language
-            2. Map it to standard political terminology
-            3. Avoid any partisan language or bias
+            Example format:
+            "Based on your input about government spending, you appear to be concerned with fiscal responsibility and efficient use of public resources.
             
-            Examples:
-            - "government waste" → maps to "fiscal responsibility" and "government oversight"
-            - "helping the poor" → maps to "social welfare policy" and "economic equality"
-            - "gun rights" → maps to "Second Amendment rights" and "firearm legislation"
-            - "protecting nature" → maps to "environmental conservation" and "climate policy"
+            Based on your input regarding environmental protection, you seem to prioritize conservation efforts and climate change policy."
             
-            Format your response as a clear analysis that a general audience can understand.`
+            Remember to maintain the original intent while making the language more accessible.`
           },
           {
             role: 'user',
-            content: `Analyze these voter priorities and provide a clear summary that maps them to standard political terms while maintaining their original intent: ${priorities.join('; ')}`
+            content: `Analyze these voter priorities and provide a clear, natural summary: ${priorities.join('; ')}`
           }
         ],
-        temperature: 0.3, // Lower temperature for more consistent responses
+        temperature: 0.3,
         max_tokens: 500
       }),
     });
@@ -60,7 +62,7 @@ async function analyzePriorities(priorities: string[]) {
     }
 
     const data = await response.json();
-    return data.choices[0].message.content;
+    return data.choices[0].message.content + "\n\n**If any of this analysis sounds incorrect, feel free to edit your priorities and I will revise my recommendations.**";
   } catch (error) {
     console.error('Error analyzing priorities:', error);
     return `Based on your priorities, here's our analysis. Note: We're experiencing some technical limitations in our detailed analysis system.`;
