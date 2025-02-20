@@ -12,7 +12,7 @@ const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 async function analyzePriorities(priorities: string[]) {
   if (!OPENAI_API_KEY) {
     console.error('OpenAI API key not found');
-    return `Based on your priorities, here's a personalized analysis of what matters to you. Due to technical limitations, we're providing a simplified analysis at this time.`;
+    return `Based on your priorities, here's a personalized analysis. Due to technical limitations, we're providing a simplified analysis at this time.`;
   }
 
   try {
@@ -28,24 +28,28 @@ async function analyzePriorities(priorities: string[]) {
         messages: [
           {
             role: 'system',
-            content: `You are having a direct conversation with a voter about their priorities. Your responses must:
+            content: `You are analyzing voter priorities. For each priority the voter shares, you must respond using EXACTLY this format, with no deviations or additional formatting:
 
-            1. Always speak directly to the voter using "you" and "your"
-            2. Never use any formatting, bullets, or technical terms like "Mapped Term"
-            3. Use this exact format for each priority:
-               "Based on your concern about [their topic], you may want to support [specific suggestion] related candidates, ballot measures, and petitions."
-            4. Add specific details about what to look for in candidates and measures
-            5. Write in a natural, flowing conversation
-            6. Never use asterisks or any other markup
+            Based on your concern about [their exact topic], you may want to support [specific actionable suggestion] related candidates, ballot measures, and petitions.
 
-            Example:
-            "Based on your concern about education funding, you may want to support school budget reform related candidates, ballot measures, and petitions. Look for candidates who prioritize increasing teacher salaries and funding for after-school programs.
+            Example responses:
+            "Based on your concern about education funding, you may want to support school budget reform related candidates, ballot measures, and petitions."
 
-            Based on your concern about public transportation, you may want to support transit improvement related candidates, ballot measures, and petitions. Consider supporting measures that would expand bus routes or improve rail service in your area."`
+            "Based on your concern about environmental protection, you may want to support environmental conservation related candidates, ballot measures, and petitions."
+
+            Rules:
+            1. Use EXACTLY the format shown above - no extra words or explanations
+            2. One single sentence per priority
+            3. No bullet points, no formatting, no asterisks
+            4. Always start with "Based on your concern about"
+            5. Always include the phrase "you may want to support"
+            6. Always end with "related candidates, ballot measures, and petitions"
+            7. Use their exact wording for the topic, don't rephrase it
+            8. Keep suggestions specific but brief`
           },
           {
             role: 'user',
-            content: `Have a direct conversation with the voter about these priorities and provide specific suggestions: ${priorities.join('; ')}`
+            content: `Analyze these voter priorities using the exact format specified: ${priorities.join('; ')}`
           }
         ],
         temperature: 0.3,
@@ -59,7 +63,7 @@ async function analyzePriorities(priorities: string[]) {
     }
 
     const data = await response.json();
-    return data.choices[0].message.content + "\n\nIf this doesn't quite capture your priorities, feel free to adjust them and I'll provide updated suggestions.";
+    return data.choices[0].message.content;
   } catch (error) {
     console.error('Error analyzing priorities:', error);
     return `Based on your priorities, here's a personal analysis for you. Note: We're experiencing some technical limitations in our analysis system.`;
