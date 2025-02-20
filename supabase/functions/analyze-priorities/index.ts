@@ -9,6 +9,47 @@ const corsHeaders = {
 
 const CIVIC_API_KEY = Deno.env.get('CIVIC_API_KEY');
 const FEC_API_KEY = Deno.env.get('FEC_API_KEY');
+const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+
+async function analyzePriorities(priorities: string[]) {
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: `You are a nonpartisan political analyst. Your task is to analyze voter priorities and map them to standardized political terminology. For example:
+            - "government waste" maps to "fiscal responsibility"
+            - "helping the poor" maps to "social welfare policy"
+            - "gun rights" maps to "Second Amendment rights"
+            - "protecting nature" maps to "environmental conservation"
+            Provide a neutral, factual analysis that identifies key themes and maps them to standard political terminology.`
+          },
+          {
+            role: 'user',
+            content: `Analyze these voter priorities and provide a clear, concise summary that maps them to standard political terms: ${priorities.join('; ')}`
+          }
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to analyze priorities');
+    }
+
+    const data = await response.json();
+    return data.choices[0].message.content;
+  } catch (error) {
+    console.error('Error analyzing priorities:', error);
+    throw error;
+  }
+}
 
 async function getLocationFromZip(zipCode: string) {
   try {
@@ -37,7 +78,7 @@ async function getLocationFromZip(zipCode: string) {
   }
 }
 
-// Mock candidates data - constant regardless of location
+// Mock candidates data
 const demoCandidates = [
   {
     name: "Kamala Harris",
@@ -78,7 +119,6 @@ const demoCandidates = [
 ];
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -91,6 +131,10 @@ serve(async (req) => {
     const location = await getLocationFromZip(zipCode);
     console.log('Location data:', location);
 
+    // Analyze priorities using OpenAI
+    const priorityAnalysis = await analyzePriorities(priorities);
+    console.log('Priority analysis:', priorityAnalysis);
+
     // For demo purposes
     if (mode === 'demo') {
       const response = {
@@ -98,7 +142,7 @@ serve(async (req) => {
         mode: 'demo',
         priorities,
         candidates: demoCandidates,
-        analysis: `Based on your priorities and location in ${location.region}, we recommend focusing on candidates and measures that align with your interests. Note that this is demo mode using fixed presidential candidates for illustration.`,
+        analysis: priorityAnalysis,
         ballotMeasures: [
           {
             title: "Measure A: Infrastructure Bond",
@@ -149,7 +193,6 @@ serve(async (req) => {
 
     // For current mode - real API integration
     try {
-      // First get civic data
       const civicData = await fetch(
         `https://www.googleapis.com/civicinfo/v2/representatives?address=${zipCode}&key=${CIVIC_API_KEY}`
       );
@@ -164,13 +207,13 @@ serve(async (req) => {
       // Check if there are any upcoming elections
       const hasActiveElections = civicInfo.contests && civicInfo.contests.length > 0;
 
-      // Structure the response
+      // Structure the response with the priority analysis
       const response = {
         region: location.region,
         mode: 'current',
         priorities,
         noActiveElections: !hasActiveElections,
-        analysis: `Based on your location in ${location.region}, we have analyzed your priorities against available civic data.`,
+        analysis: priorityAnalysis,
         candidates: civicInfo.officials?.map((official: any) => ({
           name: official.name,
           office: official.office || "Current Official",
@@ -214,7 +257,7 @@ serve(async (req) => {
         region: location.region,
         mode: 'current',
         priorities,
-        analysis: "We're experiencing some technical difficulties retrieving detailed civic data. Here's some general information that might be helpful.",
+        analysis: priorityAnalysis, // Include the priority analysis even in error state
         noActiveElections: true,
         draftEmails: [],
         interestGroups: [
