@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -21,19 +21,26 @@ const Auth = () => {
     setLoading(true);
     
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) throw error;
       
-      navigate('/');
+      if (data.user) {
+        toast({
+          title: "Success!",
+          description: "You have been signed in successfully.",
+        });
+        navigate('/');
+      }
     } catch (error: any) {
+      console.error('Sign in error:', error);
       toast({
         variant: "destructive",
         title: "Error signing in",
-        description: error.message,
+        description: error.message || "Please check your credentials and try again.",
       });
     } finally {
       setLoading(false);
@@ -45,22 +52,28 @@ const Auth = () => {
     setLoading(true);
     
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          emailRedirectTo: window.location.origin
+        }
       });
 
       if (error) throw error;
       
-      toast({
-        title: "Success!",
-        description: "Account created successfully. You can now sign in.",
-      });
+      if (data.user) {
+        toast({
+          title: "Success!",
+          description: "Account created successfully. Please check your email for verification.",
+        });
+      }
     } catch (error: any) {
+      console.error('Sign up error:', error);
       toast({
         variant: "destructive",
         title: "Error creating account",
-        description: error.message,
+        description: error.message || "Please try again with a different email.",
       });
     } finally {
       setLoading(false);
@@ -73,21 +86,22 @@ const Auth = () => {
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin + '/auth',
+        redirectTo: `${window.location.origin}/auth/reset-password`,
       });
 
       if (error) throw error;
 
       toast({
         title: "Password reset email sent",
-        description: "Check your email for the password reset link.",
+        description: "Please check your email for the password reset link.",
       });
       setIsResetMode(false);
     } catch (error: any) {
+      console.error('Password reset error:', error);
       toast({
         variant: "destructive",
         title: "Error sending reset email",
-        description: error.message,
+        description: error.message || "Please check your email and try again.",
       });
     } finally {
       setLoading(false);
