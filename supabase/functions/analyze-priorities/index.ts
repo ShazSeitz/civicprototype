@@ -1,214 +1,95 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import "https://deno.land/x/xhr@0.1.0/mod.ts"
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+};
 
-interface Contest {
-  type: string;
-  office?: string;
-  district?: {
-    name: string;
-    scope: string;
-  };
-  candidates?: Array<{
-    name: string;
-    party: string;
-    channels?: Array<{
-      type: string;
-      id: string;
-    }>;
-  }>;
-  referendumTitle?: string;
-  referendumSubtitle?: string;
-  referendumText?: string;
-}
-
-interface Representative {
-  name: string;
-  office: string;
-  email: string;
-  channels?: Array<{
-    type: string;
-    id: string;
-  }>;
-}
-
-async function getElectionData(zipCode: string): Promise<any> {
-  const civicApiKey = Deno.env.get('CIVIC_API_KEY');
-  if (!civicApiKey) {
-    console.error('Civic API key not configured');
-    throw new Error('Election data service not configured');
-  }
-
-  const address = encodeURIComponent(zipCode);
-  const url = `https://www.googleapis.com/civicinfo/v2/voterinfo?key=${civicApiKey}&address=${address}&electionId=2000`;
-  
-  console.log('Fetching election data for ZIP:', zipCode);
-  
-  try {
-    const response = await fetch(url);
-    const data = await response.json();
-    
-    console.log('Civic API response status:', response.status);
-    console.log('Civic API response:', data);
-    
-    if (!response.ok) {
-      if (data.error?.message?.includes('Election unknown')) {
-        throw new Error('No active elections');
-      }
-      console.error('Civic API error:', response.status, data);
-      throw new Error('Error fetching election data');
-    }
-
-    return data;
-  } catch (error) {
-    console.error('Error in getElectionData:', error);
-    throw error;
-  }
-}
-
-async function getRepresentatives(zipCode: string) {
-  const civicApiKey = Deno.env.get('CIVIC_API_KEY');
-  if (!civicApiKey) {
-    throw new Error('CIVIC_API_KEY is not configured');
-  }
-
-  const representativesUrl = `https://www.googleapis.com/civicinfo/v2/representatives?key=${civicApiKey}&address=${encodeURIComponent(zipCode)}`;
-  console.log('Fetching representatives from:', representativesUrl);
-  
-  try {
-    const repResponse = await fetch(representativesUrl);
-    if (!repResponse.ok) {
-      console.error('Civic API error:', await repResponse.text());
-      throw new Error('Failed to fetch representative data');
-    }
-    
-    const repData = await repResponse.json();
-    console.log('Civic API response:', repData);
-
-    if (!repData.normalizedInput) {
-      console.error('No normalized input in Civic API response');
-      throw new Error('Invalid response from Civic API');
-    }
-
-    // Create a mapping of official indices to their offices
-    const officialToOffice = {};
-    repData.offices?.forEach((office: any) => {
-      office.officialIndices.forEach((index: number) => {
-        officialToOffice[index] = office.name;
-      });
-    });
-
-    // Extract representatives with their correct offices
-    const representatives = repData.officials?.map((official: any, index: number) => ({
-      name: official.name,
-      office: officialToOffice[index] || 'Unknown Office',
-      email: official.emails?.[0],
-      channels: official.channels
-    })).filter((rep: any) => rep.email) || [];
-
-    const region = `${zipCode} (${repData.normalizedInput.city}, ${repData.normalizedInput.state})`;
-
-    return { representatives, region };
-  } catch (error) {
-    console.error('Error in getRepresentatives:', error);
-    throw error;
-  }
-}
-
-async function analyzeContent(priorities: string[], representatives: any[]) {
-  console.log('Starting content analysis with priorities:', priorities);
-  console.log('Representatives:', representatives);
-
-  try {
-    const contentResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/analyze-content`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        priorities,
-        representatives
-      })
-    });
-
-    if (!contentResponse.ok) {
-      const errorText = await contentResponse.text();
-      console.error('Content analysis error:', errorText);
-      throw new Error(`Failed to analyze content: ${errorText}`);
-    }
-
-    const result = await contentResponse.json();
-    console.log('Content analysis completed successfully');
-    return result;
-  } catch (error) {
-    console.error('Error in analyzeContent:', error);
-    throw error;
-  }
-}
-
-function buildBaseResponse(region: string, mode: string, contentAnalysis: any) {
-  return {
-    region,
-    mode,
-    priorities: contentAnalysis.mappedPriorities,
-    analysis: contentAnalysis.analysis,
-    draftEmails: contentAnalysis.emailDrafts,
-    interestGroups: contentAnalysis.interestGroups,
-    petitions: contentAnalysis.petitions
-  };
-}
-
-function buildCurrentModeResponse(baseResponse: any, representatives: Representative[]) {
-  return {
-    ...baseResponse,
-    candidates: representatives.map((rep) => ({
-      name: rep.name,
-      office: rep.office,
+// Mock data for DEMO mode
+const demoData = {
+  region: "San Francisco Bay Area, CA",
+  candidates: [
+    {
+      name: "Kamala Harris",
+      office: "President",
       highlights: [
-        `Contact: ${rep.email}`,
-        rep.channels?.map((c) => `${c.type}: ${c.id}`).join(', ') || 'No social media available'
+        "Current Vice President",
+        "Focus on healthcare reform",
+        "Supports environmental protection initiatives"
       ]
-    }))
-  };
-}
-
-function buildDemoModeResponse(baseResponse: any, electionData: any) {
-  const candidates = [];
-  const ballotMeasures = [];
-
-  if (electionData.contests) {
-    for (const contest of electionData.contests) {
-      if (contest.type === 'General' && contest.office) {
-        candidates.push({
-          name: contest.candidates?.[0]?.name || 'Unknown Candidate',
-          office: contest.office,
-          highlights: [
-            `Party: ${contest.candidates?.[0]?.party || 'Unknown Party'}`,
-            'Campaign finance data unavailable',
-            'Status unavailable'
-          ]
-        });
-      } else if (contest.type === 'Referendum') {
-        ballotMeasures.push({
-          title: contest.referendumTitle || 'Untitled Measure',
-          recommendation: `${contest.referendumSubtitle || ''}\n\n${contest.referendumText || ''}`
-        });
-      }
+    },
+    {
+      name: "Donald Trump",
+      office: "President",
+      highlights: [
+        "Former President",
+        "Focus on immigration reform",
+        "Supports deregulation policies"
+      ]
+    },
+    {
+      name: "Jill Stein",
+      office: "President",
+      highlights: [
+        "Green Party candidate",
+        "Focus on environmental issues",
+        "Supports universal healthcare"
+      ]
+    },
+    {
+      name: "Chase Oliver",
+      office: "President",
+      highlights: [
+        "Independent candidate",
+        "Focus on civil liberties",
+        "Supports fiscal responsibility"
+      ]
     }
-  }
-
-  return {
-    ...baseResponse,
-    candidates,
-    ballotMeasures
-  };
-}
+  ],
+  ballotMeasures: [
+    {
+      title: "Measure A: Infrastructure Bond",
+      recommendation: "This measure aligns with your priority on improving local transportation."
+    },
+    {
+      title: "Measure B: Education Funding",
+      recommendation: "Based on your interest in education and community programs."
+    }
+  ],
+  draftEmails: [
+    {
+      to: "senator@example.gov",
+      subject: "Constituent Concerns about Local Transportation",
+      body: "Dear Senator,\n\nI am writing as your constituent to express my concerns about local transportation in our area...\n\nBest regards,\n[Your name]"
+    }
+  ],
+  interestGroups: [
+    {
+      name: "Transportation for America",
+      url: "https://t4america.org",
+      relevance: "Advocates for improved public transportation systems"
+    },
+    {
+      name: "Environmental Defense Fund",
+      url: "https://www.edf.org",
+      relevance: "Works on environmental protection and climate change initiatives"
+    }
+  ],
+  petitions: [
+    {
+      title: "Improve Public Transit in Bay Area",
+      url: "https://change.org/example1",
+      relevance: "Matches your interest in local transportation improvements"
+    },
+    {
+      name: "Support After-School Programs",
+      url: "https://change.org/example2",
+      relevance: "Aligns with your priority on education and community programs"
+    }
+  ]
+};
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -217,97 +98,61 @@ serve(async (req) => {
   }
 
   try {
-    const requestData = await req.json();
-    console.log('Received request data:', requestData);
+    const { mode, zipCode, priorities } = await req.json();
+    console.log('Received request:', { mode, zipCode, priorities });
 
-    const { mode, zipCode, priorities } = requestData;
+    // For demo purposes, return mock data
+    if (mode === 'demo') {
+      const response = {
+        ...demoData,
+        mode: 'demo',
+        priorities,
+        analysis: "Based on your priorities, we recommend focusing on candidates and measures that align with your interests in transportation, education, and environmental protection. The mock recommendations above reflect these priorities."
+      };
 
-    if (!mode || !zipCode || !priorities) {
-      console.error('Missing required fields:', { mode, zipCode, prioritiesLength: priorities?.length });
-      throw new Error('Missing required fields');
+      return new Response(JSON.stringify(response), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    if (!Array.isArray(priorities) || priorities.length !== 6) {
-      console.error('Invalid priorities:', priorities);
-      throw new Error('Invalid priorities format');
-    }
-
-    console.log('Processing request for ZIP:', zipCode);
-    console.log('Mode:', mode);
-    console.log('Priorities:', priorities);
-
-    try {
-      // Get representatives data
-      const { representatives, region } = await getRepresentatives(zipCode);
-      console.log('Extracted representatives:', representatives);
-
-      if (!representatives || representatives.length === 0) {
-        console.warn('No representatives found for ZIP:', zipCode);
-      }
-
-      // Get content analysis
-      const contentAnalysis = await analyzeContent(priorities, representatives);
-      console.log('Content analysis completed');
-
-      // Build base response
-      const baseResponse = buildBaseResponse(region, mode, contentAnalysis);
-
-      if (mode === "current") {
-        try {
-          await getElectionData(zipCode);
-          return new Response(
-            JSON.stringify(buildCurrentModeResponse(baseResponse, representatives)),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        } catch (error: any) {
-          if (error.message === 'No active elections') {
-            return new Response(
-              JSON.stringify({
-                ...buildCurrentModeResponse(baseResponse, representatives),
-                noActiveElections: true
-              }),
-              { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-            );
-          }
-          throw error;
+    // For current mode, we'll implement real API calls later
+    // For now, return a simplified response
+    const response = {
+      region: `Region for ZIP ${zipCode}`,
+      mode: 'current',
+      priorities,
+      analysis: "This is a current mode response. API integrations for FEC and Google Civic data will be implemented soon.",
+      noActiveElections: true,
+      draftEmails: [
+        {
+          to: "representative@example.gov",
+          subject: "Constituent Feedback",
+          body: "Dear Representative,\n\nI am writing to share my thoughts on important issues in our community...\n\nBest regards,\n[Your name]"
         }
-      }
-
-      if (mode === "demo") {
-        try {
-          const electionData = await getElectionData(zipCode);
-          return new Response(
-            JSON.stringify(buildDemoModeResponse(baseResponse, electionData)),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        } catch (error: any) {
-          if (error.message === 'No active elections') {
-            return new Response(
-              JSON.stringify({
-                ...baseResponse,
-                noActiveElections: true,
-                candidates: [],
-                ballotMeasures: []
-              }),
-              { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-            );
-          }
-          throw error;
+      ],
+      interestGroups: [
+        {
+          name: "Local Civic Association",
+          url: "https://example.org",
+          relevance: "Matches your interest in community engagement"
         }
-      }
+      ],
+      petitions: [
+        {
+          title: "Support Local Community Programs",
+          url: "https://change.org/example",
+          relevance: "Aligns with your community priorities"
+        }
+      ]
+    };
 
-      throw new Error('Invalid mode specified');
-
-    } catch (error) {
-      console.error('Error processing request:', error);
-      throw error;
-    }
+    return new Response(JSON.stringify(response), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
 
   } catch (error) {
-    console.error('Error in analyze-priorities function:', error);
-    return new Response(JSON.stringify({ 
-      error: error.message || 'An unknown error occurred'
-    }), {
+    console.error('Error in analyze-priorities:', error);
+    return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
