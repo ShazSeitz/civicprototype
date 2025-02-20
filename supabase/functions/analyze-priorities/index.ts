@@ -32,10 +32,6 @@ async function analyzePriorities(priorities: string[]) {
 
 "Based on your concern about [topic], you may want to support [specific suggestion] related candidates, ballot measures, and petitions."
 
-Example responses:
-"Based on your concern about government waste, you may want to support fiscal responsibility related candidates, ballot measures, and petitions."
-"Based on your concern about helping the poor, you may want to support social welfare policy related candidates, ballot measures, and petitions."
-
 Rules:
 1. Each response must be ONE single sentence
 2. Each response MUST start with "Based on your concern about"
@@ -94,20 +90,15 @@ serve(async (req) => {
   }
 
   try {
-    const { mode, zipCode, priorities } = await req.json();
-    console.log('Received request with:', { mode, zipCode, priorities });
+    const { mode, priorities } = await req.json();
+    console.log('Received request with:', { mode, priorities });
 
-    const priorityAnalysis = await analyzePriorities(priorities);
+    const analysis = await analyzePriorities(priorities);
     console.log('Analysis completed successfully');
 
     const response = {
-      region: `ZIP Code ${zipCode}`,
       mode,
-      priorities,
-      analysis: priorityAnalysis,
-      candidates: [],
-      interestGroups: [],
-      petitions: []
+      analysis
     };
 
     return new Response(JSON.stringify(response), {

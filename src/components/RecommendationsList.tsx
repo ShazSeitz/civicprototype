@@ -5,10 +5,8 @@ import { Copy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Recommendations {
-  region: string;
-  analysis: string;
   mode?: "current" | "demo";
-  priorities?: string[];
+  analysis: string;
   candidates?: Array<{
     name: string;
     office: string;
