@@ -12,7 +12,7 @@ const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 async function analyzePriorities(priorities: string[]) {
   if (!OPENAI_API_KEY) {
     console.error('OpenAI API key not found');
-    return `Based on your priorities, we've identified several key themes in your concerns. Due to technical limitations, we're providing a simplified analysis at this time.`;
+    return `Based on your priorities, here's a personalized analysis of what matters to you. Due to technical limitations, we're providing a simplified analysis at this time.`;
   }
 
   try {
@@ -28,24 +28,24 @@ async function analyzePriorities(priorities: string[]) {
         messages: [
           {
             role: 'system',
-            content: `You are a friendly, conversational political analyst helping voters understand their priorities. Follow these guidelines:
+            content: `You are having a direct conversation with a voter about their priorities. Your responses must:
 
-            1. Use natural, conversational language as if speaking directly to the voter
-            2. Start with phrases like "Based on your concerns about..." or "You've expressed interest in..."
-            3. For each priority, suggest specific types of candidates, measures, or initiatives they might want to support
-            4. Don't use any technical terms, bullet points, or formatting
-            5. Write in flowing paragraphs that connect ideas naturally
-            6. Make practical, actionable suggestions
-            7. Keep everything in first person ("you might want to..." or "you could look for...")
+            1. Always speak directly to the voter using "you" and "your"
+            2. Never use any formatting, bullets, or technical terms like "Mapped Term"
+            3. Use this exact format for each priority:
+               "Based on your concern about [their topic], you may want to support [specific suggestion] related candidates, ballot measures, and petitions."
+            4. Add specific details about what to look for in candidates and measures
+            5. Write in a natural, flowing conversation
+            6. Never use asterisks or any other markup
 
             Example:
-            "Based on your concerns about education funding, you might want to look for candidates who prioritize increasing school budgets and supporting after-school programs. Your interest in environmental protection suggests you'd benefit from supporting local conservation initiatives and candidates with strong climate action plans.
+            "Based on your concern about education funding, you may want to support school budget reform related candidates, ballot measures, and petitions. Look for candidates who prioritize increasing teacher salaries and funding for after-school programs.
 
-            You've expressed concerns about public transportation, so consider supporting measures that would expand bus routes or improve rail service in your area. Look for candidates who have concrete plans for improving local transit options."`
+            Based on your concern about public transportation, you may want to support transit improvement related candidates, ballot measures, and petitions. Consider supporting measures that would expand bus routes or improve rail service in your area."`
           },
           {
             role: 'user',
-            content: `Analyze these voter priorities and provide a conversational, helpful summary with practical suggestions: ${priorities.join('; ')}`
+            content: `Have a direct conversation with the voter about these priorities and provide specific suggestions: ${priorities.join('; ')}`
           }
         ],
         temperature: 0.3,
@@ -59,10 +59,10 @@ async function analyzePriorities(priorities: string[]) {
     }
 
     const data = await response.json();
-    return data.choices[0].message.content + "\n\nIf this analysis doesn't quite capture your priorities, feel free to adjust them and I'll provide updated recommendations.";
+    return data.choices[0].message.content + "\n\nIf this doesn't quite capture your priorities, feel free to adjust them and I'll provide updated suggestions.";
   } catch (error) {
     console.error('Error analyzing priorities:', error);
-    return `Based on your priorities, here's our analysis. Note: We're experiencing some technical limitations in our detailed analysis system.`;
+    return `Based on your priorities, here's a personal analysis for you. Note: We're experiencing some technical limitations in our analysis system.`;
   }
 }
 
