@@ -18,12 +18,13 @@ const formSchema = z.object({
 
 const Index = () => {
   const [formData, setFormData] = useState<z.infer<typeof formSchema> | null>(null);
+  const [submitTimestamp, setSubmitTimestamp] = useState<number>(0); // Add this to force query refetch
   const { toast } = useToast();
   const recommendationsRef = useRef<HTMLDivElement>(null);
   const [noElectionsMessage, setNoElectionsMessage] = useState<string | null>(null);
 
   const { data: recommendations, isLoading, isError, error } = useQuery({
-    queryKey: ['recommendations', formData],
+    queryKey: ['recommendations', formData, submitTimestamp], // Add submitTimestamp to queryKey
     queryFn: async () => {
       if (!formData) return null;
       
@@ -41,7 +42,6 @@ const Index = () => {
           throw new Error('No data returned from analysis');
         }
 
-        // If the response indicates no active elections, show the message but still return the data
         if (data.noActiveElections) {
           setNoElectionsMessage("There are no active elections in this zip code, but you can still see recommendations for contacting your representatives as well as interest groups and petitions that map to your priorities.");
         } else {
@@ -69,8 +69,9 @@ const Index = () => {
   }, [recommendations]);
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
-    setNoElectionsMessage(null); // Reset message on new submission
+    setNoElectionsMessage(null);
     setFormData(values);
+    setSubmitTimestamp(Date.now()); // Add this to force query refetch
   };
 
   return (
