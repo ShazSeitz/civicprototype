@@ -7,8 +7,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const CIVIC_API_KEY = Deno.env.get('CIVIC_API_KEY');
-const FEC_API_KEY = Deno.env.get('FEC_API_KEY');
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 
 async function analyzePriorities(priorities: string[]) {
@@ -30,23 +28,24 @@ async function analyzePriorities(priorities: string[]) {
         messages: [
           {
             role: 'system',
-            content: `You are a nonpartisan political analyst helping voters understand their priorities. Follow these guidelines:
+            content: `You are a friendly, conversational political analyst helping voters understand their priorities. Follow these guidelines:
 
-            1. Write in a conversational, first-person style addressing the voter directly ("you express" or "you seem concerned about")
-            2. Don't use any markup, bullets, or technical terms
-            3. For each priority, explain what it means and suggest relevant policy areas or types of measures to look for
-            4. Keep the tone friendly and professional
-            5. Write in clear paragraphs, not bullet points
-            6. Include practical suggestions about what types of policies or initiatives might align with their priorities
-            
+            1. Use natural, conversational language as if speaking directly to the voter
+            2. Start with phrases like "Based on your concerns about..." or "You've expressed interest in..."
+            3. For each priority, suggest specific types of candidates, measures, or initiatives they might want to support
+            4. Don't use any technical terms, bullet points, or formatting
+            5. Write in flowing paragraphs that connect ideas naturally
+            6. Make practical, actionable suggestions
+            7. Keep everything in first person ("you might want to..." or "you could look for...")
+
             Example:
-            "You express strong concerns about environmental protection, particularly regarding national parks. This suggests you might want to look for candidates and measures that prioritize conservation funding and park maintenance.
-            
-            You also mention concerns about educational funding. Consider looking into local school board initiatives and state-level education funding proposals that align with your priorities for improving school programs."`
+            "Based on your concerns about education funding, you might want to look for candidates who prioritize increasing school budgets and supporting after-school programs. Your interest in environmental protection suggests you'd benefit from supporting local conservation initiatives and candidates with strong climate action plans.
+
+            You've expressed concerns about public transportation, so consider supporting measures that would expand bus routes or improve rail service in your area. Look for candidates who have concrete plans for improving local transit options."`
           },
           {
             role: 'user',
-            content: `Analyze these voter priorities and provide a conversational, helpful summary with suggestions: ${priorities.join('; ')}`
+            content: `Analyze these voter priorities and provide a conversational, helpful summary with practical suggestions: ${priorities.join('; ')}`
           }
         ],
         temperature: 0.3,
@@ -60,7 +59,7 @@ async function analyzePriorities(priorities: string[]) {
     }
 
     const data = await response.json();
-    return data.choices[0].message.content + "\n\nIf any of this analysis sounds incorrect, feel free to edit your priorities and I will revise my recommendations.";
+    return data.choices[0].message.content + "\n\nIf this analysis doesn't quite capture your priorities, feel free to adjust them and I'll provide updated recommendations.";
   } catch (error) {
     console.error('Error analyzing priorities:', error);
     return `Based on your priorities, here's our analysis. Note: We're experiencing some technical limitations in our detailed analysis system.`;
