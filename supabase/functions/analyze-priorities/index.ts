@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -29,26 +30,23 @@ async function analyzePriorities(priorities: string[]) {
         messages: [
           {
             role: 'system',
-            content: `You are a nonpartisan political analyst. Your task is to analyze voter priorities and map them to standardized political terminology. 
+            content: `You are a nonpartisan political analyst helping voters understand their priorities. Follow these guidelines:
 
-            Guidelines:
-            1. Write in clear, natural sentences
-            2. Start each analysis point with "Based on your input..."
-            3. Use plain language that any voter can understand
-            4. Avoid technical jargon or academic terminology
-            5. Don't use asterisks, bullet points, or mention "mapped terms"
-            6. Keep the tone neutral and professional
+            1. Write in a conversational, first-person style addressing the voter directly ("you express" or "you seem concerned about")
+            2. Don't use any markup, bullets, or technical terms
+            3. For each priority, explain what it means and suggest relevant policy areas or types of measures to look for
+            4. Keep the tone friendly and professional
+            5. Write in clear paragraphs, not bullet points
+            6. Include practical suggestions about what types of policies or initiatives might align with their priorities
             
-            Example format:
-            "Based on your input about government spending, you appear to be concerned with fiscal responsibility and efficient use of public resources.
+            Example:
+            "You express strong concerns about environmental protection, particularly regarding national parks. This suggests you might want to look for candidates and measures that prioritize conservation funding and park maintenance.
             
-            Based on your input regarding environmental protection, you seem to prioritize conservation efforts and climate change policy."
-            
-            Remember to maintain the original intent while making the language more accessible.`
+            You also mention concerns about educational funding. Consider looking into local school board initiatives and state-level education funding proposals that align with your priorities for improving school programs."`
           },
           {
             role: 'user',
-            content: `Analyze these voter priorities and provide a clear, natural summary: ${priorities.join('; ')}`
+            content: `Analyze these voter priorities and provide a conversational, helpful summary with suggestions: ${priorities.join('; ')}`
           }
         ],
         temperature: 0.3,
@@ -62,52 +60,12 @@ async function analyzePriorities(priorities: string[]) {
     }
 
     const data = await response.json();
-    return data.choices[0].message.content + "\n\n**If any of this analysis sounds incorrect, feel free to edit your priorities and I will revise my recommendations.**";
+    return data.choices[0].message.content + "\n\nIf any of this analysis sounds incorrect, feel free to edit your priorities and I will revise my recommendations.";
   } catch (error) {
     console.error('Error analyzing priorities:', error);
     return `Based on your priorities, here's our analysis. Note: We're experiencing some technical limitations in our detailed analysis system.`;
   }
 }
-
-// Mock candidates data
-const demoCandidates = [
-  {
-    name: "Kamala Harris",
-    office: "President",
-    highlights: [
-      "Current Vice President",
-      "Focus on healthcare reform",
-      "Supports environmental protection initiatives"
-    ]
-  },
-  {
-    name: "Donald Trump",
-    office: "President",
-    highlights: [
-      "Former President",
-      "Focus on immigration reform",
-      "Supports deregulation policies"
-    ]
-  },
-  {
-    name: "Jill Stein",
-    office: "President",
-    highlights: [
-      "Green Party candidate",
-      "Focus on environmental issues",
-      "Supports universal healthcare"
-    ]
-  },
-  {
-    name: "Chase Oliver",
-    office: "President",
-    highlights: [
-      "Independent candidate",
-      "Focus on civil liberties",
-      "Supports fiscal responsibility"
-    ]
-  }
-];
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -118,150 +76,24 @@ serve(async (req) => {
     const { mode, zipCode, priorities } = await req.json();
     console.log('Received request:', { mode, zipCode, priorities });
 
-    // Get location data
-    const location = await getLocationFromZip(zipCode);
-    console.log('Location data:', location);
-
     // Get priority analysis
     const priorityAnalysis = await analyzePriorities(priorities);
-    console.log('Priority analysis completed:', priorityAnalysis);
+    console.log('Priority analysis completed');
 
-    // For demo mode
-    if (mode === 'demo') {
-      const response = {
-        region: location.region,
-        mode: 'demo',
-        priorities,
-        candidates: demoCandidates,
-        analysis: priorityAnalysis,
-        ballotMeasures: [
-          {
-            title: "Measure A: Infrastructure Bond",
-            recommendation: "This measure aligns with your priority on improving local transportation."
-          },
-          {
-            title: "Measure B: Education Funding",
-            recommendation: "Based on your interest in education and community programs."
-          }
-        ],
-        draftEmails: [
-          {
-            to: "senator@example.gov",
-            subject: "Constituent Concerns",
-            body: `Dear Senator,\n\nAs a constituent from ${location.region}, I am writing to express my concerns about the following priorities:\n\n${priorities.join('\n\n')}\n\nBased on the analysis of my priorities:\n${priorityAnalysis}\n\nI would appreciate your thoughts on these matters.\n\nBest regards,\n[Your name]`
-          }
-        ],
-        interestGroups: [
-          {
-            name: "Local Civic Association",
-            url: "https://www.usa.gov/local-governments",
-            relevance: `Find civic organizations in ${location.region}`
-          },
-          {
-            name: "Environmental Defense Fund",
-            url: "https://www.edf.org",
-            relevance: "National environmental advocacy group"
-          }
-        ],
-        petitions: [
-          {
-            title: `Improve Public Transit in ${location.city || 'Your Area'}`,
-            url: "https://change.org/example1",
-            relevance: "Matches your interest in local transportation improvements"
-          },
-          {
-            title: "Support Education Programs",
-            url: "https://change.org/example2",
-            relevance: "Aligns with your priority on education and community programs"
-          }
-        ]
-      };
+    // Structure the response
+    const response = {
+      region: `ZIP Code ${zipCode}`,
+      mode,
+      priorities,
+      analysis: priorityAnalysis,
+      candidates: [],
+      interestGroups: [],
+      petitions: []
+    };
 
-      return new Response(JSON.stringify(response), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // For current mode - real API integration
-    try {
-      const civicData = await fetch(
-        `https://www.googleapis.com/civicinfo/v2/representatives?address=${zipCode}&key=${CIVIC_API_KEY}`
-      );
-      
-      if (!civicData.ok) {
-        throw new Error('Failed to fetch civic data');
-      }
-      
-      const civicInfo = await civicData.json();
-      console.log('Civic data received:', civicInfo);
-
-      // Check if there are any upcoming elections
-      const hasActiveElections = civicInfo.contests && civicInfo.contests.length > 0;
-
-      // Structure the response with the priority analysis
-      const response = {
-        region: location.region,
-        mode: 'current',
-        priorities,
-        noActiveElections: !hasActiveElections,
-        analysis: priorityAnalysis,
-        candidates: civicInfo.officials?.map((official: any) => ({
-          name: official.name,
-          office: official.office || "Current Official",
-          highlights: [
-            official.party || "No party affiliation listed",
-            ...(official.phones || []),
-            ...(official.emails || [])
-          ]
-        })) || [],
-        draftEmails: civicInfo.officials?.filter((official: any) => official.emails?.length > 0)
-          .map((official: any) => ({
-            to: official.emails[0],
-            subject: "Constituent Feedback",
-            body: `Dear ${official.name},\n\nAs a constituent from ${location.region}, I am writing to discuss several priorities that are important to me and our community.\n\n${priorities.join('\n\n')}\n\nI would appreciate your thoughts on these matters.\n\nBest regards,\n[Your name]`
-          })) || [],
-        interestGroups: [
-          {
-            name: "Local Civic Association",
-            url: "https://www.usa.gov/local-governments",
-            relevance: `Find civic organizations in ${location.region}`
-          }
-        ],
-        petitions: [
-          {
-            title: "Local Community Initiatives",
-            url: "https://www.change.org/search",
-            relevance: "Find petitions related to your local community"
-          }
-        ]
-      };
-
-      return new Response(JSON.stringify(response), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-
-    } catch (apiError) {
-      console.error('API integration error:', apiError);
-      return new Response(JSON.stringify({
-        region: location.region,
-        mode: 'current',
-        priorities,
-        analysis: priorityAnalysis,
-        noActiveElections: true,
-        draftEmails: [],
-        interestGroups: [
-          {
-            name: "USA.gov",
-            url: "https://www.usa.gov/elected-officials",
-            relevance: "Find and contact your elected officials"
-          }
-        ],
-        petitions: []
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
+    return new Response(JSON.stringify(response), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   } catch (error) {
     console.error('Error in analyze-priorities:', error);
     return new Response(JSON.stringify({ error: error.message }), {
