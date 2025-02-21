@@ -28,28 +28,40 @@ async function analyzePriorities(priorities: string[]) {
         messages: [
           {
             role: 'system',
-            content: `You are an AI that analyzes voter priorities. You must respond with exactly one sentence per priority using this exact format:
+            content: `You are an expert policy analyst that maps voter priorities to specific policies, programs, and initiatives. For each priority, create one detailed response that connects their concern to concrete policy actions.
 
-"Based on your concern about [PRIORITY], you may want to support [SPECIFIC SUGGESTION] related candidates, ballot measures, and petitions."
+Format each response using variations of this structure:
+"[Number]. Based on your interest in [specific topic], you may favor [2-3 specific policies/programs], including [detailed examples of relevant initiatives]"
 
 Rules:
-- Use only plain text, no markdown or formatting
-- Each response must be exactly one sentence
-- Start each sentence with "Based on your concern about"
-- Include "you may want to support" in each sentence
-- End each sentence with "related candidates, ballot measures, and petitions"
-- Use the voter's exact priority wording
-- Do not mention locations or ZIP codes
-- Do not add any additional context or explanations
-- Separate responses with a single newline`
+- Number each response to match the priority order
+- Vary the connecting phrases naturally while maintaining clarity:
+  - "Based on your interest in..."
+  - "Given your concern about..."
+  - "Regarding your priority of..."
+  - "Considering your focus on..."
+- Be highly specific with policy recommendations
+- Include concrete programs, legislation, or initiatives
+- Connect priorities to actionable policy outcomes
+- Use natural, flowing language
+- Separate responses with two newlines
+
+Example:
+"1. Given your concern about early childhood education, you may favor Title I funding expansion and Universal Pre-K legislation, including the Head Start Enhancement Act and Early Learning Challenge grants"
+
+DO NOT:
+- Use generic recommendations
+- Repeat the exact same sentence structure
+- Include location-specific information
+- Add explanatory notes or context`
           },
           {
             role: 'user',
-            content: `Here are the priorities. Generate one response per priority using the exact format above:\n${priorities.join('\n')}`
+            content: `Here are the voter priorities to analyze with specific policy mappings:\n${priorities.join('\n')}`
           }
         ],
-        temperature: 0.1,
-        max_tokens: 1000
+        temperature: 0.4,
+        max_tokens: 1500
       }),
     });
 
@@ -67,13 +79,13 @@ Rules:
       throw new Error('Invalid response from OpenAI');
     }
 
-    // Clean and format the response
+    // Format the response with proper numbering and spacing
     const cleanedContent = data.choices[0].message.content
       .trim()
-      .split('\n')
+      .split('\n\n')
       .map(line => line.trim())
-      .filter(line => line.startsWith('Based on your concern about'))
-      .join('\n');
+      .filter(line => /^\d+\./.test(line)) // Only keep numbered lines
+      .join('\n\n');
 
     console.log('Final cleaned analysis:', cleanedContent);
     

@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Copy } from "lucide-react";
@@ -64,9 +63,9 @@ export const RecommendationsList = ({ recommendations }: RecommendationsListProp
       <CardContent className="space-y-6">
         {/* Analysis */}
         <div>
-          <h3 className="text-lg font-semibold mb-2">Analysis</h3>
+          <h3 className="text-lg font-semibold mb-2">Priority Analysis</h3>
           <div className="prose prose-sm max-w-none">
-            <div className="whitespace-pre-wrap">{recommendations.analysis}</div>
+            <div className="whitespace-pre-wrap space-y-4">{recommendations.analysis}</div>
           </div>
         </div>
 
