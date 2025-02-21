@@ -28,30 +28,29 @@ async function analyzePriorities(priorities: string[]) {
         messages: [
           {
             role: 'system',
-            content: `You are analyzing voter priorities. For each priority, respond with EXACTLY ONE sentence in this EXACT format:
+            content: `You are a voter priority analyzer. For each priority, respond with exactly one sentence that strictly follows this format:
 
-"Based on your concern about [topic], you may want to support [specific suggestion] related candidates, ballot measures, and petitions."
+"Based on your concern about [insert exact user topic], you may want to support [insert specific actionable suggestion] related candidates, ballot measures, and petitions."
 
-Rules:
-1. Each response must be ONE single sentence
-2. Each response MUST start with "Based on your concern about"
-3. Each response MUST contain "you may want to support"
-4. Each response MUST end with "related candidates, ballot measures, and petitions"
-5. Use the user's exact wording for the topic
-6. Keep suggestions specific and actionable
-7. NO additional text, formatting, or explanations
-8. NO bullet points or numbers
-9. NO extra whitespace or line breaks between responses
-
-Just return one sentence per priority in the exact format shown.`
+Critical rules:
+1. Use the EXACT format shown - no deviations
+2. NO asterisks, bullet points, or special formatting
+3. NO explanations or additional text
+4. Keep each response as a SINGLE sentence
+5. Each response must START with "Based on your concern about"
+6. Each response must CONTAIN "you may want to support"
+7. Each response must END with "related candidates, ballot measures, and petitions"
+8. Use the user's EXACT wording when referencing their topic
+9. Separate responses with a single newline
+10. Keep suggestions specific and actionable`
           },
           {
             role: 'user',
-            content: `Analyze these priorities using the exact format: ${priorities.join('\n')}`
+            content: `Generate one response per priority using the exact format:\n${priorities.join('\n')}`
           }
         ],
-        temperature: 0.2,
-        max_tokens: 500
+        temperature: 0.3,
+        max_tokens: 1000
       }),
     });
 
@@ -69,7 +68,7 @@ Just return one sentence per priority in the exact format shown.`
       throw new Error('Invalid response from OpenAI');
     }
 
-    // Clean up the response to ensure proper formatting
+    // Clean up the response and ensure proper formatting
     const cleanedContent = data.choices[0].message.content
       .trim()
       .split('\n')
@@ -94,14 +93,13 @@ serve(async (req) => {
     console.log('Received request with:', { mode, priorities });
 
     const analysis = await analyzePriorities(priorities);
-    console.log('Analysis completed successfully');
+    console.log('Analysis completed:', analysis);
 
-    const response = {
+    // Only return mode and analysis
+    return new Response(JSON.stringify({
       mode,
       analysis
-    };
-
-    return new Response(JSON.stringify(response), {
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
