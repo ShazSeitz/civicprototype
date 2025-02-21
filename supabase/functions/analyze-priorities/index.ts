@@ -28,28 +28,27 @@ async function analyzePriorities(priorities: string[]) {
         messages: [
           {
             role: 'system',
-            content: `You are a voter priority analyzer. For each priority, respond with exactly one sentence that strictly follows this format:
+            content: `You are an AI that analyzes voter priorities. You must respond with exactly one sentence per priority using this exact format:
 
-"Based on your concern about [insert exact user topic], you may want to support [insert specific actionable suggestion] related candidates, ballot measures, and petitions."
+"Based on your concern about [PRIORITY], you may want to support [SPECIFIC SUGGESTION] related candidates, ballot measures, and petitions."
 
-Critical rules:
-1. Use the EXACT format shown - no deviations
-2. NO asterisks, bullet points, or special formatting
-3. NO explanations or additional text
-4. Keep each response as a SINGLE sentence
-5. Each response must START with "Based on your concern about"
-6. Each response must CONTAIN "you may want to support"
-7. Each response must END with "related candidates, ballot measures, and petitions"
-8. Use the user's EXACT wording when referencing their topic
-9. Separate responses with a single newline
-10. Keep suggestions specific and actionable`
+Rules:
+- Use only plain text, no markdown or formatting
+- Each response must be exactly one sentence
+- Start each sentence with "Based on your concern about"
+- Include "you may want to support" in each sentence
+- End each sentence with "related candidates, ballot measures, and petitions"
+- Use the voter's exact priority wording
+- Do not mention locations or ZIP codes
+- Do not add any additional context or explanations
+- Separate responses with a single newline`
           },
           {
             role: 'user',
-            content: `Generate one response per priority using the exact format:\n${priorities.join('\n')}`
+            content: `Here are the priorities. Generate one response per priority using the exact format above:\n${priorities.join('\n')}`
           }
         ],
-        temperature: 0.3,
+        temperature: 0.1,
         max_tokens: 1000
       }),
     });
@@ -61,14 +60,14 @@ Critical rules:
     }
 
     const data = await response.json();
-    console.log('OpenAI response received:', data);
+    console.log('OpenAI API response:', data);
 
     if (!data.choices?.[0]?.message?.content) {
       console.error('Unexpected OpenAI response structure:', data);
       throw new Error('Invalid response from OpenAI');
     }
 
-    // Clean up the response and ensure proper formatting
+    // Clean and format the response
     const cleanedContent = data.choices[0].message.content
       .trim()
       .split('\n')
@@ -76,6 +75,8 @@ Critical rules:
       .filter(line => line.startsWith('Based on your concern about'))
       .join('\n');
 
+    console.log('Final cleaned analysis:', cleanedContent);
+    
     return cleanedContent;
   } catch (error) {
     console.error('Error in analyzePriorities:', error);
@@ -95,7 +96,6 @@ serve(async (req) => {
     const analysis = await analyzePriorities(priorities);
     console.log('Analysis completed:', analysis);
 
-    // Only return mode and analysis
     return new Response(JSON.stringify({
       mode,
       analysis
