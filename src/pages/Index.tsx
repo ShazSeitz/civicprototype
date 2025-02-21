@@ -31,7 +31,7 @@ const Index = () => {
       try {
         console.log('Submitting form data:', formData);
         const { data, error } = await supabase.functions.invoke('analyze-priorities', {
-          body: { ...formData }
+          body: { mode: formData.mode, priorities: formData.priorities }
         });
 
         if (error) {
@@ -48,13 +48,16 @@ const Index = () => {
           throw new Error('No data returned from analysis');
         }
 
-        if (data.noActiveElections) {
-          setNoElectionsMessage("There are no active elections in this zip code, but you can still see recommendations for contacting your representatives as well as interest groups and petitions that map to your priorities.");
-        } else {
-          setNoElectionsMessage(null);
-        }
-
-        return data;
+        // Return the data with empty arrays for optional properties
+        return {
+          mode: data.mode,
+          analysis: data.analysis,
+          candidates: [],
+          ballotMeasures: [],
+          draftEmails: [],
+          interestGroups: [],
+          petitions: []
+        };
       } catch (err: any) {
         console.error('Error in analyze-priorities:', err);
         toast({
