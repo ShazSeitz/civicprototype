@@ -12,7 +12,6 @@ const formSchema = z.object({
   mode: z.enum(["current", "demo"], {
     required_error: "Please select a mode.",
   }),
-  zipCode: z.string().length(5, "ZIP code must be exactly 5 digits").regex(/^\d+$/, "ZIP code must contain only numbers"),
   priorities: z.array(z.string().min(1, "Priority cannot be empty")).length(6, "Please enter all 6 priorities"),
 });
 
@@ -21,7 +20,6 @@ const Index = () => {
   const [submitCount, setSubmitCount] = useState(0);
   const { toast } = useToast();
   const recommendationsRef = useRef<HTMLDivElement>(null);
-  const [noElectionsMessage, setNoElectionsMessage] = useState<string | null>(null);
 
   const { data: recommendations, isLoading, isError, error } = useQuery({
     queryKey: ['recommendations', formData, submitCount],
@@ -48,7 +46,6 @@ const Index = () => {
           throw new Error('No data returned from analysis');
         }
 
-        // Return the data with empty arrays for optional properties
         return {
           mode: data.mode,
           analysis: data.analysis,
@@ -84,7 +81,6 @@ const Index = () => {
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     console.log('Form submitted with values:', values);
-    setNoElectionsMessage(null);
     setFormData(values);
     setSubmitCount(prev => prev + 1);
   };
@@ -103,12 +99,6 @@ const Index = () => {
             onSubmit={onSubmit} 
             isLoading={isLoading} 
           />
-          
-          {noElectionsMessage && (
-            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg text-blue-700">
-              {noElectionsMessage}
-            </div>
-          )}
           
           <div ref={recommendationsRef}>
             {recommendations && <RecommendationsList recommendations={recommendations} />}
