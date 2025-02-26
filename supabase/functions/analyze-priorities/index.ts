@@ -46,9 +46,13 @@ const issueTerminology = {
       "climate denial",
       "climate hoax",
       "extreme weather",
-      "pollution"
+      "pollution",
+      "skeptical",
+      "not sure about climate",
+      "climate waste",
+      "climate spending"
     ],
-    standardTerm: "Climate Change and Environmental Policy"
+    standardTerm: "Climate Change Skepticism and Policy Concerns"
   },
   transportation: {
     plainLanguage: [
@@ -101,23 +105,53 @@ serve(async (req) => {
     
     const mappedPriorities = priorities.map((priority: string) => {
       const priorityLower = priority.toLowerCase();
+      
+      // Track matched terms for better categorization
+      const matches = new Map<string, number>();
+      
       for (const [category, data] of Object.entries(issueTerminology)) {
         const plainLanguageTerms = data.plainLanguage as string[]
-        if (plainLanguageTerms.some(term => 
-          priorityLower.includes(term.toLowerCase())
-        )) {
-          return {
-            category,
-            standardTerm: data.standardTerm
+        let matchCount = 0;
+        
+        plainLanguageTerms.forEach(term => {
+          if (priorityLower.includes(term.toLowerCase())) {
+            matchCount++;
           }
+        });
+        
+        if (matchCount > 0) {
+          matches.set(category, matchCount);
         }
       }
-      return null
+      
+      // If we found matches, return the category with the most matching terms
+      if (matches.size > 0) {
+        const bestMatch = Array.from(matches.entries()).reduce((a, b) => 
+          b[1] > a[1] ? b : a
+        );
+        
+        return {
+          category: bestMatch[0],
+          standardTerm: issueTerminology[bestMatch[0]].standardTerm,
+          matchStrength: bestMatch[1]
+        };
+      }
+      
+      return null;
     });
 
     // Filter out null values and get unique terms
     const validMappings = mappedPriorities.filter(Boolean);
-    const uniqueTerms = Array.from(new Set(validMappings.map(m => m?.standardTerm)));
+    
+    // Get unique terms but consider match strength
+    const uniqueTerms = Array.from(
+      new Map(
+        validMappings
+          .sort((a, b) => (b?.matchStrength || 0) - (a?.matchStrength || 0))
+          .map(m => [m?.standardTerm, m?.standardTerm])
+      ).values()
+    );
+    
     const unmappedCount = priorities.length - validMappings.length;
 
     let analysis = "I have mapped your priorities to common terms used in relation to policy:\n\n";
