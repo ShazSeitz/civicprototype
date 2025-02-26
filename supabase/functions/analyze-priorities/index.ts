@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 
@@ -23,7 +24,12 @@ const issueTerminology = {
       "tax relief",
       "tax cuts",
       "tax breaks",
-      "reduce taxes"
+      "reduce taxes",
+      "working families",
+      "middle class",
+      "working class",
+      "family taxes",
+      "tax burden on workers"
     ],
     standardTerm: "Tax Burden and Relief",
     plainEnglish: "I am concerned about the tax burden and want to keep more of my income."
@@ -320,8 +326,7 @@ serve(async (req) => {
     const { priorities, mode } = await req.json()
     console.log('Analyzing priorities:', priorities)
     
-    const MAX_MATCHES = 3;
-    
+    // Remove MAX_MATCHES limit since we want to capture all relevant matches
     const mappedPriorities = priorities.map((priority: string, index: number) => {
       const priorityLower = priority.toLowerCase();
       const matches: Array<{category: string, standardTerm: string, matchCount: number}> = [];
@@ -345,14 +350,11 @@ serve(async (req) => {
         }
       }
       
+      // Return all matches, sorted by match count
       if (matches.length > 0) {
-        const topMatches = matches
-          .sort((a, b) => b.matchCount - a.matchCount)
-          .slice(0, MAX_MATCHES);
-        
         return {
           originalIndex: index,
-          matches: topMatches
+          matches: matches.sort((a, b) => b.matchCount - a.matchCount)
         };
       }
       
