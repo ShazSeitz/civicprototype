@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 
@@ -156,14 +155,13 @@ serve(async (req) => {
 
     let analysis = "I have mapped your priorities to common terms used in relation to policy:\n\n";
     
-    uniqueTerms.forEach(term => {
-      analysis += `• ${term}\n`;
-    });
+    // Create a properly formatted bullet list with line breaks
+    analysis += uniqueTerms.map(term => `• ${term}`).join('\n\n');
 
     if (unmappedCount > 0) {
-      analysis += `\nI couldn't map ${unmappedCount} of your priorities to common policy terms. Would you like to rephrase them or would you like me to expand my understanding of these topics?`;
+      analysis += `\n\nI couldn't map ${unmappedCount} of your priorities to common policy terms. Would you like to rephrase them or would you like me to expand my understanding of these topics?`;
     } else {
-      analysis += "\nWould you like any clarification about these policy areas?";
+      analysis += "\n\nWould you like any clarification about these policy areas?";
     }
 
     console.log('Generated analysis:', analysis);
