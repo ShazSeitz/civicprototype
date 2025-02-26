@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 
@@ -103,7 +102,8 @@ serve(async (req) => {
     const { priorities, mode } = await req.json()
     console.log('Analyzing priorities:', priorities)
     
-    const mappedPriorities = priorities.map((priority: string) => {
+    // Track matches with their original index
+    const mappedPriorities = priorities.map((priority: string, index: number) => {
       const priorityLower = priority.toLowerCase();
       
       // Track matched terms for better categorization
@@ -131,6 +131,7 @@ serve(async (req) => {
         );
         
         return {
+          originalIndex: index,
           category: bestMatch[0],
           standardTerm: issueTerminology[bestMatch[0]].standardTerm,
           matchStrength: bestMatch[1]
@@ -140,24 +141,20 @@ serve(async (req) => {
       return null;
     });
 
-    // Filter out null values and get unique terms
-    const validMappings = mappedPriorities.filter(Boolean);
+    // Filter out null values but maintain original order
+    const validMappings = mappedPriorities
+      .filter(Boolean)
+      .sort((a, b) => a.originalIndex - b.originalIndex);
     
-    // Get unique terms but consider match strength
-    const uniqueTerms = Array.from(
-      new Map(
-        validMappings
-          .sort((a, b) => (b?.matchStrength || 0) - (a?.matchStrength || 0))
-          .map(m => [m?.standardTerm, m?.standardTerm])
-      ).values()
-    );
+    // Get terms in original priority order
+    const orderedTerms = validMappings.map(m => m.standardTerm);
     
     const unmappedCount = priorities.length - validMappings.length;
 
     let analysis = "I have mapped your priorities to common terms used in relation to policy:\n\n";
     
-    // Create a bullet list with single line breaks
-    analysis += uniqueTerms.map(term => `• ${term}`).join('\n');
+    // Create a bullet list with terms in original order
+    analysis += orderedTerms.map(term => `• ${term}`).join('\n');
 
     if (unmappedCount > 0) {
       analysis += `\n\nI couldn't map ${unmappedCount} of your priorities to common policy terms. Would you like to rephrase them or would you like me to expand my understanding of these topics?`;
