@@ -44,6 +44,7 @@ export const RecommendationsList = ({ recommendations, onFeedbackSubmit }: Recom
   const [showFeedbackInput, setShowFeedbackInput] = useState(false);
   const [feedback, setFeedback] = useState("");
   const [showRecommendations, setShowRecommendations] = useState(false);
+  const [analysisVersion, setAnalysisVersion] = useState(1);
 
   const copyToClipboard = async (text: string) => {
     try {
@@ -64,10 +65,11 @@ export const RecommendationsList = ({ recommendations, onFeedbackSubmit }: Recom
   const handleFeedbackSubmit = () => {
     if (onFeedbackSubmit && feedback.trim()) {
       onFeedbackSubmit(feedback);
+      setAnalysisVersion(prev => prev + 1);
+      setFeedback("");
+      setShowFeedbackInput(false);
+      // Don't show recommendations yet, wait for new analysis
     }
-    setShowRecommendations(true);
-    setShowFeedbackInput(false);
-    setFeedback("");
   };
 
   const handleFeedbackChoice = (wantsFeedback: boolean) => {
@@ -86,13 +88,13 @@ export const RecommendationsList = ({ recommendations, onFeedbackSubmit }: Recom
       <CardContent className="space-y-6">
         {/* Analysis */}
         <div>
-          <h3 className="text-lg font-semibold mb-2">Priority Analysis</h3>
+          <h3 className="text-lg font-semibold mb-2">Priority Analysis {analysisVersion > 1 ? `(Updated)` : ''}</h3>
           <div className="prose prose-sm max-w-none">
             <p className="text-base">{recommendations.analysis}</p>
           </div>
         </div>
 
-        {/* Feedback Choice */}
+        {/* Only show feedback choice if recommendations aren't showing yet */}
         {!showFeedbackInput && !showRecommendations && (
           <div className="space-y-4">
             <p className="text-sm font-medium">
@@ -132,13 +134,25 @@ export const RecommendationsList = ({ recommendations, onFeedbackSubmit }: Recom
                 {feedback.length}/300 characters
               </div>
             </div>
-            <Button onClick={handleFeedbackSubmit} className="w-full">
-              SUBMIT
-            </Button>
+            <div className="flex gap-4">
+              <Button onClick={handleFeedbackSubmit} className="flex-1">
+                SUBMIT
+              </Button>
+              <Button 
+                onClick={() => {
+                  setShowFeedbackInput(false);
+                  setShowRecommendations(true);
+                }} 
+                variant="outline" 
+                className="flex-1"
+              >
+                SKIP TO RECOMMENDATIONS
+              </Button>
+            </div>
           </div>
         )}
 
-        {/* Show the rest of the recommendations after feedback submission */}
+        {/* Show the rest of the recommendations after feedback submission or clicking No */}
         {showRecommendations && (
           <>
             {/* Candidates */}
