@@ -7,6 +7,31 @@ const corsHeaders = {
 }
 
 const issueTerminology = {
+  taxCutsForMiddleClass: {
+    plainLanguage: [
+      "middle class tax cuts",
+      "tax cuts for working families", 
+      "tax relief for average citizens",
+      "tax breaks for middle class",
+      "help working families",
+      "tax burden on workers",
+      "tired of paying tax",
+      "lower taxes for workers",
+      "reduce taxes middle class",
+      "paying too much tax",
+      "working class taxes",
+      "family tax relief",
+      "tired of paying income tax",
+      "work hard for my money",
+      "pass on to my children",
+      "tired of taxes",
+      "hard earned money",
+      "income tax",
+      "paying so much tax"
+    ],
+    standardTerm: "Middle Class Tax Relief",
+    plainEnglish: "I want tax cuts that help working families and the middle class keep more of their money."
+  },
   economy: {
     plainLanguage: [
       "tax burden", 
@@ -102,39 +127,48 @@ serve(async (req) => {
     const { priorities, mode } = await req.json()
     console.log('Analyzing priorities:', priorities)
     
-    // Track matches with their original index
     const mappedPriorities = priorities.map((priority: string, index: number) => {
       const priorityLower = priority.toLowerCase();
       
       // Track matched terms for better categorization
-      const matches = new Map<string, number>();
+      const matches = new Map<string, {count: number, specificity: number}>();
       
       for (const [category, data] of Object.entries(issueTerminology)) {
         const plainLanguageTerms = data.plainLanguage as string[]
         let matchCount = 0;
+        let maxSpecificity = 0;
         
         plainLanguageTerms.forEach(term => {
           if (priorityLower.includes(term.toLowerCase())) {
             matchCount++;
+            // Calculate specificity based on term length
+            const termSpecificity = term.length;
+            maxSpecificity = Math.max(maxSpecificity, termSpecificity);
           }
         });
         
         if (matchCount > 0) {
-          matches.set(category, matchCount);
+          matches.set(category, {
+            count: matchCount,
+            specificity: maxSpecificity
+          });
         }
       }
       
-      // If we found matches, return the category with the most matching terms
+      // If we found matches, return the category with the best match
+      // considering both count and specificity
       if (matches.size > 0) {
-        const bestMatch = Array.from(matches.entries()).reduce((a, b) => 
-          b[1] > a[1] ? b : a
-        );
+        const bestMatch = Array.from(matches.entries()).reduce((a, b) => {
+          const aScore = a[1].count * a[1].specificity;
+          const bScore = b[1].count * b[1].specificity;
+          return bScore > aScore ? b : a;
+        });
         
         return {
           originalIndex: index,
           category: bestMatch[0],
           standardTerm: issueTerminology[bestMatch[0]].standardTerm,
-          matchStrength: bestMatch[1]
+          matchStrength: bestMatch[1].count * bestMatch[1].specificity
         };
       }
       
