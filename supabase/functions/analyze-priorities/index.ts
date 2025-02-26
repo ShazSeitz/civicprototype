@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 
@@ -8,30 +7,26 @@ const corsHeaders = {
 }
 
 const issueTerminology = {
-  taxCutsForMiddleClass: {
+  taxBurden: {
     plainLanguage: [
-      "middle class tax cuts",
-      "tax cuts for working families",
-      "tax relief for average citizens",
-      "tax breaks for middle class",
-      "help working families",
-      "tax burden on workers",
       "tired of paying tax",
-      "lower taxes for workers",
-      "reduce taxes middle class",
+      "tax burden",
+      "lower taxes",
       "paying too much tax",
-      "working class taxes",
-      "family tax relief",
       "tired of paying income tax",
       "work hard for my money",
       "pass on to my children",
       "tired of taxes",
       "hard earned money",
       "income tax",
-      "paying so much tax"
+      "paying so much tax",
+      "tax relief",
+      "tax cuts",
+      "tax breaks",
+      "reduce taxes"
     ],
-    standardTerm: "Middle Class Tax Relief",
-    plainEnglish: "I want tax cuts that help working families and the middle class keep more of their money."
+    standardTerm: "Tax Burden and Relief",
+    plainEnglish: "I am concerned about the tax burden and want to keep more of my income."
   },
   taxCutsForWealthy: {
     plainLanguage: [
@@ -169,7 +164,7 @@ const issueTerminology = {
   technology: {
     plainLanguage: [
       "AI",
-      "AI regulation",
+      "AI regulation"
       "artificial intelligence",
       "machine learning",
       "automation",
