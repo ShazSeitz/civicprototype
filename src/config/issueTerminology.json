@@ -161,6 +161,7 @@
   "technology": {
     "plainLanguage": [
       "AI",
+      "AI regulation"
       "artificial intelligence",
       "machine learning",
       "automation",
@@ -168,7 +169,7 @@
       "cybersecurity",
       "robots"
     ],
-    "standardTerm": "Technology Policy, AI safety, Data Privacy, and Cybersecurity",
+    "standardTerm": "Technology Policy, AI regulation, Data Privacy, and Cybersecurity",
     "plainEnglish": "I want strong protections for my personal data and safe, reliable technology that works for everyone."
   },
   "foreignPolicy": {
