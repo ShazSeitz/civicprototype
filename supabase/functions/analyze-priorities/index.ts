@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 
@@ -8,46 +7,37 @@ const corsHeaders = {
 }
 
 const issueTerminology = {
-  taxCutsForMiddleClass: {
+  taxPolicy: {
     plainLanguage: [
-      "middle class tax cuts",
-      "tax cuts for working families", 
-      "tax relief for average citizens",
-      "tax breaks for middle class",
-      "help working families",
-      "tax burden on workers",
+      "income tax",
+      "tax burden",
       "tired of paying tax",
-      "lower taxes for workers",
-      "reduce taxes middle class",
       "paying too much tax",
-      "working class taxes",
-      "family tax relief",
+      "tax relief",
       "tired of paying income tax",
       "work hard for my money",
       "pass on to my children",
       "tired of taxes",
       "hard earned money",
-      "income tax",
       "paying so much tax"
     ],
-    standardTerm: "Middle Class Tax Relief",
-    plainEnglish: "I want tax cuts that help working families and the middle class keep more of their money."
+    standardTerm: "Tax Policy and Reform",
+    plainEnglish: "Concerns about income tax rates and inheritance"
   },
-  economy: {
+  economicPolicy: {
     plainLanguage: [
-      "tax burden", 
-      "high taxes", 
-      "taxes too high", 
-      "tax rates", 
-      "property tax",
-      "inflation",
-      "job security",
-      "cost of living",
-      "income tax",
-      "money",
-      "work hard for my money"
+      "economic growth",
+      "fiscal policy",
+      "government spending",
+      "financial regulations",
+      "economic conditions",
+      "work hard for money",
+      "pass on wealth",
+      "inheritance",
+      "estate planning"
     ],
-    standardTerm: "Economic Conditions and Fiscal Policy"
+    standardTerm: "Economic Policy",
+    plainEnglish: "Issues related to economic conditions and wealth transfer"
   },
   civilLiberties: {
     plainLanguage: [
