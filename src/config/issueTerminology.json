@@ -1,12 +1,24 @@
 
 {
+  "taxCuts": {
+    "plainLanguage": [
+      "tax cuts",
+      "income tax",
+      "tax burden",
+      "high taxes",
+      "taxes too high",
+      "tax rates",
+      "property tax",
+      "tired of paying tax",
+      "lower taxes",
+      "reduce taxes",
+      "paying too much tax"
+    ],
+    "standardTerm": "Tax Reform and Tax Cuts",
+    "plainEnglish": "I want lower taxes so I can keep more of my hard-earned money."
+  },
   "economy": {
     "plainLanguage": [
-      "tax burden", 
-      "high taxes", 
-      "taxes too high", 
-      "tax rates", 
-      "property tax",
       "inflation",
       "job security",
       "cost of living",
@@ -14,7 +26,7 @@
       "fair prices",
       "paycheck value"
     ],
-    "standardTerm": "Economic Conditions and Fiscal Policy",
+    "standardTerm": "Economic Conditions and Growth",
     "plainEnglish": "I want a strong economy where prices are fair, jobs are secure, and my paycheck goes further."
   },
   "healthcare": {
