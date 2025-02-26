@@ -121,6 +121,198 @@ const issueTerminology = {
     ],
     standardTerm: "Political Polarization and Democratic Governance",
     plainEnglish: "I want to fix our broken politics, stop fake news, and keep our government honest and fair."
+  },
+  housing: {
+    plainLanguage: [
+      "affordable housing",
+      "homelessness",
+      "rent costs",
+      "housing crisis",
+      "property values"
+    ],
+    standardTerm: "Housing Affordability and Homelessness Prevention",
+    plainEnglish: "I want safe, affordable housing for everyone and solutions to prevent homelessness."
+  },
+  education: {
+    plainLanguage: [
+      "school quality",
+      "education costs",
+      "student debt",
+      "college affordability",
+      "public schools"
+    ],
+    standardTerm: "Education and Student Opportunity",
+    plainEnglish: "I want quality and affordable education for every student so we can build a better future."
+  },
+  publicSafety: {
+    plainLanguage: [
+      "crime",
+      "police reform",
+      "criminal justice",
+      "law enforcement",
+      "public safety"
+    ],
+    standardTerm: "Public Safety and Criminal Justice",
+    plainEnglish: "I want safer communities and a fair justice system that truly protects us all."
+  },
+  inequality: {
+    plainLanguage: [
+      "wealth gap",
+      "income inequality",
+      "economic fairness",
+      "wealth distribution",
+      "economic opportunity"
+    ],
+    standardTerm: "Income Inequality and Wealth Distribution",
+    plainEnglish: "I want a fair system where everyone has a chance to succeed—not just the wealthy."
+  },
+  technology: {
+    plainLanguage: [
+      "AI",
+      "AI regulation",
+      "artificial intelligence",
+      "machine learning",
+      "automation",
+      "data privacy",
+      "cybersecurity",
+      "robots"
+    ],
+    standardTerm: "Technology Policy, AI regulation, Data Privacy, and Cybersecurity",
+    plainEnglish: "I want strong protections for my personal data and safe, reliable technology that works for everyone."
+  },
+  foreignPolicy: {
+    plainLanguage: [
+      "national security",
+      "foreign relations",
+      "military strength",
+      "international affairs",
+      "global leadership"
+    ],
+    standardTerm: "Foreign Policy and National Security",
+    plainEnglish: "I want our country to be secure at home and respected around the world."
+  },
+  laborRights: {
+    plainLanguage: [
+      "jobs",
+      "employment",
+      "work opportunities",
+      "labor rights",
+      "worker rights",
+      "working conditions",
+      "fair wages"
+    ],
+    standardTerm: "Labor Rights and Workers' Protections",
+    plainEnglish: "I want better working conditions and fair treatment for all workers."
+  },
+  genderEquality: {
+    plainLanguage: [
+      "women's rights",
+      "gender equality",
+      "equal pay",
+      "workplace discrimination",
+      "gender discrimination"
+    ],
+    standardTerm: "Women's Rights and Gender Equality",
+    plainEnglish: "I want equal rights and opportunities for women so that everyone can thrive."
+  },
+  civilLiberties: {
+    plainLanguage: [
+      "civil rights",
+      "individual rights",
+      "constitutional rights",
+      "personal freedom",
+      "civil liberties"
+    ],
+    standardTerm: "Civil Liberties and Individual Rights",
+    plainEnglish: "I want to protect our basic freedoms and individual rights so everyone is treated fairly and freely."
+  },
+  reproductiveRights: {
+    plainLanguage: [
+      "abortion rights",
+      "pro-choice",
+      "reproductive healthcare",
+      "abortion access",
+      "family planning"
+    ],
+    standardTerm: "Abortion and Reproductive Rights",
+    plainEnglish: "I want to ensure that everyone has access to safe, legal abortion and comprehensive reproductive healthcare."
+  },
+  proLife: {
+    plainLanguage: [
+      "pro-life",
+      "abortion restrictions",
+      "unborn rights",
+      "traditional values",
+      "sanctity of life"
+    ],
+    standardTerm: "Limited Abortion and Pro-Life Policies",
+    plainEnglish: "I want to protect the rights of the unborn and restrict abortion to preserve traditional values."
+  },
+  churchAndState: {
+    plainLanguage: [
+      "religious freedom",
+      "separation of church and state",
+      "secular government",
+      "religious influence",
+      "public religion"
+    ],
+    standardTerm: "Separation of Church and State",
+    plainEnglish: "I want our schools and government to be free from religious influence, ensuring fairness for everyone."
+  },
+  lgbtqRights: {
+    plainLanguage: [
+      "LGBTQ rights",
+      "transgender rights",
+      "gender identity",
+      "sexual orientation",
+      "equality"
+    ],
+    standardTerm: "LGBTQ+ Rights and Inclusion",
+    plainEnglish: "I want equal rights for LGBTQ+ people—including fair treatment for trans individuals in all areas, like sports."
+  },
+  traditionalValues: {
+    plainLanguage: [
+      "traditional values",
+      "anti-woke",
+      "political correctness",
+      "conservative values",
+      "cultural values"
+    ],
+    standardTerm: "Traditional Values and Cultural Standards",
+    plainEnglish: "I want a society that respects traditional values and free expression."
+  },
+  moralValues: {
+    plainLanguage: [
+      "moral standards",
+      "ethics",
+      "values",
+      "principles",
+      "moral guidance"
+    ],
+    standardTerm: "Moral Values and Ethical Standards",
+    plainEnglish: "I want our society to stick to clear ethical principles that help guide our decisions about right and wrong."
+  },
+  personalLiberty: {
+    plainLanguage: [
+      "individual freedom",
+      "personal choice",
+      "liberty",
+      "autonomy",
+      "self-determination"
+    ],
+    standardTerm: "Individual Freedom and Personal Liberty",
+    plainEnglish: "I want to be free to make my own choices and live my life the way I want without undue interference."
+  },
+  patriotism: {
+    plainLanguage: [
+      "national pride",
+      "patriotism",
+      "american values",
+      "national identity",
+      "american tradition"
+    ],
+    standardTerm: "Patriotism and National Pride",
+    plainEnglish: "I want our country to remain strong and proud, honoring our traditions and working for the common good."
   }
 };
 
