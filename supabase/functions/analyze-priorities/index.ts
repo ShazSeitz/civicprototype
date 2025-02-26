@@ -9,6 +9,9 @@ const corsHeaders = {
 
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 
+// Import the terminology mapping
+const issueTerminology = JSON.parse(await Deno.readTextFile('./issueTerminology.json'));
+
 async function analyzePriorities(priorities: string[]) {
   if (!OPENAI_API_KEY) {
     console.error('OpenAI API key not found');
@@ -28,10 +31,10 @@ async function analyzePriorities(priorities: string[]) {
         messages: [
           {
             role: 'system',
-            content: `You are analyzing voter priorities. Keep responses short and factual:
+            content: `You are analyzing voter priorities. Keep responses short and factual. Use ONLY the standardized terminology provided in the mapping file when referring to policy areas.
 
 1. FIRST LINE MUST BE EXACTLY:
-"Based on your inputs, I understand that you are concerned with: [list policy areas]"
+"Based on your inputs, I understand that you are concerned with: [list standardized policy terms]"
 
 2. IF THERE ARE CONFLICTS, ADD ONLY:
 "[Item 1] and [Item 2] may be at odds, but I will provide recommendations that address both."
@@ -49,10 +52,8 @@ DO NOT use phrases like:
 - "Would you"
 - "I'd like to"
 
-Example correct response:
-"Based on your inputs, I understand that you are concerned with: public transit and lower taxes.
-Expanding public transit and reducing taxes may be at odds, but I will provide recommendations that address both.
-Please specify what type of transit you need."`
+Terminology mapping for reference:
+${JSON.stringify(issueTerminology, null, 2)}`
           },
           {
             role: 'user',

@@ -1,0 +1,27 @@
+
+{
+  "taxes": {
+    "plainLanguage": ["tax burden", "high taxes", "taxes too high", "tax rates", "property tax"],
+    "standardTerm": "tax policy and fiscal responsibility"
+  },
+  "employment": {
+    "plainLanguage": ["jobs", "employment", "work opportunities", "labor rights", "worker rights"],
+    "standardTerm": "employment and labor policy"
+  },
+  "climate": {
+    "plainLanguage": ["climate change", "global warming", "climate skepticism", "climate denial"],
+    "standardTerm": "climate and environmental policy"
+  },
+  "transportation": {
+    "plainLanguage": ["transit", "public transit", "buses", "trains", "transportation cost"],
+    "standardTerm": "transportation infrastructure and policy"
+  },
+  "politicalViolence": {
+    "plainLanguage": ["january 6", "political violence", "riots", "protests"],
+    "standardTerm": "public safety and civil order"
+  },
+  "artificialIntelligence": {
+    "plainLanguage": ["AI", "artificial intelligence", "machine learning", "automation"],
+    "standardTerm": "technology regulation and AI policy"
+  }
+}
