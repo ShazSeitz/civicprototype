@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 
@@ -7,51 +8,85 @@ const corsHeaders = {
 }
 
 const issueTerminology = {
-  taxPolicy: {
+  taxCutsForMiddleClass: {
     plainLanguage: [
-      "income tax",
-      "tax burden",
+      "middle class tax cuts",
+      "tax cuts for working families",
+      "tax relief for average citizens",
+      "tax breaks for middle class",
+      "help working families",
+      "tax burden on workers",
       "tired of paying tax",
+      "lower taxes for workers",
+      "reduce taxes middle class",
       "paying too much tax",
-      "tax relief",
+      "working class taxes",
+      "family tax relief",
       "tired of paying income tax",
       "work hard for my money",
       "pass on to my children",
       "tired of taxes",
       "hard earned money",
+      "income tax",
       "paying so much tax"
     ],
-    standardTerm: "Tax Policy and Reform",
-    plainEnglish: "Concerns about income tax rates and inheritance"
+    standardTerm: "Middle Class Tax Relief",
+    plainEnglish: "I want tax cuts that help working families and the middle class keep more of their money."
   },
-  economicPolicy: {
+  taxCutsForWealthy: {
     plainLanguage: [
-      "economic growth",
-      "fiscal policy",
-      "government spending",
-      "financial regulations",
-      "economic conditions",
-      "work hard for money",
-      "pass on wealth",
-      "inheritance",
-      "estate planning"
+      "tax cuts for job creators",
+      "business tax relief",
+      "corporate tax cuts",
+      "wealth tax opposition",
+      "capital gains tax",
+      "estate tax relief",
+      "tax cuts create jobs",
+      "trickle down",
+      "tax cuts stimulate economy"
     ],
-    standardTerm: "Economic Policy",
-    plainEnglish: "Issues related to economic conditions and wealth transfer"
+    standardTerm: "Upper Income Tax Relief",
+    plainEnglish: "I support tax cuts for high earners and businesses to stimulate economic growth."
   },
-  civilLiberties: {
+  taxWealthyMore: {
     plainLanguage: [
-      "civil rights",
-      "individual rights",
-      "constitutional rights",
-      "personal freedom",
-      "civil liberties",
-      "race",
-      "gender",
-      "hire",
-      "discrimination"
+      "tax the rich",
+      "wealth tax",
+      "millionaire tax",
+      "billionaire tax",
+      "fair share taxes",
+      "ultra wealthy taxes",
+      "no tax cuts wealthy",
+      "corporate tax loopholes",
+      "tax the 1%",
+      "progressive taxation",
+      "make rich pay more"
     ],
-    standardTerm: "Civil Liberties and Individual Rights"
+    standardTerm: "Progressive Taxation and Wealth Tax",
+    plainEnglish: "I want the ultra-wealthy and corporations to pay their fair share in taxes."
+  },
+  economy: {
+    plainLanguage: [
+      "inflation",
+      "job security",
+      "cost of living",
+      "strong economy",
+      "fair prices",
+      "paycheck value"
+    ],
+    standardTerm: "Economic Conditions and Growth",
+    plainEnglish: "I want a strong economy where prices are fair, jobs are secure, and my paycheck goes further."
+  },
+  healthcare: {
+    plainLanguage: [
+      "healthcare costs",
+      "medical bills",
+      "health insurance",
+      "mental health",
+      "long-term care"
+    ],
+    standardTerm: "Healthcare Access and Affordability",
+    plainEnglish: "I want affordable healthcare that covers everything from doctor visits to mental health and long-term care."
   },
   climate: {
     plainLanguage: [
@@ -59,25 +94,22 @@ const issueTerminology = {
       "global warming",
       "climate skepticism",
       "climate denial",
-      "climate hoax",
       "extreme weather",
-      "pollution",
-      "skeptical",
-      "not sure about climate",
-      "climate waste",
-      "climate spending"
+      "pollution"
     ],
-    standardTerm: "Climate Change Skepticism and Policy Concerns"
+    standardTerm: "Climate Change and Environmental Policy",
+    plainEnglish: "I want our government to take action on climate change and protect our environment from extreme weather and pollution."
   },
-  transportation: {
+  immigration: {
     plainLanguage: [
-      "transportation",
-      "local transportation",
-      "public transit",
-      "affordable transportation",
-      "transit options"
+      "border security",
+      "immigration reform",
+      "border crisis",
+      "illegal immigration",
+      "legal immigration"
     ],
-    standardTerm: "Transportation and Infrastructure"
+    standardTerm: "Immigration and Border Security",
+    plainEnglish: "I want fair immigration policies that secure our borders while giving hardworking immigrants a chance."
   },
   politicalDivision: {
     plainLanguage: [
@@ -85,27 +117,10 @@ const issueTerminology = {
       "fake news",
       "misinformation",
       "partisan politics",
-      "political polarization",
-      "jan 6th",
-      "january 6",
-      "rioters",
-      "violent criminals"
+      "political polarization"
     ],
-    standardTerm: "Political Polarization and Democratic Governance"
-  },
-  technology: {
-    plainLanguage: [
-      "AI",
-      "artificial intelligence",
-      "machine learning",
-      "automation",
-      "data privacy",
-      "cybersecurity",
-      "robots",
-      "sci-fi",
-      "scary"
-    ],
-    standardTerm: "Technology, Data Privacy, and Cybersecurity"
+    standardTerm: "Political Polarization and Democratic Governance",
+    plainEnglish: "I want to fix our broken politics, stop fake news, and keep our government honest and fair."
   }
 };
 
@@ -143,7 +158,6 @@ serve(async (req) => {
         }
       }
       
-      // Return top matches for this priority, sorted by match strength
       if (matches.length > 0) {
         const topMatches = matches
           .sort((a, b) => b.matchCount - a.matchCount)
@@ -158,24 +172,20 @@ serve(async (req) => {
       return null;
     });
 
-    // Filter out null values but maintain original order
     const validMappings = mappedPriorities
       .filter(Boolean)
       .sort((a, b) => a.originalIndex - b.originalIndex);
     
-    // Get all terms in original priority order, including multiple matches per priority
     const orderedTerms = validMappings.flatMap(mapping => 
       mapping.matches.map(match => match.standardTerm)
     );
     
-    // Remove duplicate terms while preserving order
     const uniqueOrderedTerms = Array.from(new Set(orderedTerms));
     
     const unmappedCount = priorities.length - validMappings.length;
 
     let analysis = "Based on all your input, including clarifications, here are the relevant policy areas:\n\n";
     
-    // Create a bullet list with unique terms in order of appearance
     analysis += uniqueOrderedTerms.map(term => `• ${term}`).join('\n');
 
     if (unmappedCount > 0) {
