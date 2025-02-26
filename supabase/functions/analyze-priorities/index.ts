@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 
@@ -127,6 +128,8 @@ serve(async (req) => {
     const { priorities, mode } = await req.json()
     console.log('Analyzing priorities:', priorities)
     
+    const MAX_MATCHES = 3;
+    
     const mappedPriorities = priorities.map((priority: string, index: number) => {
       const priorityLower = priority.toLowerCase();
       const matches: Array<{category: string, standardTerm: string, matchCount: number}> = [];
@@ -150,11 +153,15 @@ serve(async (req) => {
         }
       }
       
-      // Return all matches for this priority, sorted by match strength
+      // Return top 3 matches for this priority, sorted by match strength
       if (matches.length > 0) {
+        const topMatches = matches
+          .sort((a, b) => b.matchCount - a.matchCount)
+          .slice(0, MAX_MATCHES);
+        
         return {
           originalIndex: index,
-          matches: matches.sort((a, b) => b.matchCount - a.matchCount)
+          matches: topMatches
         };
       }
       
