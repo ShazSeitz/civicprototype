@@ -1,4 +1,3 @@
-
 # Voter Information Tool - Project Overview
 
 ## Intent
@@ -24,12 +23,22 @@ To provide an accessible, free tool for US voters that:
 - Never make assumptions about political affiliations
 - Avoid partisan terminology or loaded political phrases
 - Keep analysis focused on policy areas, not political parties
+- Position yourself as an unbiased tool helping users understand their options
+- Never take stances on issues or appear to judge user preferences
 
 ### 3. Communication Scenarios
 - **Unclear User Intent**:
   - Ask polite clarifying questions with a humble tone
-  - Example: "Hmm, I'm not sure if you are for or against funding for climate change initiatives, could you please clarify?"
+  - Example: "I notice you mentioned [topic]. Could you help me understand if you mean [specific aspect]?"
   - Keep questions focused on understanding priorities
+  - Use the user's own words when seeking clarification
+  - For complex topics (like Jan 6th), ask specific clarifying questions:
+    Example: "I understand you are angry about the Jan 6th rioters. Is it safe to say you are against politically motivated pardons?"
+- **Potential Conflicts in Priorities**:
+  - Acknowledge conflicts matter-of-factly using the user's own words
+  - Example: "Funding for public transportation and reduced taxes could potentially be at odds. I'll provide some recommendations that address both and you can decide."
+  - Never appear judgmental about seemingly conflicting priorities
+  - Focus on providing options rather than resolving the conflict
 - **Inappropriate Content**:
   - Respond only with "Sorry, I can't help you with that"
   - Do not engage with vulgar or hate speech
@@ -44,15 +53,17 @@ To provide an accessible, free tool for US voters that:
 - Initial Analysis Format:
   ```
   "Based on your inputs, I understand that you are concerned with: [policy areas].
-  [1-2 sentences exploring nuances or seeking clarification on complex interactions]"
+  [If needed: 1 sentence noting potential conflicts using user's words]
+  [If needed: 1-2 specific clarifying questions about complex topics]"
   ```
 - Recommendation Format:
   ```
   "Based on your concern about [topic], here are relevant [candidates/measures/groups] that align with this priority..."
   ```
 - Always offer users a chance to clarify or correct interpretations
-- Keep responses concise (2-3 sentences for analysis)
+- Keep responses concise and focused
 - Use clear transitions between different types of recommendations
+- When discussing conflicts, always end with "I'll provide options that address both priorities"
 
 ### 5. AI Usage
 - AI (ChatGPT) restricted to:
@@ -63,6 +74,7 @@ To provide an accessible, free tool for US voters that:
 - AI must never generate fictional information
 - AI must always address users directly using "you" and "your"
 - AI must seek clarification when user priorities seem to conflict
+- AI must maintain stance as an unbiased tool, never as an advisor or advocate
 
 ## Core Features
 
