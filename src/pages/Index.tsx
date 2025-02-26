@@ -17,19 +17,26 @@ const formSchema = z.object({
 
 const Index = () => {
   const [formData, setFormData] = useState<z.infer<typeof formSchema> | null>(null);
+  const [feedbackPriorities, setFeedbackPriorities] = useState<string[]>([]);
   const [submitCount, setSubmitCount] = useState(0);
   const { toast } = useToast();
   const recommendationsRef = useRef<HTMLDivElement>(null);
 
   const { data: recommendations, isLoading, isError, error } = useQuery({
-    queryKey: ['recommendations', formData, submitCount],
+    queryKey: ['recommendations', formData, feedbackPriorities, submitCount],
     queryFn: async () => {
       if (!formData) return null;
       
       try {
-        console.log('Submitting form data:', formData);
+        // Combine original priorities with feedback priorities
+        const allPriorities = [...formData.priorities, ...feedbackPriorities];
+        console.log('Submitting form data:', { ...formData, priorities: allPriorities });
+        
         const { data, error } = await supabase.functions.invoke('analyze-priorities', {
-          body: { mode: formData.mode, priorities: formData.priorities }
+          body: { 
+            mode: formData.mode, 
+            priorities: allPriorities 
+          }
         });
 
         if (error) {
@@ -82,19 +89,13 @@ const Index = () => {
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     console.log('Form submitted with values:', values);
     setFormData(values);
+    setFeedbackPriorities([]); // Reset feedback when new form is submitted
     setSubmitCount(prev => prev + 1);
   };
 
   const handleFeedback = (feedback: string) => {
-    if (formData) {
-      const updatedPriorities = [...formData.priorities];
-      updatedPriorities.push(feedback);
-      setFormData({
-        ...formData,
-        priorities: updatedPriorities
-      });
-      setSubmitCount(prev => prev + 1);
-    }
+    setFeedbackPriorities(prev => [...prev, feedback]);
+    setSubmitCount(prev => prev + 1);
   };
 
   return (
