@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 
@@ -107,47 +108,28 @@ serve(async (req) => {
         )) {
           return {
             category,
-            standardTerm: data.standardTerm,
-            originalText: priority
+            standardTerm: data.standardTerm
           }
         }
       }
       return null
     });
 
-    let analysis = "Here's how I understand your priorities:\n\n";
-    
-    // Filter out null values but keep track of unmapped priorities
-    const unmappedPriorities = priorities.filter((priority, index) => !mappedPriorities[index]);
+    // Filter out null values and get unique terms
     const validMappings = mappedPriorities.filter(Boolean);
+    const uniqueTerms = Array.from(new Set(validMappings.map(m => m?.standardTerm)));
+    const unmappedCount = priorities.length - validMappings.length;
 
-    // Group similar concerns together
-    const uniqueTerms = new Map();
-    validMappings.forEach((mapped) => {
-      if (mapped) {
-        if (!uniqueTerms.has(mapped.standardTerm)) {
-          uniqueTerms.set(mapped.standardTerm, [mapped.originalText]);
-        } else {
-          uniqueTerms.get(mapped.standardTerm).push(mapped.originalText);
-        }
-      }
+    let analysis = "I have mapped your priorities to common terms used in relation to policy:\n\n";
+    
+    uniqueTerms.forEach((term, index) => {
+      analysis += `${index + 1}. ${term}\n`;
     });
 
-    // Create the analysis text
-    uniqueTerms.forEach((originalTexts, standardTerm) => {
-      analysis += `${standardTerm}:\n`;
-      originalTexts.forEach(text => {
-        analysis += `- "${text}"\n`;
-      });
-      analysis += '\n';
-    });
-
-    if (unmappedPriorities.length > 0) {
-      analysis += "\nI didn't recognize some of your priorities:\n";
-      unmappedPriorities.forEach(priority => {
-        analysis += `- "${priority}"\n`;
-      });
-      analysis += "\nTry rephrasing these using different terms to get better recommendations.";
+    if (unmappedCount > 0) {
+      analysis += `\nI couldn't map ${unmappedCount} of your priorities to common policy terms. Would you like to rephrase them or would you like me to expand my understanding of these topics?`;
+    } else {
+      analysis += "\nWould you like any clarification about these policy areas?";
     }
 
     console.log('Generated analysis:', analysis);
