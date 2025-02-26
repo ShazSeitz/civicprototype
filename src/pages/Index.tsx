@@ -85,6 +85,18 @@ const Index = () => {
     setSubmitCount(prev => prev + 1);
   };
 
+  const handleFeedback = (feedback: string) => {
+    if (formData) {
+      const updatedPriorities = [...formData.priorities];
+      updatedPriorities.push(feedback);
+      setFormData({
+        ...formData,
+        priorities: updatedPriorities
+      });
+      setSubmitCount(prev => prev + 1);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
       <Navbar />
@@ -101,7 +113,12 @@ const Index = () => {
           />
           
           <div ref={recommendationsRef}>
-            {recommendations && <RecommendationsList recommendations={recommendations} />}
+            {recommendations && (
+              <RecommendationsList 
+                recommendations={recommendations} 
+                onFeedbackSubmit={handleFeedback}
+              />
+            )}
           </div>
         </div>
       </div>

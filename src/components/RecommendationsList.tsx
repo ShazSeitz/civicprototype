@@ -36,9 +36,10 @@ interface Recommendations {
 
 interface RecommendationsListProps {
   recommendations: Recommendations;
+  onFeedbackSubmit?: (feedback: string) => void;
 }
 
-export const RecommendationsList = ({ recommendations }: RecommendationsListProps) => {
+export const RecommendationsList = ({ recommendations, onFeedbackSubmit }: RecommendationsListProps) => {
   const { toast } = useToast();
   const [showFeedbackInput, setShowFeedbackInput] = useState(false);
   const [feedback, setFeedback] = useState("");
@@ -61,9 +62,12 @@ export const RecommendationsList = ({ recommendations }: RecommendationsListProp
   };
 
   const handleFeedbackSubmit = () => {
-    // Here you would typically send the feedback to be processed
-    // For now, we'll just show the full recommendations
+    if (onFeedbackSubmit && feedback.trim()) {
+      onFeedbackSubmit(feedback);
+    }
     setShowRecommendations(true);
+    setShowFeedbackInput(false);
+    setFeedback("");
   };
 
   const handleFeedbackChoice = (wantsFeedback: boolean) => {
@@ -135,13 +139,6 @@ export const RecommendationsList = ({ recommendations }: RecommendationsListProp
         )}
 
         {/* Show the rest of the recommendations after feedback submission */}
-        {showRecommendations && !showFeedbackInput && (
-          <Button onClick={() => setShowRecommendations(true)} className="w-full">
-            Get Recommendations
-          </Button>
-        )}
-
-        {/* Recommendations Content */}
         {showRecommendations && (
           <>
             {/* Candidates */}
