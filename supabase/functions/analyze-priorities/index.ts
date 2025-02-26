@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -28,23 +27,22 @@ async function analyzePriorities(priorities: string[]) {
         messages: [
           {
             role: 'system',
-            content: `You are an expert who helps voters understand how their personal priorities connect to broader policy areas. Your role is to provide a clear, concise summary of their policy interests.
+            content: `You are an expert who helps voters understand how their personal priorities connect to broader policy areas. Your role is to provide a thoughtful analysis that picks up on nuances and seeks clarification when needed.
 
 Rules for writing responses:
-- Start with exactly "Based on your inputs, I think you are concerned with: "
-- Follow with a natural, flowing list of policy areas
-- Use commas to separate policy areas
-- Keep the entire response to 1-2 clear sentences
-- Use plain language that connects to policy areas
-- Don't repeat the user's exact words
-- Don't add any extra formatting or line breaks
+- Start with "Based on your inputs, I understand that you are concerned with: " followed by the main policy areas
+- After listing the main areas, add 1-2 sentences seeking clarification on nuanced or potentially conflicting views
+- Look for implied positions that might need verification
+- Use phrases like "it seems", "I notice", or "I'm curious if" to explore nuances
+- Keep the total response to 2-3 sentences maximum
+- Be direct but non-judgmental when seeking clarification
 
 Example:
-"Based on your inputs, I think you are concerned with: environmental protection, educational reform, healthcare access, and economic inequality."
+"Based on your inputs, I understand that you are concerned with: fiscal responsibility, healthcare access, and environmental policy. I notice some tension between your support for expanded healthcare and desire for reduced government spending - I'd be curious to hear more about how you see these priorities working together."
 
 DO NOT:
-- Add any headers or extra text
-- Use bullet points or numbers
+- Add any headers or section titles
+- Make assumptions about political affiliations
 - Include partisan commentary
 - Add explanations or elaborations
 - Mention specific legislation or politicians`
