@@ -17,91 +17,11 @@ const issueTerminology = {
       "inflation",
       "job security",
       "cost of living",
-      "strong economy",
-      "fair prices",
-      "paycheck value",
       "income tax",
       "money",
       "work hard for my money"
     ],
-    standardTerm: "Economic Conditions and Fiscal Policy",
-    plainEnglish: "I want a strong economy where prices are fair, jobs are secure, and my paycheck goes further."
-  },
-  healthcare: {
-    plainLanguage: [
-      "healthcare costs",
-      "medical bills",
-      "health insurance",
-      "mental health",
-      "long-term care"
-    ],
-    standardTerm: "Healthcare Access and Affordability",
-    plainEnglish: "I want affordable healthcare that covers everything from doctor visits to mental health and long-term care."
-  },
-  climate: {
-    plainLanguage: [
-      "climate change",
-      "global warming",
-      "climate skepticism",
-      "climate denial",
-      "climate hoax",
-      "extreme weather",
-      "pollution"
-    ],
-    standardTerm: "Climate Change and Environmental Policy",
-    plainEnglish: "I want our government to take action on climate change and protect our environment from extreme weather and pollution."
-  },
-  immigration: {
-    plainLanguage: [
-      "border security",
-      "immigration reform",
-      "border crisis",
-      "illegal immigration",
-      "legal immigration"
-    ],
-    standardTerm: "Immigration and Border Security",
-    plainEnglish: "I want fair immigration policies that secure our borders while giving hardworking immigrants a chance."
-  },
-  politicalDivision: {
-    plainLanguage: [
-      "political division",
-      "fake news",
-      "misinformation",
-      "partisan politics",
-      "political polarization",
-      "jan 6th",
-      "january 6",
-      "rioters",
-      "violent criminals"
-    ],
-    standardTerm: "Political Polarization and Democratic Governance",
-    plainEnglish: "I want to fix our broken politics, stop fake news, and keep our government honest and fair."
-  },
-  transportation: {
-    plainLanguage: [
-      "transportation",
-      "local transportation",
-      "public transit",
-      "affordable transportation",
-      "transit options"
-    ],
-    standardTerm: "Transportation and Infrastructure",
-    plainEnglish: "I want reliable and affordable transportation options that serve our community's needs."
-  },
-  technology: {
-    plainLanguage: [
-      "AI",
-      "artificial intelligence",
-      "machine learning",
-      "automation",
-      "data privacy",
-      "cybersecurity",
-      "robots",
-      "sci-fi",
-      "scary"
-    ],
-    standardTerm: "Technology, Data Privacy, and Cybersecurity",
-    plainEnglish: "I want strong protections for my personal data and safe, reliable technology that works for everyone."
+    standardTerm: "Economic Conditions and Fiscal Policy"
   },
   civilLiberties: {
     plainLanguage: [
@@ -115,8 +35,57 @@ const issueTerminology = {
       "hire",
       "discrimination"
     ],
-    standardTerm: "Civil Liberties and Individual Rights",
-    plainEnglish: "I want to protect our basic freedoms and ensure equal treatment regardless of race, gender, or background."
+    standardTerm: "Civil Liberties and Individual Rights"
+  },
+  climate: {
+    plainLanguage: [
+      "climate change",
+      "global warming",
+      "climate skepticism",
+      "climate denial",
+      "climate hoax",
+      "extreme weather",
+      "pollution"
+    ],
+    standardTerm: "Climate Change and Environmental Policy"
+  },
+  transportation: {
+    plainLanguage: [
+      "transportation",
+      "local transportation",
+      "public transit",
+      "affordable transportation",
+      "transit options"
+    ],
+    standardTerm: "Transportation and Infrastructure"
+  },
+  politicalDivision: {
+    plainLanguage: [
+      "political division",
+      "fake news",
+      "misinformation",
+      "partisan politics",
+      "political polarization",
+      "jan 6th",
+      "january 6",
+      "rioters",
+      "violent criminals"
+    ],
+    standardTerm: "Political Polarization and Democratic Governance"
+  },
+  technology: {
+    plainLanguage: [
+      "AI",
+      "artificial intelligence",
+      "machine learning",
+      "automation",
+      "data privacy",
+      "cybersecurity",
+      "robots",
+      "sci-fi",
+      "scary"
+    ],
+    standardTerm: "Technology, Data Privacy, and Cybersecurity"
   }
 };
 
@@ -139,7 +108,6 @@ serve(async (req) => {
           return {
             category,
             standardTerm: data.standardTerm,
-            plainEnglish: data.plainEnglish,
             originalText: priority
           }
         }
@@ -147,24 +115,39 @@ serve(async (req) => {
       return null
     });
 
-    let analysis = "Based on your priorities, here's what I understand:\n\n";
+    let analysis = "Here's how I understand your priorities:\n\n";
     
     // Filter out null values but keep track of unmapped priorities
     const unmappedPriorities = priorities.filter((priority, index) => !mappedPriorities[index]);
     const validMappings = mappedPriorities.filter(Boolean);
 
-    validMappings.forEach((mapped, index) => {
+    // Group similar concerns together
+    const uniqueTerms = new Map();
+    validMappings.forEach((mapped) => {
       if (mapped) {
-        analysis += `${index + 1}. ${mapped.plainEnglish}\n   (Based on your comment: "${mapped.originalText}")\n\n`;
+        if (!uniqueTerms.has(mapped.standardTerm)) {
+          uniqueTerms.set(mapped.standardTerm, [mapped.originalText]);
+        } else {
+          uniqueTerms.get(mapped.standardTerm).push(mapped.originalText);
+        }
       }
     });
 
-    if (unmappedPriorities.length > 0) {
-      analysis += "\nI notice some priorities that I'm not yet trained to understand fully:\n";
-      unmappedPriorities.forEach((priority, index) => {
-        analysis += `• "${priority}"\n`;
+    // Create the analysis text
+    uniqueTerms.forEach((originalTexts, standardTerm) => {
+      analysis += `${standardTerm}:\n`;
+      originalTexts.forEach(text => {
+        analysis += `- "${text}"\n`;
       });
-      analysis += "\nFor clearer recommendations, try rephrasing these using more common terms, or let me know if I should expand my understanding of these topics.";
+      analysis += '\n';
+    });
+
+    if (unmappedPriorities.length > 0) {
+      analysis += "\nI didn't recognize some of your priorities:\n";
+      unmappedPriorities.forEach(priority => {
+        analysis += `- "${priority}"\n`;
+      });
+      analysis += "\nTry rephrasing these using different terms to get better recommendations.";
     }
 
     console.log('Generated analysis:', analysis);
