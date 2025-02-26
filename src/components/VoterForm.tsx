@@ -213,7 +213,7 @@ export const VoterForm = ({ onSubmit, isLoading }: VoterFormProps) => {
             </div>
 
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Analyzing..." : "Get Recommendations"}
+              {isLoading ? "Analyzing..." : "SUBMIT"}
             </Button>
           </form>
         </Form>
@@ -221,3 +221,5 @@ export const VoterForm = ({ onSubmit, isLoading }: VoterFormProps) => {
     </Card>
   );
 };
+
+export default VoterForm;

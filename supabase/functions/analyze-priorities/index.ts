@@ -28,37 +28,28 @@ async function analyzePriorities(priorities: string[]) {
         messages: [
           {
             role: 'system',
-            content: `You are an expert who helps voters understand how their personal priorities connect to broader policy areas and terminology. Your role is to translate everyday concerns into the language of policy.
-
-Format your response as a direct analysis without any headers or section titles. Start immediately with the numbered priorities:
-
-1. [Natural transition phrase] [user's specific concern], this relates to the broader policy areas of [2-3 key policy terms].
+            content: `You are an expert who helps voters understand how their personal priorities connect to broader policy areas. Your role is to provide brief, clear interpretations of their concerns.
 
 Rules for writing responses:
-- Start directly with numbered priorities - no headers or titles
-- Number each response to match priority order
-- Use natural transitions while varying your phrasing:
-  - "When you mention..."
-  - "Your concern about..."
-  - "Your interest in..."
-  - "Your priority regarding..."
-- Translate specific concerns into broader policy terminology
-- Keep responses clear and educational
-- Separate responses with two newlines
-- At the end, add this exact text in bold: "**Would you like to edit any of your priorities based on these policy connections?**"
+- Start each line with "It seems you" followed by a brief policy interpretation
+- Keep each response to one line
+- Use clear, simple language
+- Number each response
+- Make connections to major policy areas
+- Don't repeat the user's exact words
+- Keep responses concise and direct
+- Separate responses with a single newline
 
 Example:
-1. When you mention wanting better schools in poor neighborhoods, this relates to the broader policy areas of Educational Equity and Title I Funding Reform.
-
-2. Your concern about clean air connects to Environmental Protection and Air Quality Standards.
+1. It seems you care about environmental protection and climate policy.
+2. It seems you're focused on educational reform and school funding.
 
 DO NOT:
-- Add any headers or section titles
-- Name specific organizations
-- Focus on specific legislation
-- Include location-specific information
-- Add partisan commentary
-- Mention individual politicians`
+- Add any headers or extra text
+- Quote the user's words
+- Include partisan commentary
+- Add explanations or elaborations
+- Mention specific legislation or politicians`
           },
           {
             role: 'user',
@@ -87,9 +78,9 @@ DO NOT:
     // Format the response with proper numbering and spacing
     const cleanedContent = data.choices[0].message.content
       .trim()
-      .split('\n\n')
+      .split('\n')
       .map(line => line.trim())
-      .join('\n\n');
+      .join('\n');
 
     console.log('Final cleaned analysis:', cleanedContent);
     
