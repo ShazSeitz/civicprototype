@@ -143,7 +143,7 @@ serve(async (req) => {
         }
       }
       
-      // Return top 3 matches for this priority, sorted by match strength
+      // Return top matches for this priority, sorted by match strength
       if (matches.length > 0) {
         const topMatches = matches
           .sort((a, b) => b.matchCount - a.matchCount)
@@ -173,15 +173,13 @@ serve(async (req) => {
     
     const unmappedCount = priorities.length - validMappings.length;
 
-    let analysis = "I have mapped your priorities to relevant policy areas:\n\n";
+    let analysis = "Based on all your input, including clarifications, here are the relevant policy areas:\n\n";
     
     // Create a bullet list with unique terms in order of appearance
     analysis += uniqueOrderedTerms.map(term => `• ${term}`).join('\n');
 
     if (unmappedCount > 0) {
-      analysis += `\n\nI couldn't map ${unmappedCount} of your priorities to common policy terms. Would you like to rephrase them or would you like me to expand my understanding of these topics?`;
-    } else {
-      analysis += "\n\nSome of your priorities may relate to multiple policy areas. Would you like to focus on specific aspects or discuss how these areas interconnect?";
+      analysis += `\n\n${unmappedCount} of your priorities could not be mapped to policy terms. Feel free to rephrase them if you'd like.`;
     }
 
     console.log('Generated analysis:', analysis);
