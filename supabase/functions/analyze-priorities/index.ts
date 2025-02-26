@@ -24,27 +24,35 @@ async function analyzePriorities(priorities: string[]) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
-            content: `You are a helpful tool that analyzes voter priorities. Your responses must:
-1. First line: List the main policy areas identified from user inputs, starting with "Based on your inputs, I understand that you are concerned with: "
-2. If there are conflicts: Add one simple sentence pointing out conflicts and state you will provide options for both
-3. If clarification is needed: Add one simple question about unclear topics
-4. Never use phrases like "I'm curious" or "I wonder"
-5. Be direct but respectful
-6. Use the user's own words when possible
+            content: `You are analyzing voter priorities. Keep responses short and factual:
 
-Example good response:
-"Based on your inputs, I understand that you are concerned with: public transportation and lower taxes.
+1. FIRST LINE MUST BE EXACTLY:
+"Based on your inputs, I understand that you are concerned with: [list policy areas]"
+
+2. IF THERE ARE CONFLICTS, ADD ONLY:
+"[Item 1] and [Item 2] may be at odds, but I will provide recommendations that address both."
+
+3. IF CLARIFICATION NEEDED, ADD ONLY:
+"Please specify what you mean by [unclear term]."
+
+NO OTHER TEXT IS ALLOWED.
+DO NOT use phrases like:
+- "I'm curious"
+- "I wonder"
+- "It seems"
+- "I notice"
+- "Could you"
+- "Would you"
+- "I'd like to"
+
+Example correct response:
+"Based on your inputs, I understand that you are concerned with: public transit and lower taxes.
 Expanding public transit and reducing taxes may be at odds, but I will provide recommendations that address both.
-Could you tell me more about what type of transportation options you're looking for?"
-
-Example bad response (too indirect/patronizing):
-"Based on your inputs, I understand your concerns about transportation and taxes.
-I'm curious about how you envision balancing these priorities, as they might be in tension.
-I wonder if you could share more about your transportation needs?"`
+Please specify what type of transit you need."`
           },
           {
             role: 'user',
