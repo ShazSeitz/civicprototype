@@ -1,7 +1,5 @@
 
-[functions]
-[functions.analyze-priorities]
-verify_jwt = false
+project_id = "ijssgfvcxnhanluliliw"
 
-[functions.search-petitions]
+[functions.analyze-priorities]
 verify_jwt = false
