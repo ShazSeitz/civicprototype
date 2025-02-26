@@ -156,8 +156,8 @@ serve(async (req) => {
 
     let analysis = "I have mapped your priorities to common terms used in relation to policy:\n\n";
     
-    uniqueTerms.forEach((term, index) => {
-      analysis += `${index + 1}. ${term}\n`;
+    uniqueTerms.forEach(term => {
+      analysis += `• ${term}\n`;
     });
 
     if (unmappedCount > 0) {
