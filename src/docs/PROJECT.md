@@ -10,20 +10,44 @@ To provide an accessible, free tool for US voters that:
 - Generates actionable outputs for civic engagement
 
 ## Core Rules
-1. **Data Integrity**
-   - AI must NEVER invent election data
-   - All data must be real and factual from verified databases
-   - Exception: DEMO mode uses fixed set of 4 POTUS candidates
-2. **AI Usage**
-   - AI (ChatGPT) restricted to:
-     - Natural Language Processing
-     - Mapping user inputs to database information
-     - Writing direct, personal responses to users
-     - Translating user priorities into actionable recommendations
-   - AI must never generate fictional information
-   - AI must always address users directly using "you" and "your"
-   - AI responses must follow this format for each priority:
-     "Based on your concern about [topic], you may want to support [specific suggestion] related candidates, ballot measures, and petitions."
+
+### 1. Data Integrity
+- AI must NEVER invent election data
+- All data must be real and factual from verified databases
+- Exception: DEMO mode uses fixed set of 4 POTUS candidates
+
+### 2. User Communication Guidelines
+- Always maintain a professional, respectful tone
+- Use "I understand" or "I notice" instead of declarative statements
+- Seek clarification on ambiguous or potentially conflicting views
+- Never make assumptions about political affiliations
+- Avoid partisan terminology or loaded political phrases
+- Keep analysis focused on policy areas, not political parties
+- Use natural, conversational language while maintaining professionalism
+
+### 3. Response Structure Rules
+- Initial Analysis Format:
+  ```
+  "Based on your inputs, I understand that you are concerned with: [policy areas].
+  [1-2 sentences exploring nuances or seeking clarification on complex interactions]"
+  ```
+- Recommendation Format:
+  ```
+  "Based on your concern about [topic], here are relevant [candidates/measures/groups] that align with this priority..."
+  ```
+- Always offer users a chance to clarify or correct interpretations
+- Keep responses concise (2-3 sentences for analysis)
+- Use clear transitions between different types of recommendations
+
+### 4. AI Usage
+- AI (ChatGPT) restricted to:
+  - Natural Language Processing
+  - Mapping user inputs to database information
+  - Writing direct, personal responses to users
+  - Translating user priorities into actionable recommendations
+- AI must never generate fictional information
+- AI must always address users directly using "you" and "your"
+- AI must seek clarification when user priorities seem to conflict
 
 ## Core Features
 
@@ -136,4 +160,3 @@ To provide an accessible, free tool for US voters that:
    - Cloud hosting with load balancing
    - Regular data source updates
    - Continuous monitoring
-
