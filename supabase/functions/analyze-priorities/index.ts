@@ -170,7 +170,7 @@ const issueTerminology = {
   technology: {
     plainLanguage: [
       "AI",
-      "AI regulation"
+      "AI regulation",
       "artificial intelligence",
       "machine learning",
       "automation",
