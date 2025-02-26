@@ -28,25 +28,23 @@ async function analyzePriorities(priorities: string[]) {
         messages: [
           {
             role: 'system',
-            content: `You are an expert who helps voters understand how their personal priorities connect to broader policy areas. Your role is to provide brief, clear interpretations of their concerns.
+            content: `You are an expert who helps voters understand how their personal priorities connect to broader policy areas. Your role is to provide a clear, concise summary of their policy interests.
 
 Rules for writing responses:
-- Start each line with "It seems you" followed by a brief policy interpretation
-- Keep each response to one line
-- Use clear, simple language
-- Number each response
-- Make connections to major policy areas
+- Start with exactly "Based on your inputs, I think you are concerned with: "
+- Follow with a natural, flowing list of policy areas
+- Use commas to separate policy areas
+- Keep the entire response to 1-2 clear sentences
+- Use plain language that connects to policy areas
 - Don't repeat the user's exact words
-- Keep responses concise and direct
-- Separate responses with a single newline
+- Don't add any extra formatting or line breaks
 
 Example:
-1. It seems you care about environmental protection and climate policy.
-2. It seems you're focused on educational reform and school funding.
+"Based on your inputs, I think you are concerned with: environmental protection, educational reform, healthcare access, and economic inequality."
 
 DO NOT:
 - Add any headers or extra text
-- Quote the user's words
+- Use bullet points or numbers
 - Include partisan commentary
 - Add explanations or elaborations
 - Mention specific legislation or politicians`
@@ -75,13 +73,7 @@ DO NOT:
       throw new Error('Invalid response from OpenAI');
     }
 
-    // Format the response with proper numbering and spacing
-    const cleanedContent = data.choices[0].message.content
-      .trim()
-      .split('\n')
-      .map(line => line.trim())
-      .join('\n');
-
+    const cleanedContent = data.choices[0].message.content.trim();
     console.log('Final cleaned analysis:', cleanedContent);
     
     return cleanedContent;

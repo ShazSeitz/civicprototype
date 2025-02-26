@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -41,6 +40,7 @@ interface RecommendationsListProps {
 
 export const RecommendationsList = ({ recommendations }: RecommendationsListProps) => {
   const { toast } = useToast();
+  const [showFeedbackInput, setShowFeedbackInput] = useState(false);
   const [feedback, setFeedback] = useState("");
   const [showRecommendations, setShowRecommendations] = useState(false);
 
@@ -66,6 +66,14 @@ export const RecommendationsList = ({ recommendations }: RecommendationsListProp
     setShowRecommendations(true);
   };
 
+  const handleFeedbackChoice = (wantsFeedback: boolean) => {
+    if (wantsFeedback) {
+      setShowFeedbackInput(true);
+    } else {
+      setShowRecommendations(true);
+    }
+  };
+
   return (
     <Card className="animate-fade-up mt-8">
       <CardHeader>
@@ -76,23 +84,45 @@ export const RecommendationsList = ({ recommendations }: RecommendationsListProp
         <div>
           <h3 className="text-lg font-semibold mb-2">Priority Analysis</h3>
           <div className="prose prose-sm max-w-none">
-            <div className="whitespace-pre-wrap space-y-4">{recommendations.analysis}</div>
+            <p className="text-base">{recommendations.analysis}</p>
           </div>
         </div>
 
-        {/* Feedback Section */}
-        {!showRecommendations && (
+        {/* Feedback Choice */}
+        {!showFeedbackInput && !showRecommendations && (
+          <div className="space-y-4">
+            <p className="text-sm font-medium">
+              Would you like to change, clarify or add anything before I provide recommendations?
+            </p>
+            <div className="flex gap-4">
+              <Button 
+                onClick={() => handleFeedbackChoice(true)}
+                variant="outline"
+                className="flex-1"
+              >
+                Yes
+              </Button>
+              <Button 
+                onClick={() => handleFeedbackChoice(false)}
+                variant="outline"
+                className="flex-1"
+              >
+                No
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Feedback Input */}
+        {showFeedbackInput && !showRecommendations && (
           <div className="space-y-4">
             <div className="space-y-2">
-              <label htmlFor="feedback" className="text-sm font-medium">
-                Would you like to change, clarify or elaborate on any of this analysis before I get recommendations?
-              </label>
               <Input
-                id="feedback"
                 value={feedback}
                 onChange={(e) => setFeedback(e.target.value)}
                 maxLength={300}
                 className="w-full"
+                placeholder="Enter your feedback here..."
               />
               <div className="text-xs text-muted-foreground text-right">
                 {feedback.length}/300 characters
@@ -105,6 +135,13 @@ export const RecommendationsList = ({ recommendations }: RecommendationsListProp
         )}
 
         {/* Show the rest of the recommendations after feedback submission */}
+        {showRecommendations && !showFeedbackInput && (
+          <Button onClick={() => setShowRecommendations(true)} className="w-full">
+            Get Recommendations
+          </Button>
+        )}
+
+        {/* Recommendations Content */}
         {showRecommendations && (
           <>
             {/* Candidates */}
