@@ -1,21 +1,54 @@
 
 {
-  "taxCuts": {
+  "taxCutsForMiddleClass": {
     "plainLanguage": [
-      "tax cuts",
-      "income tax",
-      "tax burden",
-      "high taxes",
-      "taxes too high",
-      "tax rates",
-      "property tax",
+      "middle class tax cuts",
+      "tax cuts for working families",
+      "tax relief for average citizens",
+      "tax breaks for middle class",
+      "help working families",
+      "tax burden on workers",
       "tired of paying tax",
-      "lower taxes",
-      "reduce taxes",
-      "paying too much tax"
+      "lower taxes for workers",
+      "reduce taxes middle class",
+      "paying too much tax",
+      "working class taxes",
+      "family tax relief"
     ],
-    "standardTerm": "Tax Reform and Tax Cuts",
-    "plainEnglish": "I want lower taxes so I can keep more of my hard-earned money."
+    "standardTerm": "Middle Class Tax Relief",
+    "plainEnglish": "I want tax cuts that help working families and the middle class keep more of their money."
+  },
+  "taxCutsForWealthy": {
+    "plainLanguage": [
+      "tax cuts for job creators",
+      "business tax relief",
+      "corporate tax cuts",
+      "wealth tax opposition",
+      "capital gains tax",
+      "estate tax relief",
+      "tax cuts create jobs",
+      "trickle down",
+      "tax cuts stimulate economy"
+    ],
+    "standardTerm": "Upper Income Tax Relief",
+    "plainEnglish": "I support tax cuts for high earners and businesses to stimulate economic growth."
+  },
+  "taxWealthyMore": {
+    "plainLanguage": [
+      "tax the rich",
+      "wealth tax",
+      "millionaire tax",
+      "billionaire tax",
+      "fair share taxes",
+      "ultra wealthy taxes",
+      "no tax cuts wealthy",
+      "corporate tax loopholes",
+      "tax the 1%",
+      "progressive taxation",
+      "make rich pay more"
+    ],
+    "standardTerm": "Progressive Taxation and Wealth Tax",
+    "plainEnglish": "I want the ultra-wealthy and corporations to pay their fair share in taxes."
   },
   "economy": {
     "plainLanguage": [
