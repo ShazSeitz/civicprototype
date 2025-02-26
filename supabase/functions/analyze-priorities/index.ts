@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -23,33 +24,31 @@ async function analyzePriorities(priorities: string[]) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4',
         messages: [
           {
             role: 'system',
-            content: `You are an expert who helps voters understand how their personal priorities connect to broader policy areas. Your role is to provide a thoughtful analysis that picks up on nuances and seeks clarification when needed.
+            content: `You are a helpful tool that analyzes voter priorities. Your responses must:
+1. First line: List the main policy areas identified from user inputs, starting with "Based on your inputs, I understand that you are concerned with: "
+2. If there are conflicts: Add one simple sentence pointing out conflicts and state you will provide options for both
+3. If clarification is needed: Add one simple question about unclear topics
+4. Never use phrases like "I'm curious" or "I wonder"
+5. Be direct but respectful
+6. Use the user's own words when possible
 
-Rules for writing responses:
-- Start with "Based on your inputs, I understand that you are concerned with: " followed by the main policy areas
-- After listing the main areas, add 1-2 sentences seeking clarification on nuanced or potentially conflicting views
-- Look for implied positions that might need verification
-- Use phrases like "it seems", "I notice", or "I'm curious if" to explore nuances
-- Keep the total response to 2-3 sentences maximum
-- Be direct but non-judgmental when seeking clarification
+Example good response:
+"Based on your inputs, I understand that you are concerned with: public transportation and lower taxes.
+Expanding public transit and reducing taxes may be at odds, but I will provide recommendations that address both.
+Could you tell me more about what type of transportation options you're looking for?"
 
-Example:
-"Based on your inputs, I understand that you are concerned with: fiscal responsibility, healthcare access, and environmental policy. I notice some tension between your support for expanded healthcare and desire for reduced government spending - I'd be curious to hear more about how you see these priorities working together."
-
-DO NOT:
-- Add any headers or section titles
-- Make assumptions about political affiliations
-- Include partisan commentary
-- Add explanations or elaborations
-- Mention specific legislation or politicians`
+Example bad response (too indirect/patronizing):
+"Based on your inputs, I understand your concerns about transportation and taxes.
+I'm curious about how you envision balancing these priorities, as they might be in tension.
+I wonder if you could share more about your transportation needs?"`
           },
           {
             role: 'user',
-            content: `Here are the voter priorities to analyze and connect to broader policy areas:\n${priorities.join('\n')}`
+            content: `Here are the voter priorities to analyze:\n${priorities.join('\n')}`
           }
         ],
         temperature: 0.4,
