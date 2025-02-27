@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -86,7 +87,7 @@ export const RecommendationsList = ({ recommendations, onFeedbackSubmit }: Recom
         <CardTitle>Your Recommendations</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Analysis */}
+        {/* Analysis - Following the structured response from requirements */}
         <div>
           <h3 className="text-lg font-semibold mb-2">Priority Analysis {analysisVersion > 1 ? `(Updated)` : ''}</h3>
           <div className="prose prose-sm max-w-none">

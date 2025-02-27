@@ -24,68 +24,68 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Demo terminology mapping for direct use in the function (simplified version)
-const issueTerminology = {
+// Simplified terminology mapping directly within the function
+const issueTerminology: Record<string, any> = {
   "taxCutsForMiddleClass": {
     "plainLanguage": [
-      "middle class tax cuts", "tax cuts for working families", "tired of paying income tax",
-      "work hard for my money", "pass on to my children", "income tax", "paying so much tax"
+      "middle class tax cuts", "tax cuts for working families", "tax relief for average citizens",
+      "tax breaks for middle class", "help working families", "tax burden on workers",
+      "tired of paying tax", "lower taxes for workers", "reduce taxes middle class"
     ],
     "standardTerm": "Middle Class Tax Relief",
     "plainEnglish": "I want tax cuts that help working families and the middle class keep more of their money."
   },
   "opposeRaceGenderHiring": {
     "plainLanguage": [
-      "disgraceful race hiring", "disgraceful gender hiring", "race decide whether to hire",
-      "gender decide whether to hire", "race are used to decide", "gender are used to decide"
+      "disgraceful to use race in hiring", "disgraceful to use gender in hiring",
+      "hire based on race", "hire based on gender", "disgraceful that race", "gender are used to decide"
     ],
     "standardTerm": "Opposition to Race and Gender-Based Hiring Policies",
-    "plainEnglish": "I believe that hiring should be based solely on merit, and it's disgraceful to use race or gender as deciding factors."
+    "plainEnglish": "I believe that hiring should be based solely on merit, and it's wrong to use race or gender as deciding factors."
   },
   "climate": {
     "plainLanguage": [
-      "climate change", "global warming", "climate skepticism", "climate denial",
-      "climate change is probably a hoax", "national parks", "wildlife sanctuaries"
+      "climate change", "global warming", "extreme weather", "pollution", 
+      "national parks", "wildlife sanctuaries", "protection of national parks"
     ],
     "standardTerm": "Climate Change and Environmental Policy",
-    "plainEnglish": "I want our government to take action on climate change and protect our environment."
+    "plainEnglish": "I want our government to take action on climate change and protect our environment from extreme weather and pollution."
+  },
+  "healthcare": {
+    "plainLanguage": [
+      "healthcare costs", "medical bills", "health insurance", "mental health", "long-term care"
+    ],
+    "standardTerm": "Healthcare Access and Affordability",
+    "plainEnglish": "I want affordable healthcare that covers everything from doctor visits to mental health and long-term care."
   },
   "housing": {
     "plainLanguage": [
       "affordable housing", "homelessness", "rent costs", "housing crisis",
-      "cost of housing", "bay area housing", "housing in the bay area"
+      "property values", "cost of housing", "bay area housing"
     ],
     "standardTerm": "Housing Affordability and Homelessness Prevention",
     "plainEnglish": "I want safe, affordable housing for everyone and solutions to prevent homelessness."
   },
   "education": {
     "plainLanguage": [
-      "school quality", "education costs", "student debt", "headstart",
-      "after school programs", "funding for headstart", "school programs"
+      "school quality", "education costs", "student debt", "college affordability", 
+      "public schools", "headstart", "after school programs"
     ],
     "standardTerm": "Education and Student Opportunity",
     "plainEnglish": "I want quality and affordable education for every student so we can build a better future."
   },
   "publicSafety": {
     "plainLanguage": [
-      "crime", "police reform", "homelessness and fentanyl", "fentanyl problem",
-      "jan 6th rioters", "violent criminals", "rioters"
+      "crime", "police reform", "criminal justice", "law enforcement", "public safety",
+      "homelessness and fentanyl", "fentanyl problem", "violent criminals"
     ],
     "standardTerm": "Public Safety and Criminal Justice",
     "plainEnglish": "I want safer communities and a fair justice system that truly protects us all."
   },
-  "technology": {
-    "plainLanguage": [
-      "AI", "AI regulation", "AI could lead to scary", "Sci-fy like stuff",
-      "too hard for me to understand"
-    ],
-    "standardTerm": "Technology Policy and AI Regulation",
-    "plainEnglish": "I want strong protections and thoughtful regulation of new technologies like AI."
-  },
   "civilLiberties": {
     "plainLanguage": [
-      "civil rights", "support everyone's right to live", "bill of rights",
-      "rights and protections", "pronouns"
+      "civil rights", "individual rights", "constitutional rights", "personal freedom",
+      "civil liberties", "support everyone's right to live", "bill of rights"
     ],
     "standardTerm": "Civil Liberties and Individual Rights",
     "plainEnglish": "I want to protect our basic freedoms and individual rights so everyone is treated fairly and freely."
@@ -97,49 +97,36 @@ const issueTerminology = {
     ],
     "standardTerm": "Government Efficiency and Accountability",
     "plainEnglish": "I want to reduce waste in government and make departments more effective, efficient, and accountable."
-  },
-  "publicTransportation": {
-    "plainLanguage": [
-      "local transportation", "affordable transportation", "public transit",
-      "needs more transportation options", "transportation needs"
-    ],
-    "standardTerm": "Public Transportation and Infrastructure",
-    "plainEnglish": "I want more affordable local transportation options to help people get around."
   }
 };
 
+// Function to find the best match for a priority
 function findBestMatchForPriority(priority: string): { term: string, matched: boolean } {
   // Normalize input
   const input = priority.toLowerCase();
   console.log(`Processing priority: "${input}"`);
   
-  // Special case for race/gender hiring phrase
+  // Special case for race/gender hiring phrases with "disgraceful" keyword
   if (
-    input.includes("disgraceful") && 
-    (input.includes("race") || input.includes("gender")) && 
-    (input.includes("hire") || input.includes("hiring") || input.includes("decide"))
+    (input.includes("disgraceful") && input.includes("race") && (input.includes("hire") || input.includes("hiring"))) ||
+    (input.includes("disgraceful") && input.includes("gender") && (input.includes("hire") || input.includes("hiring"))) ||
+    (input.includes("race") && input.includes("gender") && input.includes("hiring")) ||
+    (input.includes("disgraceful") && (input.includes("race") || input.includes("gender")))
   ) {
     console.log("*** Special match found for opposeRaceGenderHiring ***");
     return { term: "opposeRaceGenderHiring", matched: true };
   }
   
-  // Track best match
+  // Match based on plainLanguage keywords
   let bestMatch = { term: "", score: 0 };
   
-  // Process each term in the terminology
   for (const [termKey, termData] of Object.entries(issueTerminology)) {
-    // Check if this term has plainLanguage array
     if (termData.plainLanguage && Array.isArray(termData.plainLanguage)) {
-      // Go through each phrase pattern
       for (const phrase of termData.plainLanguage) {
         const lowerPhrase = phrase.toLowerCase();
         
-        // Direct inclusion check
         if (input.includes(lowerPhrase)) {
-          // Calculate match score based on length of the matching phrase
           const score = lowerPhrase.length;
-          
-          // Update best match if this is better
           if (score > bestMatch.score) {
             bestMatch = { term: termKey, score };
             console.log(`New best match: ${termKey} with score ${score}`);
@@ -149,93 +136,139 @@ function findBestMatchForPriority(priority: string): { term: string, matched: bo
     }
   }
   
-  // Return best match if one was found
   if (bestMatch.score > 0) {
     return { term: bestMatch.term, matched: true };
   }
   
-  // No match found
   return { term: "", matched: false };
 }
 
-// Main function to analyze priorities
-async function analyzePriorities(priorities: string[]): Promise<{
-  analysis: string, 
-  unmappedTerms: string[],
-  candidates: any[],
-  ballotMeasures: any[],
-  draftEmails: any[],
-  interestGroups: any[],
-  petitions: any[]
-}> {
-  console.log(`Starting analysis of ${priorities.length} priorities`);
+// Analyze priorities according to the project requirements
+async function analyzePriorities(priorities: string[], mode: "current" | "demo"): Promise<AnalyzePrioritiesResponse> {
+  console.log(`Analyzing ${priorities.length} priorities in ${mode} mode`);
   
-  // Map priorities to terms
+  // Map priorities to standardized terms
   const mappedTerms: string[] = [];
   const unmappedTerms: string[] = [];
   
   for (const priority of priorities) {
-    console.log(`Analyzing priority: "${priority}"`);
     const { term, matched } = findBestMatchForPriority(priority);
     
     if (matched && term) {
-      // Get the standard term from the mapping
       const termData = issueTerminology[term];
       if (termData && termData.standardTerm) {
         mappedTerms.push(termData.standardTerm);
-        console.log(`Successfully mapped to: ${termData.standardTerm}`);
+        console.log(`Mapped to: ${termData.standardTerm}`);
       } else {
-        console.log(`Term "${term}" found but has no standardTerm`);
         unmappedTerms.push(priority);
       }
     } else {
-      console.log(`No match found for: "${priority}"`);
       unmappedTerms.push(priority);
     }
   }
   
-  // Generate analysis
-  let analysis = "Based on your priorities, here's what I understand:\n\n";
+  // Generate analysis following the structure from PROJECT.md
+  let analysis = "Here's what I understand you care about:\n\n";
   
-  // Add each mapped term with its description
+  // Create a set of unique mapped terms to avoid repetition
   const uniqueTerms = [...new Set(mappedTerms)];
-  for (const standardTerm of uniqueTerms) {
-    // Find the term data
-    for (const [key, data] of Object.entries(issueTerminology)) {
-      if (data.standardTerm === standardTerm) {
-        analysis += `• ${standardTerm}: ${data.plainEnglish}\n\n`;
-        break;
+  
+  if (uniqueTerms.length > 0) {
+    for (const standardTerm of uniqueTerms) {
+      for (const [key, data] of Object.entries(issueTerminology)) {
+        if (data.standardTerm === standardTerm) {
+          analysis += `• ${standardTerm}: ${data.plainEnglish}\n\n`;
+          break;
+        }
       }
     }
+  } else {
+    analysis += "I haven't been able to clearly identify your priorities yet.\n\n";
   }
   
-  // Add note about unmapped terms
+  // Add note about unmapped terms as per the requirements
   if (unmappedTerms.length > 0) {
-    analysis += "\nI didn't fully understand some of your priorities. You can provide more detail, and I'll update my analysis.";
+    analysis += "Can you please clarify more about what matters to you?";
   }
   
-  // For demo, generate mock data for recommendations
-  const mockCandidates = uniqueTerms.length > 0 ? [
-    { name: "Jane Smith", party: "Democratic", matchScore: 85, positions: uniqueTerms.slice(0, 2) },
-    { name: "John Doe", party: "Republican", matchScore: 65, positions: uniqueTerms.slice(0, 1) }
-  ] : [];
+  // Generate appropriate recommendations based on mode
+  let candidates = [];
+  let ballotMeasures = [];
+  let draftEmails = [];
+  let interestGroups = [];
+  let petitions = [];
   
-  const mockBallotMeasures = uniqueTerms.length > 0 ? [
-    { name: "Proposition 123", description: "Funding for " + uniqueTerms[0], matchScore: 90 }
-  ] : [];
-
+  // For demo mode, include more detailed recommendations
+  if (mode === "demo") {
+    // Mock presidential candidates for demo mode
+    candidates = [
+      {
+        name: "Jane Smith",
+        office: "Presidential Candidate",
+        highlights: [
+          "Supports policies on " + (uniqueTerms[0] || "economic growth"),
+          "Has advocated for " + (uniqueTerms[1] || "healthcare reform")
+        ]
+      },
+      {
+        name: "John Wilson",
+        office: "Presidential Candidate",
+        highlights: [
+          "Known for position on " + (uniqueTerms[0] || "taxation"),
+          "Has sponsored legislation for " + (uniqueTerms[1] || "education")
+        ]
+      }
+    ];
+    
+    // Mock ballot measures
+    ballotMeasures = [
+      {
+        title: "Proposition A: " + (uniqueTerms[0] || "Infrastructure Investment"),
+        recommendation: "This measure aligns with your priorities on " + (uniqueTerms[0] || "local development")
+      }
+    ];
+  } else {
+    // For current mode
+    // Mock representative for email drafts
+    draftEmails = [
+      {
+        to: "representative@example.gov",
+        subject: "Concerns about " + (uniqueTerms[0] || "local issues"),
+        body: `Dear Representative,\n\nI am writing to express my concerns about ${uniqueTerms[0] || "issues in our community"}. As your constituent, I believe that ${uniqueTerms[1] || "certain changes"} would greatly benefit our district.\n\nI would appreciate the opportunity to discuss this further.\n\nSincerely,\n[Your Name]`
+      }
+    ];
+  }
+  
+  // Common for both modes
+  interestGroups = [
+    {
+      name: uniqueTerms[0] ? `${uniqueTerms[0]} Advocacy Group` : "Citizen Action Network",
+      url: "https://example.org/advocacy",
+      relevance: `This organization focuses on ${uniqueTerms[0] || "civic engagement"} and related issues.`
+    }
+  ];
+  
+  petitions = [
+    {
+      title: uniqueTerms[1] ? `Support for ${uniqueTerms[1]}` : "Community Initiative Petition",
+      url: "https://example.org/petition",
+      relevance: `This petition addresses ${uniqueTerms[1] || "important community concerns"}.`
+    }
+  ];
+  
   return {
+    mode,
     analysis,
     unmappedTerms,
-    candidates: mockCandidates,
-    ballotMeasures: mockBallotMeasures,
-    draftEmails: [],
-    interestGroups: [],
-    petitions: []
+    candidates,
+    ballotMeasures,
+    draftEmails,
+    interestGroups,
+    petitions
   };
 }
 
-// HTTP handler for the function
+// HTTP handler for the Edge Function
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -248,26 +281,10 @@ serve(async (req) => {
     const { mode, priorities } = reqBody;
     
     console.log(`Request received: mode=${mode}, priorities=${priorities.length}`);
+    priorities.forEach((p, i) => console.log(`Priority ${i+1}: ${p}`));
 
-    // Debug log the priorities
-    priorities.forEach((p, i) => {
-      console.log(`Priority ${i+1}: ${p}`);
-    });
-
-    // Analyze priorities
-    const { analysis, unmappedTerms, candidates, ballotMeasures, draftEmails, interestGroups, petitions } = await analyzePriorities(priorities);
-    
-    // Return response
-    const response: AnalyzePrioritiesResponse = {
-      mode,
-      analysis,
-      unmappedTerms,
-      candidates,
-      ballotMeasures,
-      draftEmails,
-      interestGroups,
-      petitions
-    };
+    // Process priorities
+    const response = await analyzePriorities(priorities, mode);
     
     return new Response(
       JSON.stringify(response),
@@ -283,7 +300,11 @@ serve(async (req) => {
     console.error('Error in analyze-priorities function:', error);
     
     return new Response(
-      JSON.stringify({ error: `Failed to analyze priorities: ${error.message}` }),
+      JSON.stringify({ 
+        error: `Failed to analyze priorities: ${error.message}`,
+        mode: "current",
+        analysis: "I'm sorry, I encountered an error analyzing your priorities. Please try again."
+      }),
       { 
         headers: { 
           ...corsHeaders,
