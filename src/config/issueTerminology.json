@@ -313,21 +313,24 @@
     "plainEnglish": "I want our society to stick to clear ethical principles that help guide our decisions about right and wrong."
   },
   "personalLiberty": {
-  "plainLanguage": [
-    "individual freedom",
-    "personal autonomy",
-    "self-determination",
-    "liberty from government control",
-    "personal rights"
-  ],
-  "standardTerm": "Personal Autonomy and Freedom",
-  "plainEnglish": "I value my personal autonomy and want the freedom to make private choices about my life—without excessive government or societal interference.",
-  "nuance": {
-    "freedom_from_regulation": 0.9,
-    "privacy_and_autonomy": 0.8,
-    "economic_issues": -0.9
-  }
-}
+    "plainLanguage": [
+      "individual freedom",
+      "personal autonomy",
+      "self-determination",
+      "liberty from government control",
+      "personal rights",
+      "tired of paying income tax",
+      "work hard for my money",
+      "pass on to my children"
+    ],
+    "standardTerm": "Personal Autonomy and Freedom",
+    "plainEnglish": "I value my personal autonomy and want the freedom to make private choices about my life—without excessive government or societal interference.",
+    "nuance": {
+      "freedom_from_regulation": 0.9,
+      "privacy_and_autonomy": 0.8,
+      "economic_issues": -0.9
+    }
+  },
   "patriotism": {
     "plainLanguage": [
       "national pride",
