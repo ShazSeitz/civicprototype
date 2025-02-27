@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 
@@ -317,6 +316,116 @@ const issueTerminology = {
   }
 };
 
+// Topic keyword associations for matching unmapped priorities
+const topicKeywords = {
+  "taxBurden": ["tax", "taxes", "taxation", "taxpayer", "fiscal", "money", "income", "financial burden"],
+  "taxCutsForWealthy": ["wealthy", "corporation", "business", "rich", "job creator", "entrepreneur"],
+  "taxWealthyMore": ["wealthy", "rich", "billionaire", "millionaire", "corporation", "1%", "elite"],
+  "economy": ["economy", "economic", "financial", "job", "market", "business", "inflation", "price", "cost", "salary"],
+  "healthcare": ["health", "medical", "doctor", "hospital", "insurance", "medicine", "prescription", "therapy"],
+  "climate": ["climate", "environment", "pollution", "emission", "green", "sustainable", "earth", "planet"],
+  "immigration": ["immigrant", "border", "migrant", "asylum", "citizenship", "foreign", "visa"],
+  "politicalDivision": ["divide", "partisan", "polarization", "unity", "division", "media", "fake", "truth"],
+  "housing": ["house", "home", "rent", "mortgage", "apartment", "homeless", "shelter", "property"],
+  "education": ["school", "education", "student", "teacher", "college", "university", "learn", "tuition"],
+  "publicSafety": ["police", "crime", "safety", "community", "law", "security", "protection", "violence"],
+  "inequality": ["equal", "equality", "gap", "fair", "opportunity", "disparity", "privilege"],
+  "technology": ["tech", "technology", "internet", "digital", "computer", "online", "cyber", "data", "privacy", "ai", "artificial intelligence", "robot"],
+  "foreignPolicy": ["foreign", "international", "global", "world", "ally", "enemy", "diplomacy", "war", "peace", "military"],
+  "laborRights": ["worker", "labor", "job", "employee", "union", "workplace", "wage", "salary", "working"],
+  "genderEquality": ["woman", "women", "gender", "sex", "feminine", "masculine", "discrimination", "harassment"],
+  "civilLiberties": ["right", "freedom", "liberty", "speech", "press", "assembly", "constitution", "law"],
+  "reproductiveRights": ["abortion", "choice", "reproductive", "pregnancy", "fetus", "woman", "body"],
+  "proLife": ["life", "baby", "unborn", "fetus", "abortion", "conception"],
+  "churchAndState": ["religion", "church", "god", "faith", "secular", "prayer", "religious"],
+  "lgbtqRights": ["gay", "lesbian", "transgender", "queer", "lgbt", "sexuality", "identity"],
+  "traditionalValues": ["traditional", "family", "culture", "heritage", "value", "conservative"],
+  "moralValues": ["moral", "ethic", "value", "principle", "virtue", "right", "wrong", "good", "evil"],
+  "personalLiberty": ["freedom", "liberty", "choice", "individual", "autonomy", "government control", "restriction"],
+  "patriotism": ["america", "american", "usa", "united states", "country", "nation", "patriot", "flag", "respect"]
+};
+
+// Helper function to find best category match for unmapped priorities
+function findBestCategoryMatch(priority: string): { category: string, standardTerm: string, confidence: number, missingTerms: string[] } | null {
+  priority = priority.toLowerCase();
+  
+  let bestMatch = null;
+  let highestScore = 0;
+  let missingTerms: string[] = [];
+  
+  // Extract key phrases that might be missing from our terminology
+  const phrases = priority.split(/[.,;!?]|\band\b|\bor\b|\bbut\b/).filter(p => p.trim().length > 0).map(p => p.trim());
+  
+  // Keep track of which phrases matched
+  const matchedPhrases = new Set<string>();
+  
+  for (const [category, keywords] of Object.entries(topicKeywords)) {
+    let score = 0;
+    const categoryMissingTerms = [];
+    
+    // Check for keyword matches
+    for (const keyword of keywords) {
+      if (priority.includes(keyword.toLowerCase())) {
+        score += 1;
+      }
+    }
+    
+    // Check for phrase matches to identify missing terms
+    for (const phrase of phrases) {
+      if (phrase.length > 4) { // Only consider meaningful phrases
+        let phraseMatched = false;
+        
+        // Check if phrase contains any keyword
+        for (const keyword of keywords) {
+          if (phrase.includes(keyword.toLowerCase())) {
+            phraseMatched = true;
+            matchedPhrases.add(phrase);
+            break;
+          }
+        }
+        
+        // If phrase didn't match any keyword but seems related to this category
+        // based on surrounding context, consider it a missing term
+        if (!phraseMatched && score > 0) {
+          categoryMissingTerms.push(phrase);
+        }
+      }
+    }
+    
+    // Calculate confidence score (0-100)
+    const confidence = Math.min(100, Math.round((score / keywords.length) * 100));
+    
+    if (score > 0 && confidence > highestScore) {
+      highestScore = confidence;
+      bestMatch = {
+        category,
+        standardTerm: issueTerminology[category].standardTerm,
+        confidence,
+        missingTerms: categoryMissingTerms
+      };
+    }
+  }
+  
+  // For priorities that did not match any category at all
+  if (!bestMatch && phrases.length > 0) {
+    // Use all unmatched phrases as potential missing terms
+    missingTerms = phrases.filter(phrase => !matchedPhrases.has(phrase) && phrase.length > 4);
+  }
+  
+  if (bestMatch) {
+    return bestMatch;
+  } else if (missingTerms.length > 0) {
+    return {
+      category: "unclassified",
+      standardTerm: "Unclassified Issue",
+      confidence: 0,
+      missingTerms
+    };
+  }
+  
+  return null;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -326,11 +435,11 @@ serve(async (req) => {
     const { priorities, mode } = await req.json()
     console.log('Analyzing priorities:', priorities)
     
-    // Remove MAX_MATCHES limit since we want to capture all relevant matches
     const mappedPriorities = priorities.map((priority: string, index: number) => {
       const priorityLower = priority.toLowerCase();
       const matches: Array<{category: string, standardTerm: string, matchCount: number}> = [];
       
+      // First try exact matching from the terminology database
       for (const [category, data] of Object.entries(issueTerminology)) {
         const plainLanguageTerms = data.plainLanguage as string[]
         let matchCount = 0;
@@ -354,10 +463,30 @@ serve(async (req) => {
       if (matches.length > 0) {
         return {
           originalIndex: index,
-          matches: matches.sort((a, b) => b.matchCount - a.matchCount)
+          priority,
+          matches: matches.sort((a, b) => b.matchCount - a.matchCount),
+          nlpMatched: false
         };
       }
       
+      // If no exact matches, try NLP-style matching
+      const bestMatch = findBestCategoryMatch(priority);
+      if (bestMatch) {
+        return {
+          originalIndex: index,
+          priority,
+          matches: [{
+            category: bestMatch.category,
+            standardTerm: bestMatch.standardTerm,
+            matchCount: 1
+          }],
+          nlpMatched: true,
+          confidence: bestMatch.confidence,
+          missingTerms: bestMatch.missingTerms
+        };
+      }
+      
+      // If still no match, return null
       return null;
     });
 
@@ -373,6 +502,16 @@ serve(async (req) => {
     
     const unmappedCount = priorities.length - validMappings.length;
 
+    // Collect all missing terms for terminology table updates
+    const missingTermsData = validMappings
+      .filter(mapping => mapping.nlpMatched && mapping.missingTerms && mapping.missingTerms.length > 0)
+      .map(mapping => ({
+        priority: mapping.priority,
+        mappedTo: mapping.matches[0].standardTerm,
+        confidence: mapping.confidence,
+        missingTerms: mapping.missingTerms
+      }));
+
     let analysis = "Based on all your input, including clarifications, here are the relevant policy areas:\n\n";
     
     analysis += uniqueOrderedTerms.map(term => `• ${term}`).join('\n');
@@ -381,13 +520,32 @@ serve(async (req) => {
       analysis += `\n\n${unmappedCount} of your priorities could not be mapped to policy terms. Feel free to rephrase them if you'd like.`;
     }
 
+    // Add section about NLP matches if applicable
+    const nlpMatches = validMappings.filter(m => m.nlpMatched);
+    if (nlpMatches.length > 0) {
+      analysis += "\n\n🔍 Some priorities were matched using our advanced analysis:";
+      nlpMatches.forEach(match => {
+        analysis += `\n• "${match.priority}" → ${match.matches[0].standardTerm} (confidence: ${match.confidence}%)`;
+      });
+    }
+
+    // Add section about terminology updates if applicable
+    if (missingTermsData.length > 0) {
+      analysis += "\n\n📝 TERMINOLOGY TABLE UPDATE SUGGESTIONS:";
+      missingTermsData.forEach(item => {
+        analysis += `\n• For "${item.mappedTo}" category, consider adding: ${item.missingTerms.join(', ')}`;
+      });
+    }
+
     console.log('Generated analysis:', analysis);
+    console.log('Missing terms data:', missingTermsData);
 
     return new Response(
       JSON.stringify({
         mode,
         analysis,
-        mappedPriorities: validMappings
+        mappedPriorities: validMappings,
+        missingTermsData: missingTermsData
       }),
       { 
         headers: { 
