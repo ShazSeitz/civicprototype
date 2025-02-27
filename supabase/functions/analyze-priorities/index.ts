@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 
@@ -344,7 +343,6 @@ const issueTerminology = {
   }
 };
 
-// Topic keyword associations for matching unmapped priorities
 const topicKeywords = {
   "taxBurden": ["tax", "taxes", "taxation", "taxpayer", "fiscal", "money", "income", "financial burden"],
   "taxCutsForWealthy": ["wealthy", "corporation", "business", "rich", "job creator", "entrepreneur"],
@@ -374,78 +372,99 @@ const topicKeywords = {
   "transportation": ["transportation", "transit", "bus", "train", "commute", "subway", "infrastructure", "road", "highway", "travel"]
 };
 
-// Helper function for simple NLP-style matching without errors
-function findBestCategoryMatch(priority: string): { category: string, standardTerm: string, confidence: number, missingTerms: string[] } | null {
+function findBestCategoryMatch(priority: string): { 
+  category: string, 
+  standardTerm: string, 
+  confidence: number, 
+  missingTerms: string[],
+  nuanceScores?: Record<string, number>
+} | null {
   try {
     priority = priority.toLowerCase();
     
+    if (priority.includes("affirmative action") || 
+        priority.includes("dei") || 
+        priority.includes("diversity") || 
+        priority.includes("identity politics") ||
+        priority.includes("race") && priority.includes("hire")) {
+      
+      const nuanceScores: Record<string, number> = {
+        affirmative_action_income: 0,
+        affirmative_action_race: 0,
+        DEI_hiring: 0
+      };
+
+      if (priority.includes("income") || priority.includes("economic")) {
+        nuanceScores.affirmative_action_income = 0.7;
+      }
+      if (priority.includes("race") || priority.includes("racial")) {
+        nuanceScores.affirmative_action_race = priority.includes("against") || priority.includes("oppose") ? -0.6 : 0.6;
+      }
+      if (priority.includes("dei") || priority.includes("diversity")) {
+        nuanceScores.DEI_hiring = priority.includes("against") || priority.includes("oppose") ? -0.4 : 0.4;
+      }
+
+      return {
+        category: "equalOpportunity",
+        standardTerm: "Equal Opportunity and Fairness in Employment",
+        confidence: 90,
+        missingTerms: [],
+        nuanceScores
+      };
+    }
+
     let bestCategory = "";
     let bestScore = 0;
     let bestConfidence = 0;
     let bestStandardTerm = "";
     let missingTerms: string[] = [];
     
-    // Check each category for keyword matches
-    for (const [category, keywords] of Object.entries(topicKeywords)) {
-      let score = 0;
+    const phrases = priority.split(/[.,!?]|\band\b|\bor\b|\bbut\b/)
+      .map(p => p.trim())
+      .filter(p => p.length > 3);
+    
+    for (const [category, data] of Object.entries(issueTerminology)) {
+      if (category === "issues") continue;
       
-      // Check for keyword matches
+      let score = 0;
+      const keywords = (data as any).plainLanguage as string[];
+      
       for (const keyword of keywords) {
         if (priority.includes(keyword.toLowerCase())) {
+          score += 2;
+        }
+      }
+      
+      const words = priority.split(/\s+/);
+      for (const word of words) {
+        if (word.length > 3 && keywords.some(k => k.toLowerCase().includes(word.toLowerCase()))) {
           score += 1;
         }
       }
       
-      // Calculate confidence (0-100)
       const confidence = Math.min(100, Math.round((score / Math.max(1, keywords.length)) * 100));
       
-      if (score > 0 && score > bestScore) {
+      if (score > bestScore) {
         bestScore = score;
         bestCategory = category;
         bestConfidence = confidence;
-        bestStandardTerm = issueTerminology[category].standardTerm;
+        bestStandardTerm = (data as any).standardTerm;
+        
+        missingTerms = phrases.filter(phrase => 
+          !keywords.some(keyword => 
+            keyword.toLowerCase().includes(phrase.toLowerCase()) ||
+            phrase.toLowerCase().includes(keyword.toLowerCase())
+          )
+        );
       }
     }
     
-    // If we found a match
     if (bestCategory) {
-      // Identify potential missing terms by splitting the priority into phrases
-      const words = priority.split(/\s+/);
-      const phrases = [];
-      
-      // Extract 2-3 word phrases that might be relevant
-      for (let i = 0; i < words.length - 1; i++) {
-        if (words[i].length > 2) { // Skip very short words
-          phrases.push(words[i] + " " + words[i+1]);
-          if (i < words.length - 2) {
-            phrases.push(words[i] + " " + words[i+1] + " " + words[i+2]);
-          }
-        }
-      }
-      
-      // Check which phrases are not in our existing terminology
-      for (const phrase of phrases) {
-        let found = false;
-        for (const termList of Object.values(issueTerminology)) {
-          for (const term of termList.plainLanguage) {
-            if (term.toLowerCase().includes(phrase) || phrase.includes(term.toLowerCase())) {
-              found = true;
-              break;
-            }
-          }
-          if (found) break;
-        }
-        
-        if (!found && phrase.length > 5) { // Only add meaningful phrases
-          missingTerms.push(phrase);
-        }
-      }
-      
       return {
         category: bestCategory,
         standardTerm: bestStandardTerm,
         confidence: bestConfidence,
-        missingTerms: Array.from(new Set(missingTerms)) // Remove duplicates
+        missingTerms: missingTerms.filter(term => term.length > 4)
       };
     }
     
@@ -470,9 +489,10 @@ serve(async (req) => {
         const priorityLower = priority.toLowerCase();
         const matches: Array<{category: string, standardTerm: string, matchCount: number}> = [];
         
-        // First try exact matching from the terminology database
         for (const [category, data] of Object.entries(issueTerminology)) {
-          const plainLanguageTerms = data.plainLanguage as string[]
+          if (category === "issues") continue;
+          
+          const plainLanguageTerms = (data as any).plainLanguage as string[]
           let matchCount = 0;
           
           plainLanguageTerms.forEach(term => {
@@ -484,13 +504,12 @@ serve(async (req) => {
           if (matchCount > 0) {
             matches.push({
               category,
-              standardTerm: issueTerminology[category].standardTerm,
+              standardTerm: (data as any).standardTerm,
               matchCount
             });
           }
         }
         
-        // If we found matches, return them
         if (matches.length > 0) {
           return {
             originalIndex: index,
@@ -500,10 +519,9 @@ serve(async (req) => {
           };
         }
         
-        // If no exact matches, try NLP-style matching
         const bestMatch = findBestCategoryMatch(priority);
         if (bestMatch) {
-          return {
+          const result: any = {
             originalIndex: index,
             priority,
             matches: [{
@@ -515,15 +533,20 @@ serve(async (req) => {
             confidence: bestMatch.confidence,
             missingTerms: bestMatch.missingTerms
           };
+          
+          if (bestMatch.nuanceScores) {
+            result.nuanceScores = bestMatch.nuanceScores;
+          }
+          
+          return result;
         }
         
-        // If still no match, return null
         return null;
       } catch (priorityError) {
         console.error("Error processing priority:", priorityError);
         return null;
       }
-    }).filter(Boolean); // Remove any null entries
+    }).filter(Boolean);
 
     const validMappings = mappedPriorities.sort((a, b) => a.originalIndex - b.originalIndex);
     
@@ -535,17 +558,17 @@ serve(async (req) => {
     
     const unmappedCount = priorities.length - validMappings.length;
 
-    // Collect all missing terms for terminology table updates
     const missingTermsData = validMappings
       .filter(mapping => mapping.nlpMatched && mapping.missingTerms && mapping.missingTerms.length > 0)
       .map(mapping => ({
         priority: mapping.priority,
         mappedTo: mapping.matches[0].standardTerm,
         confidence: mapping.confidence,
-        missingTerms: mapping.missingTerms
+        missingTerms: mapping.missingTerms,
+        nuanceScores: mapping.nuanceScores
       }));
 
-    let analysis = "Based on all your input, including clarifications, here are the relevant policy areas:\n\n";
+    let analysis = "Here are the policy areas identified from your priorities:\n\n";
     
     analysis += uniqueOrderedTerms.map(term => `• ${term}`).join('\n');
 
@@ -553,20 +576,29 @@ serve(async (req) => {
       analysis += `\n\n${unmappedCount} of your priorities could not be mapped to policy terms. Feel free to rephrase them if you'd like.`;
     }
 
-    // Add section about NLP matches if applicable
     const nlpMatches = validMappings.filter(m => m.nlpMatched);
     if (nlpMatches.length > 0) {
-      analysis += "\n\n🔍 Some priorities were matched using our advanced analysis:";
+      analysis += "\n\n🔍 Some priorities were matched using advanced analysis:";
       nlpMatches.forEach(match => {
-        analysis += `\n• "${match.priority}" → ${match.matches[0].standardTerm} (confidence: ${match.confidence}%)`;
+        let matchText = `\n• "${match.priority}" → ${match.matches[0].standardTerm} (confidence: ${match.confidence}%)`;
+        if (match.nuanceScores) {
+          matchText += "\n  Nuanced position detected:";
+          for (const [key, value] of Object.entries(match.nuanceScores)) {
+            if (value !== 0) {
+              matchText += `\n    - ${key.replace(/_/g, " ")}: ${value > 0 ? "Support" : "Oppose"} (strength: ${Math.abs(value)})`;
+            }
+          }
+        }
+        analysis += matchText;
       });
     }
 
-    // Add section about terminology updates if applicable
     if (missingTermsData.length > 0) {
-      analysis += "\n\n📝 TERMINOLOGY TABLE UPDATE SUGGESTIONS:";
+      analysis += "\n\n📝 New terminology suggestions:";
       missingTermsData.forEach(item => {
-        analysis += `\n• For "${item.mappedTo}" category, consider adding: ${item.missingTerms.join(', ')}`;
+        if (item.missingTerms.length > 0) {
+          analysis += `\n• For "${item.mappedTo}": ${item.missingTerms.join(", ")}`;
+        }
       });
     }
 
