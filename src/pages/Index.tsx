@@ -53,6 +53,11 @@ const Index = () => {
           throw new Error('No data returned from analysis');
         }
 
+        // Capture unmapped terms if they exist in the response
+        if (data.unmappedTerms && data.unmappedTerms.length > 0) {
+          saveUnmappedTerms(data.unmappedTerms);
+        }
+
         return {
           mode: data.mode,
           analysis: data.analysis,
@@ -76,6 +81,28 @@ const Index = () => {
     retry: false,
     refetchOnWindowFocus: false
   });
+
+  // Function to save unmapped terms to the JSON file
+  const saveUnmappedTerms = async (terms: string[]) => {
+    try {
+      // In a real production app, this would call an API endpoint
+      // For the purpose of this demo, we'll log the terms that would be saved
+      console.log('Unmapped terms that need mapping:', terms);
+      
+      // In a production environment, you would save these to your database
+      // or call an API to update the needsTermMapping.json file
+      
+      // For demo/development purposes, we're logging these to the console
+      // so you can see what terms need mapping
+      toast({
+        title: "Unmapped Terms Detected",
+        description: `${terms.length} priorities couldn't be mapped to existing terms and have been logged.`,
+        variant: "default",
+      });
+    } catch (error) {
+      console.error('Error saving unmapped terms:', error);
+    }
+  };
 
   useEffect(() => {
     if (recommendations && recommendationsRef.current) {
