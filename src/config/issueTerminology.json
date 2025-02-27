@@ -161,7 +161,7 @@
   "technology": {
     "plainLanguage": [
       "AI",
-      "AI regulation"
+      "AI regulation",
       "artificial intelligence",
       "machine learning",
       "automation",
@@ -305,5 +305,16 @@
     ],
     "standardTerm": "Patriotism and National Pride",
     "plainEnglish": "I want our country to remain strong and proud, honoring our traditions and working for the common good."
-  }
+  },
+  "issues": [
+    {
+      "political_priority": "Affirmative Action, DEI Hiring, and Identity Politics",
+      "plain_english": "I support programs that help people based on income opportunities, but I have concerns about race-based measures and the excesses of identity politics.",
+      "nuance": {
+        "affirmative_action_income": 0.7,
+        "affirmative_action_race": -0.6,
+        "DEI_hiring": -0.4
+      }
+    }
+  ]
 }
