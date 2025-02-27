@@ -1,4 +1,5 @@
 
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,7 +19,7 @@ import {
 } from '@/components/ui/navigation-menu';
 import { LucideVote, Settings, Menu, BadgeCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useMobileLayout } from '@/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 type LogoTextProps = {
   showText?: boolean;
@@ -32,7 +33,7 @@ const LogoText = ({ showText = true }: LogoTextProps) => (
 );
 
 const Navbar = () => {
-  const isMobile = useMobileLayout();
+  const isMobile = useIsMobile();
 
   const NavLinks = () => (
     <NavigationMenu>
