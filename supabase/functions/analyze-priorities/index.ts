@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 
@@ -95,7 +96,8 @@ const issueTerminology = {
       "climate skepticism",
       "climate denial",
       "extreme weather",
-      "pollution"
+      "pollution",
+      "climate hoax"
     ],
     standardTerm: "Climate Change and Environmental Policy",
     plainEnglish: "I want our government to take action on climate change and protect our environment from extreme weather and pollution."
@@ -117,7 +119,13 @@ const issueTerminology = {
       "fake news",
       "misinformation",
       "partisan politics",
-      "political polarization"
+      "political polarization",
+      "jan 6",
+      "january 6",
+      "capitol riot",
+      "rioters",
+      "violent criminals",
+      "pardoned"
     ],
     standardTerm: "Political Polarization and Democratic Governance",
     plainEnglish: "I want to fix our broken politics, stop fake news, and keep our government honest and fair."
@@ -175,7 +183,9 @@ const issueTerminology = {
       "automation",
       "data privacy",
       "cybersecurity",
-      "robots"
+      "robots",
+      "sci-fi",
+      "sci-fy"
     ],
     standardTerm: "Technology Policy, AI regulation, Data Privacy, and Cybersecurity",
     plainEnglish: "I want strong protections for my personal data and safe, reliable technology that works for everyone."
@@ -210,7 +220,9 @@ const issueTerminology = {
       "gender equality",
       "equal pay",
       "workplace discrimination",
-      "gender discrimination"
+      "gender discrimination",
+      "race or gender",
+      "hire someone"
     ],
     standardTerm: "Women's Rights and Gender Equality",
     plainEnglish: "I want equal rights and opportunities for women so that everyone can thrive."
@@ -313,6 +325,22 @@ const issueTerminology = {
     ],
     standardTerm: "Patriotism and National Pride",
     plainEnglish: "I want our country to remain strong and proud, honoring our traditions and working for the common good."
+  },
+  transportation: {
+    plainLanguage: [
+      "transportation",
+      "transit",
+      "public transit",
+      "local transportation",
+      "affordable transportation",
+      "commute",
+      "bus",
+      "train",
+      "subway",
+      "infrastructure"
+    ],
+    standardTerm: "Transportation and Infrastructure",
+    plainEnglish: "I want better and more affordable transportation options in my community."
   }
 };
 
@@ -323,17 +351,17 @@ const topicKeywords = {
   "taxWealthyMore": ["wealthy", "rich", "billionaire", "millionaire", "corporation", "1%", "elite"],
   "economy": ["economy", "economic", "financial", "job", "market", "business", "inflation", "price", "cost", "salary"],
   "healthcare": ["health", "medical", "doctor", "hospital", "insurance", "medicine", "prescription", "therapy"],
-  "climate": ["climate", "environment", "pollution", "emission", "green", "sustainable", "earth", "planet"],
+  "climate": ["climate", "environment", "pollution", "emission", "green", "sustainable", "earth", "planet", "hoax"],
   "immigration": ["immigrant", "border", "migrant", "asylum", "citizenship", "foreign", "visa"],
-  "politicalDivision": ["divide", "partisan", "polarization", "unity", "division", "media", "fake", "truth"],
+  "politicalDivision": ["divide", "partisan", "polarization", "unity", "division", "media", "fake", "truth", "jan 6", "january 6", "capitol", "riot", "criminal"],
   "housing": ["house", "home", "rent", "mortgage", "apartment", "homeless", "shelter", "property"],
   "education": ["school", "education", "student", "teacher", "college", "university", "learn", "tuition"],
   "publicSafety": ["police", "crime", "safety", "community", "law", "security", "protection", "violence"],
   "inequality": ["equal", "equality", "gap", "fair", "opportunity", "disparity", "privilege"],
-  "technology": ["tech", "technology", "internet", "digital", "computer", "online", "cyber", "data", "privacy", "ai", "artificial intelligence", "robot"],
+  "technology": ["tech", "technology", "internet", "digital", "computer", "online", "cyber", "data", "privacy", "ai", "artificial intelligence", "robot", "sci-fi", "sci-fy"],
   "foreignPolicy": ["foreign", "international", "global", "world", "ally", "enemy", "diplomacy", "war", "peace", "military"],
   "laborRights": ["worker", "labor", "job", "employee", "union", "workplace", "wage", "salary", "working"],
-  "genderEquality": ["woman", "women", "gender", "sex", "feminine", "masculine", "discrimination", "harassment"],
+  "genderEquality": ["woman", "women", "gender", "sex", "feminine", "masculine", "discrimination", "harassment", "race"],
   "civilLiberties": ["right", "freedom", "liberty", "speech", "press", "assembly", "constitution", "law"],
   "reproductiveRights": ["abortion", "choice", "reproductive", "pregnancy", "fetus", "woman", "body"],
   "proLife": ["life", "baby", "unborn", "fetus", "abortion", "conception"],
@@ -342,88 +370,90 @@ const topicKeywords = {
   "traditionalValues": ["traditional", "family", "culture", "heritage", "value", "conservative"],
   "moralValues": ["moral", "ethic", "value", "principle", "virtue", "right", "wrong", "good", "evil"],
   "personalLiberty": ["freedom", "liberty", "choice", "individual", "autonomy", "government control", "restriction"],
-  "patriotism": ["america", "american", "usa", "united states", "country", "nation", "patriot", "flag", "respect"]
+  "patriotism": ["america", "american", "usa", "united states", "country", "nation", "patriot", "flag", "respect"],
+  "transportation": ["transportation", "transit", "bus", "train", "commute", "subway", "infrastructure", "road", "highway", "travel"]
 };
 
-// Helper function to find best category match for unmapped priorities
+// Helper function for simple NLP-style matching without errors
 function findBestCategoryMatch(priority: string): { category: string, standardTerm: string, confidence: number, missingTerms: string[] } | null {
-  priority = priority.toLowerCase();
-  
-  let bestMatch = null;
-  let highestScore = 0;
-  let missingTerms: string[] = [];
-  
-  // Extract key phrases that might be missing from our terminology
-  const phrases = priority.split(/[.,;!?]|\band\b|\bor\b|\bbut\b/).filter(p => p.trim().length > 0).map(p => p.trim());
-  
-  // Keep track of which phrases matched
-  const matchedPhrases = new Set<string>();
-  
-  for (const [category, keywords] of Object.entries(topicKeywords)) {
-    let score = 0;
-    const categoryMissingTerms = [];
+  try {
+    priority = priority.toLowerCase();
     
-    // Check for keyword matches
-    for (const keyword of keywords) {
-      if (priority.includes(keyword.toLowerCase())) {
-        score += 1;
+    let bestCategory = "";
+    let bestScore = 0;
+    let bestConfidence = 0;
+    let bestStandardTerm = "";
+    let missingTerms: string[] = [];
+    
+    // Check each category for keyword matches
+    for (const [category, keywords] of Object.entries(topicKeywords)) {
+      let score = 0;
+      
+      // Check for keyword matches
+      for (const keyword of keywords) {
+        if (priority.includes(keyword.toLowerCase())) {
+          score += 1;
+        }
+      }
+      
+      // Calculate confidence (0-100)
+      const confidence = Math.min(100, Math.round((score / Math.max(1, keywords.length)) * 100));
+      
+      if (score > 0 && score > bestScore) {
+        bestScore = score;
+        bestCategory = category;
+        bestConfidence = confidence;
+        bestStandardTerm = issueTerminology[category].standardTerm;
       }
     }
     
-    // Check for phrase matches to identify missing terms
-    for (const phrase of phrases) {
-      if (phrase.length > 4) { // Only consider meaningful phrases
-        let phraseMatched = false;
-        
-        // Check if phrase contains any keyword
-        for (const keyword of keywords) {
-          if (phrase.includes(keyword.toLowerCase())) {
-            phraseMatched = true;
-            matchedPhrases.add(phrase);
-            break;
+    // If we found a match
+    if (bestCategory) {
+      // Identify potential missing terms by splitting the priority into phrases
+      const words = priority.split(/\s+/);
+      const phrases = [];
+      
+      // Extract 2-3 word phrases that might be relevant
+      for (let i = 0; i < words.length - 1; i++) {
+        if (words[i].length > 2) { // Skip very short words
+          phrases.push(words[i] + " " + words[i+1]);
+          if (i < words.length - 2) {
+            phrases.push(words[i] + " " + words[i+1] + " " + words[i+2]);
           }
         }
+      }
+      
+      // Check which phrases are not in our existing terminology
+      for (const phrase of phrases) {
+        let found = false;
+        for (const termList of Object.values(issueTerminology)) {
+          for (const term of termList.plainLanguage) {
+            if (term.toLowerCase().includes(phrase) || phrase.includes(term.toLowerCase())) {
+              found = true;
+              break;
+            }
+          }
+          if (found) break;
+        }
         
-        // If phrase didn't match any keyword but seems related to this category
-        // based on surrounding context, consider it a missing term
-        if (!phraseMatched && score > 0) {
-          categoryMissingTerms.push(phrase);
+        if (!found && phrase.length > 5) { // Only add meaningful phrases
+          missingTerms.push(phrase);
         }
       }
-    }
-    
-    // Calculate confidence score (0-100)
-    const confidence = Math.min(100, Math.round((score / keywords.length) * 100));
-    
-    if (score > 0 && confidence > highestScore) {
-      highestScore = confidence;
-      bestMatch = {
-        category,
-        standardTerm: issueTerminology[category].standardTerm,
-        confidence,
-        missingTerms: categoryMissingTerms
+      
+      return {
+        category: bestCategory,
+        standardTerm: bestStandardTerm,
+        confidence: bestConfidence,
+        missingTerms: Array.from(new Set(missingTerms)) // Remove duplicates
       };
     }
+    
+    return null;
+  } catch (error) {
+    console.error("Error in findBestCategoryMatch:", error);
+    return null;
   }
-  
-  // For priorities that did not match any category at all
-  if (!bestMatch && phrases.length > 0) {
-    // Use all unmatched phrases as potential missing terms
-    missingTerms = phrases.filter(phrase => !matchedPhrases.has(phrase) && phrase.length > 4);
-  }
-  
-  if (bestMatch) {
-    return bestMatch;
-  } else if (missingTerms.length > 0) {
-    return {
-      category: "unclassified",
-      standardTerm: "Unclassified Issue",
-      confidence: 0,
-      missingTerms
-    };
-  }
-  
-  return null;
 }
 
 serve(async (req) => {
@@ -433,66 +463,69 @@ serve(async (req) => {
 
   try {
     const { priorities, mode } = await req.json()
-    console.log('Analyzing priorities:', priorities)
+    console.log('Analyzing priorities:', JSON.stringify(priorities))
     
     const mappedPriorities = priorities.map((priority: string, index: number) => {
-      const priorityLower = priority.toLowerCase();
-      const matches: Array<{category: string, standardTerm: string, matchCount: number}> = [];
-      
-      // First try exact matching from the terminology database
-      for (const [category, data] of Object.entries(issueTerminology)) {
-        const plainLanguageTerms = data.plainLanguage as string[]
-        let matchCount = 0;
+      try {
+        const priorityLower = priority.toLowerCase();
+        const matches: Array<{category: string, standardTerm: string, matchCount: number}> = [];
         
-        plainLanguageTerms.forEach(term => {
-          if (priorityLower.includes(term.toLowerCase())) {
-            matchCount++;
-          }
-        });
-        
-        if (matchCount > 0) {
-          matches.push({
-            category,
-            standardTerm: issueTerminology[category].standardTerm,
-            matchCount
+        // First try exact matching from the terminology database
+        for (const [category, data] of Object.entries(issueTerminology)) {
+          const plainLanguageTerms = data.plainLanguage as string[]
+          let matchCount = 0;
+          
+          plainLanguageTerms.forEach(term => {
+            if (priorityLower.includes(term.toLowerCase())) {
+              matchCount++;
+            }
           });
+          
+          if (matchCount > 0) {
+            matches.push({
+              category,
+              standardTerm: issueTerminology[category].standardTerm,
+              matchCount
+            });
+          }
         }
+        
+        // If we found matches, return them
+        if (matches.length > 0) {
+          return {
+            originalIndex: index,
+            priority,
+            matches: matches.sort((a, b) => b.matchCount - a.matchCount),
+            nlpMatched: false
+          };
+        }
+        
+        // If no exact matches, try NLP-style matching
+        const bestMatch = findBestCategoryMatch(priority);
+        if (bestMatch) {
+          return {
+            originalIndex: index,
+            priority,
+            matches: [{
+              category: bestMatch.category,
+              standardTerm: bestMatch.standardTerm,
+              matchCount: 1
+            }],
+            nlpMatched: true,
+            confidence: bestMatch.confidence,
+            missingTerms: bestMatch.missingTerms
+          };
+        }
+        
+        // If still no match, return null
+        return null;
+      } catch (priorityError) {
+        console.error("Error processing priority:", priorityError);
+        return null;
       }
-      
-      // Return all matches, sorted by match count
-      if (matches.length > 0) {
-        return {
-          originalIndex: index,
-          priority,
-          matches: matches.sort((a, b) => b.matchCount - a.matchCount),
-          nlpMatched: false
-        };
-      }
-      
-      // If no exact matches, try NLP-style matching
-      const bestMatch = findBestCategoryMatch(priority);
-      if (bestMatch) {
-        return {
-          originalIndex: index,
-          priority,
-          matches: [{
-            category: bestMatch.category,
-            standardTerm: bestMatch.standardTerm,
-            matchCount: 1
-          }],
-          nlpMatched: true,
-          confidence: bestMatch.confidence,
-          missingTerms: bestMatch.missingTerms
-        };
-      }
-      
-      // If still no match, return null
-      return null;
-    });
+    }).filter(Boolean); // Remove any null entries
 
-    const validMappings = mappedPriorities
-      .filter(Boolean)
-      .sort((a, b) => a.originalIndex - b.originalIndex);
+    const validMappings = mappedPriorities.sort((a, b) => a.originalIndex - b.originalIndex);
     
     const orderedTerms = validMappings.flatMap(mapping => 
       mapping.matches.map(match => match.standardTerm)
@@ -538,7 +571,6 @@ serve(async (req) => {
     }
 
     console.log('Generated analysis:', analysis);
-    console.log('Missing terms data:', missingTermsData);
 
     return new Response(
       JSON.stringify({
