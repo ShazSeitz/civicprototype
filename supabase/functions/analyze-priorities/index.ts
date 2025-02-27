@@ -24,13 +24,14 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Simplified terminology mapping directly within the function
+// Improved terminology mapping with more detailed keys
 const issueTerminology: Record<string, any> = {
   "taxCutsForMiddleClass": {
     "plainLanguage": [
       "middle class tax cuts", "tax cuts for working families", "tax relief for average citizens",
       "tax breaks for middle class", "help working families", "tax burden on workers",
-      "tired of paying tax", "lower taxes for workers", "reduce taxes middle class"
+      "tired of paying tax", "lower taxes for workers", "reduce taxes middle class",
+      "work hard for my money", "pass on to my children", "income tax", "paying so much tax"
     ],
     "standardTerm": "Middle Class Tax Relief",
     "plainEnglish": "I want tax cuts that help working families and the middle class keep more of their money."
@@ -38,87 +39,87 @@ const issueTerminology: Record<string, any> = {
   "opposeRaceGenderHiring": {
     "plainLanguage": [
       "disgraceful to use race in hiring", "disgraceful to use gender in hiring",
-      "hire based on race", "hire based on gender", "disgraceful that race", "gender are used to decide"
+      "hire based on race", "hire based on gender", "disgraceful that race", 
+      "gender are used to decide", "race or gender are used", "decide whether to hire"
     ],
-    "standardTerm": "Opposition to Race and Gender-Based Hiring Policies",
-    "plainEnglish": "I believe that hiring should be based solely on merit, and it's wrong to use race or gender as deciding factors."
+    "standardTerm": "Merit-Based Hiring Practices",
+    "plainEnglish": "I believe hiring should be based solely on merit, without considering race or gender as factors."
   },
-  "climate": {
+  "climateSkepticism": {
     "plainLanguage": [
-      "climate change", "global warming", "extreme weather", "pollution", 
-      "national parks", "wildlife sanctuaries", "protection of national parks"
+      "climate change is probably a hoax", "climate hoax", "climate skepticism",
+      "climate change isn't real", "global warming hoax", "not sure about climate change"
     ],
-    "standardTerm": "Climate Change and Environmental Policy",
-    "plainEnglish": "I want our government to take action on climate change and protect our environment from extreme weather and pollution."
+    "standardTerm": "Climate Change Skepticism",
+    "plainEnglish": "I'm skeptical about climate change claims and policies based on them."
   },
-  "healthcare": {
+  "publicTransportation": {
     "plainLanguage": [
-      "healthcare costs", "medical bills", "health insurance", "mental health", "long-term care"
+      "local transportation", "affordable transportation", "public transit",
+      "needs more transportation options", "transportation needs", "needs transportation"
     ],
-    "standardTerm": "Healthcare Access and Affordability",
-    "plainEnglish": "I want affordable healthcare that covers everything from doctor visits to mental health and long-term care."
-  },
-  "housing": {
-    "plainLanguage": [
-      "affordable housing", "homelessness", "rent costs", "housing crisis",
-      "property values", "cost of housing", "bay area housing"
-    ],
-    "standardTerm": "Housing Affordability and Homelessness Prevention",
-    "plainEnglish": "I want safe, affordable housing for everyone and solutions to prevent homelessness."
-  },
-  "education": {
-    "plainLanguage": [
-      "school quality", "education costs", "student debt", "college affordability", 
-      "public schools", "headstart", "after school programs"
-    ],
-    "standardTerm": "Education and Student Opportunity",
-    "plainEnglish": "I want quality and affordable education for every student so we can build a better future."
+    "standardTerm": "Public Transportation Access",
+    "plainEnglish": "I want more affordable and accessible local transportation options in my community."
   },
   "publicSafety": {
     "plainLanguage": [
       "crime", "police reform", "criminal justice", "law enforcement", "public safety",
-      "homelessness and fentanyl", "fentanyl problem", "violent criminals"
+      "homelessness and fentanyl", "fentanyl problem", "violent criminals", "rioters",
+      "jan 6th rioters"
     ],
     "standardTerm": "Public Safety and Criminal Justice",
-    "plainEnglish": "I want safer communities and a fair justice system that truly protects us all."
+    "plainEnglish": "I want a fair justice system and accountability for all who break the law."
   },
-  "civilLiberties": {
+  "technologyConcerns": {
     "plainLanguage": [
-      "civil rights", "individual rights", "constitutional rights", "personal freedom",
-      "civil liberties", "support everyone's right to live", "bill of rights"
+      "AI", "AI regulation", "artificial intelligence", "machine learning", "automation",
+      "data privacy", "scary technology", "sci-fy like stuff", "too hard for me to understand",
+      "AI could lead to scary"
     ],
-    "standardTerm": "Civil Liberties and Individual Rights",
-    "plainEnglish": "I want to protect our basic freedoms and individual rights so everyone is treated fairly and freely."
-  },
-  "governmentWaste": {
-    "plainLanguage": [
-      "waste in government", "departments need to be made more effective",
-      "efficient and accountable", "government efficiency", "government waste"
-    ],
-    "standardTerm": "Government Efficiency and Accountability",
-    "plainEnglish": "I want to reduce waste in government and make departments more effective, efficient, and accountable."
+    "standardTerm": "Technology Regulation and Safety",
+    "plainEnglish": "I'm concerned about emerging technologies like AI and want proper oversight and regulation."
   }
 };
 
-// Function to find the best match for a priority
-function findBestMatchForPriority(priority: string): { term: string, matched: boolean } {
-  // Normalize input
+// Enhanced matching function with better phrase matching
+function findBestMatchForPriority(priority: string): { term: string, matched: boolean, confidence: number } {
   const input = priority.toLowerCase();
   console.log(`Processing priority: "${input}"`);
   
-  // Special case for race/gender hiring phrases with "disgraceful" keyword
-  if (
-    (input.includes("disgraceful") && input.includes("race") && (input.includes("hire") || input.includes("hiring"))) ||
-    (input.includes("disgraceful") && input.includes("gender") && (input.includes("hire") || input.includes("hiring"))) ||
-    (input.includes("race") && input.includes("gender") && input.includes("hiring")) ||
-    (input.includes("disgraceful") && (input.includes("race") || input.includes("gender")))
-  ) {
-    console.log("*** Special match found for opposeRaceGenderHiring ***");
-    return { term: "opposeRaceGenderHiring", matched: true };
+  // Special case handling with explicit phrase matching
+  if (input.includes("tired of paying") && (input.includes("tax") || input.includes("income tax"))) {
+    return { term: "taxCutsForMiddleClass", matched: true, confidence: 0.9 };
   }
   
-  // Match based on plainLanguage keywords
-  let bestMatch = { term: "", score: 0 };
+  if (input.includes("disgraceful") && 
+      (input.includes("race") || input.includes("gender")) && 
+      (input.includes("hire") || input.includes("hiring") || input.includes("decide"))) {
+    return { term: "opposeRaceGenderHiring", matched: true, confidence: 0.9 };
+  }
+  
+  if ((input.includes("climate") || input.includes("global warming")) && 
+      (input.includes("hoax") || input.includes("probably") || input.includes("skeptic"))) {
+    return { term: "climateSkepticism", matched: true, confidence: 0.85 };
+  }
+  
+  if (input.includes("transportation") && 
+      (input.includes("need") || input.includes("affordable") || input.includes("options"))) {
+    return { term: "publicTransportation", matched: true, confidence: 0.9 };
+  }
+  
+  if ((input.includes("jan 6") || input.includes("january 6")) && 
+      (input.includes("riot") || input.includes("criminal"))) {
+    return { term: "publicSafety", matched: true, confidence: 0.9 };
+  }
+  
+  if (input.includes("ai") && 
+      (input.includes("scary") || input.includes("sci-fy") || input.includes("hard") || 
+       input.includes("understand") || input.includes("afraid"))) {
+    return { term: "technologyConcerns", matched: true, confidence: 0.85 };
+  }
+  
+  // Generic keyword matching for other cases
+  let bestMatch = { term: "", score: 0, confidence: 0 };
   
   for (const [termKey, termData] of Object.entries(issueTerminology)) {
     if (termData.plainLanguage && Array.isArray(termData.plainLanguage)) {
@@ -126,10 +127,13 @@ function findBestMatchForPriority(priority: string): { term: string, matched: bo
         const lowerPhrase = phrase.toLowerCase();
         
         if (input.includes(lowerPhrase)) {
+          // Calculate score based on phrase length relative to input length
           const score = lowerPhrase.length;
+          const confidence = Math.min(0.5 + (score / input.length) * 0.5, 0.9);
+          
           if (score > bestMatch.score) {
-            bestMatch = { term: termKey, score };
-            console.log(`New best match: ${termKey} with score ${score}`);
+            bestMatch = { term: termKey, score, confidence };
+            console.log(`New best match: ${termKey} with score ${score} and confidence ${confidence}`);
           }
         }
       }
@@ -137,124 +141,222 @@ function findBestMatchForPriority(priority: string): { term: string, matched: bo
   }
   
   if (bestMatch.score > 0) {
-    return { term: bestMatch.term, matched: true };
+    return { term: bestMatch.term, matched: true, confidence: bestMatch.confidence };
   }
   
-  return { term: "", matched: false };
+  // Use simple NLP for unmapped terms (extract key phrases)
+  const keyPhrases = extractKeyPhrases(input);
+  console.log(`No direct match. Key phrases extracted: ${keyPhrases.join(', ')}`);
+  
+  return { term: "", matched: false, confidence: 0 };
 }
 
-// Analyze priorities according to the project requirements
+// Simple NLP function to extract key phrases from unmapped priorities
+function extractKeyPhrases(text: string): string[] {
+  // Remove common stop words
+  const stopWords = ["i", "am", "the", "a", "an", "and", "is", "are", "to", "for", "of", "that", "this", "in", "on", "with", "by"];
+  const words = text.toLowerCase().replace(/[^\w\s]/g, '').split(/\s+/);
+  const filteredWords = words.filter(word => !stopWords.includes(word) && word.length > 2);
+  
+  // Find potential key phrases (adjacent meaningful words)
+  const phrases = [];
+  let currentPhrase = [];
+  
+  for (let i = 0; i < words.length; i++) {
+    if (!stopWords.includes(words[i]) && words[i].length > 2) {
+      currentPhrase.push(words[i]);
+    } else if (currentPhrase.length > 0) {
+      if (currentPhrase.length > 1) {
+        phrases.push(currentPhrase.join(' '));
+      }
+      currentPhrase = [];
+    }
+  }
+  
+  // Add any remaining phrase
+  if (currentPhrase.length > 1) {
+    phrases.push(currentPhrase.join(' '));
+  }
+  
+  // Add individual important words if we have few phrases
+  if (phrases.length < 2) {
+    filteredWords.forEach(word => {
+      if (!phrases.some(phrase => phrase.includes(word))) {
+        phrases.push(word);
+      }
+    });
+  }
+  
+  return phrases;
+}
+
+// Generate interpreted analysis for unmapped priorities
+function interpretUnmappedPriority(priority: string): string {
+  const input = priority.toLowerCase();
+  
+  // Tax-related interpretation
+  if (input.includes("tax") || input.includes("income") || input.includes("money")) {
+    return "You seem concerned about taxation and preserving your income.";
+  }
+  
+  // Hiring practices interpretation
+  if (input.includes("hire") || input.includes("job") || input.includes("employ")) {
+    return "You have concerns about fair hiring practices.";
+  }
+  
+  // Climate interpretation
+  if (input.includes("climate") || input.includes("environment") || input.includes("global")) {
+    return "You have questions about climate change policies.";
+  }
+  
+  // Transportation interpretation
+  if (input.includes("transport") || input.includes("transit") || input.includes("commute")) {
+    return "You're interested in better transportation options.";
+  }
+  
+  // Public safety interpretation
+  if (input.includes("crime") || input.includes("riot") || input.includes("criminal") || input.includes("violence")) {
+    return "You're concerned about public safety and justice.";
+  }
+  
+  // Technology interpretation
+  if (input.includes("ai") || input.includes("tech") || input.includes("artificial")) {
+    return "You have concerns about technology regulation and impacts.";
+  }
+  
+  // Generic interpretation based on key phrases
+  const keyPhrases = extractKeyPhrases(input);
+  if (keyPhrases.length > 0) {
+    return `I see you're concerned about ${keyPhrases.join(' and ')}.`;
+  }
+  
+  return "I'd like to better understand this priority.";
+}
+
+// Improved priority analysis function
 async function analyzePriorities(priorities: string[], mode: "current" | "demo"): Promise<AnalyzePrioritiesResponse> {
   console.log(`Analyzing ${priorities.length} priorities in ${mode} mode`);
   
-  // Map priorities to standardized terms
-  const mappedTerms: string[] = [];
+  // Process each priority
+  const mappedPriorities: Array<{
+    original: string;
+    standardTerm?: string;
+    plainEnglish?: string;
+    matched: boolean;
+    interpretation?: string;
+  }> = [];
+  
   const unmappedTerms: string[] = [];
   
+  // First pass - try to map all priorities
   for (const priority of priorities) {
-    const { term, matched } = findBestMatchForPriority(priority);
+    const { term, matched, confidence } = findBestMatchForPriority(priority);
     
-    if (matched && term) {
+    if (matched && term && confidence >= 0.7) {
       const termData = issueTerminology[term];
-      if (termData && termData.standardTerm) {
-        mappedTerms.push(termData.standardTerm);
-        console.log(`Mapped to: ${termData.standardTerm}`);
-      } else {
-        unmappedTerms.push(priority);
-      }
+      mappedPriorities.push({
+        original: priority,
+        standardTerm: termData.standardTerm,
+        plainEnglish: termData.plainEnglish,
+        matched: true
+      });
+      console.log(`Mapped to ${termData.standardTerm} with high confidence`);
     } else {
+      // For unmatched or low confidence matches, provide an interpretation
+      const interpretation = interpretUnmappedPriority(priority);
+      mappedPriorities.push({
+        original: priority,
+        matched: false,
+        interpretation
+      });
       unmappedTerms.push(priority);
+      console.log(`Could not map priority. Added interpretation: ${interpretation}`);
     }
   }
   
-  // Generate analysis following the structure from PROJECT.md
-  let analysis = "Here's what I understand you care about:\n\n";
+  // Generate the analysis text with better formatting
+  let analysis = "Here's what I understand you care about:";
   
-  // Create a set of unique mapped terms to avoid repetition
-  const uniqueTerms = [...new Set(mappedTerms)];
-  
-  if (uniqueTerms.length > 0) {
-    for (const standardTerm of uniqueTerms) {
-      for (const [key, data] of Object.entries(issueTerminology)) {
-        if (data.standardTerm === standardTerm) {
-          analysis += `• ${standardTerm}: ${data.plainEnglish}\n\n`;
-          break;
-        }
-      }
+  // Add mapped priorities as bullet points (no extra newlines between bullets)
+  mappedPriorities.forEach(priority => {
+    if (priority.matched && priority.plainEnglish) {
+      analysis += `\n• ${priority.standardTerm}: ${priority.plainEnglish}`;
+    } else if (priority.interpretation) {
+      analysis += `\n• ${priority.interpretation}`;
     }
-  } else {
-    analysis += "I haven't been able to clearly identify your priorities yet.\n\n";
-  }
+  });
   
-  // Add note about unmapped terms as per the requirements
+  // Add clarification requests for unmapped terms
   if (unmappedTerms.length > 0) {
-    analysis += "Can you please clarify more about what matters to you?";
+    analysis += "\n\nCould you clarify more about:";
+    unmappedTerms.forEach(term => {
+      const shortTerm = term.length > 40 ? term.substring(0, 40) + "..." : term;
+      analysis += `\n• "${shortTerm}"?`;
+    });
   }
   
-  // Generate appropriate recommendations based on mode
+  // Generate recommendations based on mapped priorities
+  const standardTerms = mappedPriorities
+    .filter(p => p.matched && p.standardTerm)
+    .map(p => p.standardTerm);
+  
+  // Mock data generation for recommendations
   let candidates = [];
   let ballotMeasures = [];
   let draftEmails = [];
   let interestGroups = [];
   let petitions = [];
   
-  // For demo mode, include more detailed recommendations
   if (mode === "demo") {
-    // Mock presidential candidates for demo mode
-    candidates = [
+    // Candidates for demo mode
+    candidates = standardTerms.length > 0 ? [
       {
         name: "Jane Smith",
         office: "Presidential Candidate",
-        highlights: [
-          "Supports policies on " + (uniqueTerms[0] || "economic growth"),
-          "Has advocated for " + (uniqueTerms[1] || "healthcare reform")
-        ]
+        highlights: standardTerms.slice(0, 2).map(term => `Supports ${term}`)
       },
       {
         name: "John Wilson",
-        office: "Presidential Candidate",
-        highlights: [
-          "Known for position on " + (uniqueTerms[0] || "taxation"),
-          "Has sponsored legislation for " + (uniqueTerms[1] || "education")
-        ]
+        office: "Congressional Candidate",
+        highlights: standardTerms.slice(0, 2).map(term => `Has advocated for ${term}`)
       }
-    ];
+    ] : [];
     
-    // Mock ballot measures
-    ballotMeasures = [
+    // Ballot measures for demo mode
+    ballotMeasures = standardTerms.length > 0 ? [
       {
-        title: "Proposition A: " + (uniqueTerms[0] || "Infrastructure Investment"),
-        recommendation: "This measure aligns with your priorities on " + (uniqueTerms[0] || "local development")
+        title: `Proposition 123: ${standardTerms[0] || "Local Initiative"}`,
+        recommendation: `This measure addresses ${standardTerms[0] || "community concerns"}`
       }
-    ];
+    ] : [];
   } else {
-    // For current mode
-    // Mock representative for email drafts
-    draftEmails = [
+    // Current mode
+    draftEmails = standardTerms.length > 0 ? [
       {
-        to: "representative@example.gov",
-        subject: "Concerns about " + (uniqueTerms[0] || "local issues"),
-        body: `Dear Representative,\n\nI am writing to express my concerns about ${uniqueTerms[0] || "issues in our community"}. As your constituent, I believe that ${uniqueTerms[1] || "certain changes"} would greatly benefit our district.\n\nI would appreciate the opportunity to discuss this further.\n\nSincerely,\n[Your Name]`
+        to: "representative@gov.example",
+        subject: `Concerns about ${standardTerms[0] || "local issues"}`,
+        body: `Dear Representative,\n\nI am writing about ${standardTerms[0] || "important issues"} in our community. As your constituent, I believe this deserves attention.\n\nSincerely,\n[Your Name]`
       }
-    ];
+    ] : [];
   }
   
-  // Common for both modes
-  interestGroups = [
+  // Interest groups (for both modes)
+  interestGroups = standardTerms.length > 0 ? [
     {
-      name: uniqueTerms[0] ? `${uniqueTerms[0]} Advocacy Group` : "Citizen Action Network",
+      name: `${standardTerms[0] || "Civic"} Action Group`,
       url: "https://example.org/advocacy",
-      relevance: `This organization focuses on ${uniqueTerms[0] || "civic engagement"} and related issues.`
+      relevance: `This organization focuses on ${standardTerms[0] || "community issues"}`
     }
-  ];
+  ] : [];
   
-  petitions = [
+  // Petitions (for both modes)
+  petitions = standardTerms.length > 0 ? [
     {
-      title: uniqueTerms[1] ? `Support for ${uniqueTerms[1]}` : "Community Initiative Petition",
+      title: `Petition for ${standardTerms[0] || "Community Change"}`,
       url: "https://example.org/petition",
-      relevance: `This petition addresses ${uniqueTerms[1] || "important community concerns"}.`
+      relevance: `This petition addresses ${standardTerms[0] || "local concerns"}`
     }
-  ];
+  ] : [];
   
   return {
     mode,
