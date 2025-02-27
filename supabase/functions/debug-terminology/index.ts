@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { corsHeaders } from '../_shared/cors.ts';
 
@@ -6,6 +7,8 @@ interface TermCategory {
   standardTerm: string;
   plainEnglish: string;
   nuance?: Record<string, number>;
+  inclusionWords?: string[];
+  exclusionWords?: string[];
 }
 
 interface TerminologyConfig {
@@ -46,16 +49,33 @@ async function fetchTerminologyConfig(): Promise<TerminologyConfig> {
         "plainLanguage": [],
         "nuance": {}
       },
+      "taxCutsForMiddleClass": {
+        "plainLanguage": [
+          "middle class tax cuts",
+          "tax cuts for working families",
+          "tax breaks for middle class",
+          "reduce taxes for middle class",
+          "tax relief for middle class",
+          "help working families"
+        ],
+        "inclusionWords": [
+          "middle class",
+          "working families"
+        ],
+        "standardTerm": "Middle Class Tax Relief",
+        "plainEnglish": "I want tax cuts that help working families and the middle class keep more of their money.",
+        "nuance": {
+          "middle_class_support": 0.8,
+          "tax_burden_reduction": 0.7
+        }
+      },
       "personalLiberty": {
         "plainLanguage": [
           "individual freedom",
           "personal autonomy",
           "self-determination",
           "liberty from government control",
-          "personal rights",
-          "tired of paying income tax",
-          "work hard for my money",
-          "pass on to my children"
+          "personal rights"
         ],
         "standardTerm": "Personal Autonomy and Freedom",
         "plainEnglish": "I value my personal autonomy and want the freedom to make private choices about my life—without excessive government or societal interference.",
@@ -63,38 +83,12 @@ async function fetchTerminologyConfig(): Promise<TerminologyConfig> {
           "freedom_from_regulation": 0.9,
           "privacy_and_autonomy": 0.8,
           "economic_issues": -0.9
-        }
-      },
-      "taxCutsForMiddleClass": {
-        "plainLanguage": [
-          "middle class tax cuts",
-          "tax cuts for working families",
-          "tax relief for average citizens",
-          "tax breaks for middle class",
-          "help working families",
-          "tax burden on workers",
-          "tired of paying tax",
-          "lower taxes for workers",
-          "reduce taxes middle class",
-          "paying too much tax",
-          "working class taxes",
-          "family tax relief",
-          "tired of paying income tax",
-          "work hard for my money",
-          "pass on to my children",
-          "tired of taxes",
-          "hard earned money",
-          "income tax",
-          "paying so much tax"
-        ],
-        "standardTerm": "Middle Class Tax Relief",
-        "plainEnglish": "I want tax cuts that help working families and the middle class keep more of their money.",
-        "nuance": {
-          "middle_class_support": 0.8,
-          "tax_burden_reduction": 0.9,
-          "tax_cut_opposition": -0.9,
-          "economic_issues": 0.9
-        }
+        },
+        "exclusionWords": [
+          "tax",
+          "income",
+          "money"
+        ]
       }
     };
     
@@ -112,6 +106,33 @@ function computeScoreForCategory(userInput: string, category: TermCategory, cate
   let score = 0;
   const details: string[] = [];
   const inputLower = userInput.toLowerCase();
+
+  // Check for exclusion words first - if present, reduce score significantly
+  if (category.exclusionWords) {
+    for (const exclusionWord of category.exclusionWords) {
+      if (inputLower.includes(exclusionWord.toLowerCase())) {
+        score -= 5;
+        details.push(`Found exclusion word '${exclusionWord}' (-5)`);
+      }
+    }
+  }
+  
+  // Check for inclusion words - if ANY are missing, reduce score to almost zero
+  if (category.inclusionWords) {
+    let foundInclusionWords = false;
+    for (const inclusionWord of category.inclusionWords) {
+      if (inputLower.includes(inclusionWord.toLowerCase())) {
+        foundInclusionWords = true;
+        details.push(`Found required inclusion word '${inclusionWord}' (required)`);
+        break;
+      }
+    }
+    
+    if (!foundInclusionWords) {
+      score -= 10;
+      details.push(`Missing all required inclusion words: [${category.inclusionWords.join(', ')}] (-10)`);
+    }
+  }
   
   // Base score: for each plainLanguage keyword present, add a base score
   for (const phrase of category.plainLanguage) {

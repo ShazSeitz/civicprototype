@@ -1,3 +1,4 @@
+
 {
   "fallback": {
     "standardTerm": "Clarification Needed",
@@ -493,8 +494,7 @@
       "inefficient government"
     ],
     "standardTerm": "Government Efficiency and Accountability",
-    "plainEnglish": "I want to reduce waste in government and make departments more effective, efficient, and accountable.",
-    "nuance": {}
+    "plainEnglish": "I want to reduce waste in government and make departments more effective, efficient, and accountable."
   },
   "publicTransportation": {
     "plainLanguage": [
@@ -505,8 +505,7 @@
       "transportation needs"
     ],
     "standardTerm": "Public Transportation and Infrastructure",
-    "plainEnglish": "I want more affordable local transportation options to help people get around.",
-    "nuance": {}
+    "plainEnglish": "I want more affordable local transportation options to help people get around."
   },
   "issues": [
     {
@@ -522,4 +521,3 @@
     }
   ]
 }
-
