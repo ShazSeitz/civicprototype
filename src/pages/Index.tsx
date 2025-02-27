@@ -53,19 +53,20 @@ const Index = () => {
           throw new Error('No data returned from analysis');
         }
 
-        // Capture unmapped terms if they exist in the response
+        // Display unmapped terms in console
         if (data.unmappedTerms && data.unmappedTerms.length > 0) {
+          console.log('Unmapped terms detected:', data.unmappedTerms);
           saveUnmappedTerms(data.unmappedTerms);
         }
 
         return {
           mode: data.mode,
           analysis: data.analysis,
-          candidates: [],
-          ballotMeasures: [],
-          draftEmails: [],
-          interestGroups: [],
-          petitions: []
+          candidates: data.candidates || [],
+          ballotMeasures: data.ballotMeasures || [],
+          draftEmails: data.draftEmails || [],
+          interestGroups: data.interestGroups || [],
+          petitions: data.petitions || []
         };
       } catch (err: any) {
         console.error('Error in analyze-priorities:', err);
@@ -89,11 +90,8 @@ const Index = () => {
       // For the purpose of this demo, we'll log the terms that would be saved
       console.log('Unmapped terms that need mapping:', terms);
       
-      // In a production environment, you would save these to your database
-      // or call an API to update the needsTermMapping.json file
-      
-      // For demo/development purposes, we're logging these to the console
-      // so you can see what terms need mapping
+      // For demo purposes, we're logging these to the console
+      // and showing a toast notification
       toast({
         title: "Unmapped Terms Detected",
         description: `${terms.length} priorities couldn't be mapped to existing terms and have been logged.`,

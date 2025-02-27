@@ -20,112 +20,104 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Simple text matching function with improved logic
-function findMatchingTerms(input: string): { matchedTerm: string, confidence: number }[] {
-  const normalizedInput = input.toLowerCase().trim();
-  console.log(`Analyzing input: "${normalizedInput}"`);
+function findBestMatchForPriority(priority: string): { term: string, matched: boolean } {
+  // Normalize input
+  const input = priority.toLowerCase();
+  console.log(`Processing priority: "${input}"`);
   
-  const matches: { matchedTerm: string, confidence: number }[] = [];
-
-  // Loop through each terminology category
+  // Track best match
+  let bestMatch = { term: "", score: 0 };
+  
+  // Special case for race/gender hiring phrase
+  if (
+    (input.includes("disgraceful") && input.includes("race") && input.includes("hiring")) ||
+    (input.includes("disgraceful") && input.includes("gender") && input.includes("hiring")) ||
+    (input.includes("disgraceful") && (input.includes("race") || input.includes("gender")) && input.includes("hire")) ||
+    (input.includes("race") && input.includes("gender") && input.includes("hiring"))
+  ) {
+    console.log("*** Special match found for opposeRaceGenderHiring ***");
+    return { term: "opposeRaceGenderHiring", matched: true };
+  }
+  
+  // Process each term in the terminology
   for (const [termKey, termData] of Object.entries(issueTerminology)) {
-    // Skip non-terminology entries like "fallback" or "issues" array
+    // Skip non-terminology entries
     if (termKey === "fallback" || termKey === "issues") continue;
-    
-    // Only process if the term has plainLanguage patterns
+
+    // Check if this term has plainLanguage array
     if (termData.plainLanguage && Array.isArray(termData.plainLanguage)) {
-      // Check each plain language pattern
-      for (const pattern of termData.plainLanguage) {
-        const normalizedPattern = pattern.toLowerCase().trim();
+      // Go through each phrase pattern
+      for (const phrase of termData.plainLanguage) {
+        const lowerPhrase = phrase.toLowerCase();
         
-        // Calculate similarity or check if pattern is in the input
-        if (normalizedInput.includes(normalizedPattern)) {
-          const confidence = normalizedPattern.length / normalizedInput.length;
-          console.log(`Match found: "${normalizedPattern}" in term "${termKey}" with confidence ${confidence}`);
-          matches.push({
-            matchedTerm: termKey,
-            confidence: confidence
-          });
-        }
-      }
-      
-      // Special case for "opposeRaceGenderHiring" - check for combination of keywords
-      if (termKey === "opposeRaceGenderHiring") {
-        const keywordSets = [
-          ["disgraceful", "race", "hiring"],
-          ["disgraceful", "gender", "hiring"],
-          ["race", "decide", "hire"],
-          ["gender", "decide", "hire"],
-          ["race", "gender", "hiring"]
-        ];
-        
-        for (const keywords of keywordSets) {
-          const allKeywordsFound = keywords.every(keyword => 
-            normalizedInput.includes(keyword.toLowerCase())
-          );
+        // Direct inclusion check
+        if (input.includes(lowerPhrase)) {
+          // Calculate match score based on length of the matching phrase
+          const score = lowerPhrase.length;
           
-          if (allKeywordsFound) {
-            console.log(`Special case match found for "${termKey}" with keywords: ${keywords.join(', ')}`);
-            matches.push({
-              matchedTerm: termKey,
-              confidence: 0.9 // High confidence for this special case
-            });
+          // Update best match if this is better
+          if (score > bestMatch.score) {
+            bestMatch = { term: termKey, score };
+            console.log(`New best match: ${termKey} with score ${score}`);
           }
         }
       }
     }
   }
-
-  return matches;
+  
+  // Return best match if one was found
+  if (bestMatch.score > 0) {
+    return { term: bestMatch.term, matched: true };
+  }
+  
+  // No match found
+  return { term: "", matched: false };
 }
 
 // Main function to analyze priorities
 async function analyzePriorities(priorities: string[]): Promise<{analysis: string, unmappedTerms: string[]}> {
-  console.log(`Analyzing ${priorities.length} priorities`);
+  console.log(`Starting analysis of ${priorities.length} priorities`);
   
-  // Map each priority to a matching term
+  // Map priorities to terms
   const mappedTerms: string[] = [];
   const unmappedTerms: string[] = [];
   
   for (const priority of priorities) {
-    const matches = findMatchingTerms(priority);
+    console.log(`Analyzing priority: "${priority}"`);
+    const { term, matched } = findBestMatchForPriority(priority);
     
-    if (matches.length > 0) {
-      // Sort matches by confidence and take the highest
-      matches.sort((a, b) => b.confidence - a.confidence);
-      const bestMatch = matches[0];
-      
-      // Get the standardized term
-      const termData = issueTerminology[bestMatch.matchedTerm];
+    if (matched && term) {
+      // Get the standard term from the mapping
+      const termData = issueTerminology[term];
       if (termData && termData.standardTerm) {
         mappedTerms.push(termData.standardTerm);
-        console.log(`Priority "${priority}" mapped to "${termData.standardTerm}"`);
+        console.log(`Successfully mapped to: ${termData.standardTerm}`);
       } else {
+        console.log(`Term "${term}" found but has no standardTerm`);
         unmappedTerms.push(priority);
-        console.log(`Priority "${priority}" had a match but no standardTerm`);
       }
     } else {
+      console.log(`No match found for: "${priority}"`);
       unmappedTerms.push(priority);
-      console.log(`No matching term found for priority: "${priority}"`);
     }
   }
   
-  // Generate analysis text based on mapped terms
+  // Generate analysis
   let analysis = "Based on your priorities, here's what I understand:\n\n";
   
-  // Add each mapped term with its plain English description
-  const uniqueMappedTerms = [...new Set(mappedTerms)];
-  for (const term of uniqueMappedTerms) {
-    // Find the term info
+  // Add each mapped term with its description
+  const uniqueTerms = [...new Set(mappedTerms)];
+  for (const standardTerm of uniqueTerms) {
+    // Find the term data
     for (const [key, data] of Object.entries(issueTerminology)) {
-      if (data.standardTerm === term) {
-        analysis += `• ${term}: ${data.plainEnglish}\n\n`;
+      if (data.standardTerm === standardTerm) {
+        analysis += `• ${standardTerm}: ${data.plainEnglish}\n\n`;
         break;
       }
     }
   }
   
-  // Add a note about unmapped priorities if any
+  // Add note about unmapped terms
   if (unmappedTerms.length > 0) {
     analysis += "\nI didn't fully understand some of your priorities. You can provide more detail, and I'll update my analysis.";
   }
@@ -148,8 +140,12 @@ serve(async (req) => {
     const reqBody: AnalyzePrioritiesRequest = await req.json();
     const { mode, priorities } = reqBody;
     
-    console.log(`Received request with mode: ${mode}, priorities count: ${priorities.length}`);
-    console.log(`Priorities: ${JSON.stringify(priorities)}`);
+    console.log(`Request received: mode=${mode}, priorities=${priorities.length}`);
+
+    // Debug log the priorities
+    priorities.forEach((p, i) => {
+      console.log(`Priority ${i+1}: ${p}`);
+    });
 
     // Analyze priorities
     const { analysis, unmappedTerms } = await analyzePriorities(priorities);
