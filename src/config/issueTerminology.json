@@ -1,5 +1,10 @@
 
 {
+  "fallback": {
+    "standardTerm": "Clarification Needed",
+    "plainEnglish": "Can you please clarify your stance on [user's language]?",
+    "nuance": {}
+  },
   "taxCutsForMiddleClass": {
     "plainLanguage": [
       "middle class tax cuts",
