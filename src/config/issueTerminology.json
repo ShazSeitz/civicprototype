@@ -311,6 +311,23 @@
     "standardTerm": "Patriotism and National Pride",
     "plainEnglish": "I want our country to remain strong and proud, honoring our traditions and working for the common good."
   },
+  "opposeRaceGenderHiring": {
+    "plainLanguage": [
+      "disgraceful to use race in hiring",
+      "disgraceful to use gender in hiring",
+      "hiring based on race",
+      "hiring based on gender",
+      "merit based hiring only",
+      "no quotas in hiring"
+    ],
+    "standardTerm": "Opposition to Race and Gender-Based Hiring Policies",
+    "plainEnglish": "I believe that hiring should be based solely on merit, and it's disgraceful to use race or gender as deciding factors.",
+    "nuance": {
+      "oppose_affirmative_action_race": -0.8,
+      "oppose_affirmative_action_gender": -0.8,
+      "merit_based_hiring_support": 0.8
+    }
+  },
   "issues": [
     {
       "political_priority": "Affirmative Action, DEI Hiring, and Identity Politics",
