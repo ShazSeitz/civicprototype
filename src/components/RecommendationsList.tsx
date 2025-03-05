@@ -90,8 +90,8 @@ export const RecommendationsList = ({ recommendations, onFeedbackSubmit }: Recom
         {/* Analysis - Following the structured response from requirements */}
         <div>
           <h3 className="text-lg font-semibold mb-2">Priority Analysis {analysisVersion > 1 ? `(Updated)` : ''}</h3>
-          <div className="prose prose-sm max-w-none">
-            <p className="text-base whitespace-pre-wrap">{recommendations.analysis}</p>
+          <div className="prose prose-sm max-w-none text-left">
+            <p className="text-base whitespace-pre-wrap text-left">{recommendations.analysis}</p>
           </div>
         </div>
 
