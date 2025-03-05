@@ -12,6 +12,7 @@ const formSchema = z.object({
   mode: z.enum(["current", "demo"], {
     required_error: "Please select a mode.",
   }),
+  zipCode: z.string().min(5, "Please enter a valid ZIP code.").max(10),
   priorities: z.array(z.string().min(1, "Priority cannot be empty")).length(6, "Please enter all 6 priorities"),
 });
 
@@ -35,6 +36,7 @@ const Index = () => {
         const { data, error } = await supabase.functions.invoke('analyze-priorities', {
           body: { 
             mode: formData.mode, 
+            zipCode: formData.zipCode,
             priorities: allPriorities 
           }
         });

@@ -1,434 +1,313 @@
 
-import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import "https://deno.land/x/xhr@0.1.0/mod.ts"
 
-// Define response and request types
-interface AnalyzePrioritiesRequest {
-  mode: "current" | "demo";
-  priorities: string[];
-}
-
-interface AnalyzePrioritiesResponse {
-  mode: "current" | "demo";
-  analysis: string;
-  unmappedTerms?: string[];
-  candidates?: any[];
-  ballotMeasures?: any[];
-  draftEmails?: any[];
-  interestGroups?: any[];
-  petitions?: any[];
-}
-
-// Define CORS headers
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+}
 
-// Import issue terminology from a fetch request to the JSON file
-async function fetchIssueTerminology() {
+const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+const googleCivicApiKey = Deno.env.get('GOOGLE_CIVIC_API_KEY');
+const fecApiKey = Deno.env.get('FEC_API_KEY');
+
+if (!openAIApiKey) {
+  throw new Error('OPENAI_API_KEY is not set');
+}
+
+async function analyzePriorities(priorities: string[], mode: "current" | "demo") {
+  console.log('Analyzing priorities:', priorities);
+  
   try {
-    const response = await fetch('https://raw.githubusercontent.com/YOUR_REPO/main/src/config/issueTerminology.json');
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error("Error fetching terminology:", error);
-    // Fallback to hardcoded terminology
-    return hardcodedIssueTerminology;
-  }
-}
-
-// Hardcoded issue terminology as a fallback
-const hardcodedIssueTerminology = {
-  "fallback": {
-    "standardTerm": "Clarification Needed",
-    "plainEnglish": "Can you please clarify your stance on [user's language]?",
-    "nuance": {}
-  },
-  "taxCutsForMiddleClass": {
-    "plainLanguage": [
-      "middle class tax cuts",
-      "tax cuts for working families",
-      "tax relief for average citizens",
-      "tax breaks for middle class"
-    ],
-    "standardTerm": "Middle Class Tax Relief",
-    "plainEnglish": "I want tax cuts that help working families and the middle class keep more of their money."
-  },
-  "personalLiberty": {
-    "plainLanguage": [
-      "tired of paying income tax",
-      "work hard for my money",
-      "pass on to my children",
-      "tired of taxes",
-      "hard earned money",
-      "tired of paying so much tax",
-      "paying so much tax",
-      "tired of paying tax"
-    ],
-    "standardTerm": "Individual Freedom and Personal Liberty",
-    "plainEnglish": "I want to be free to make my own choices and keep more of what I earn without excessive taxation."
-  },
-  "opposeRaceGenderHiring": {
-    "plainLanguage": [
-      "disgraceful to use race in hiring",
-      "disgraceful to use gender in hiring",
-      "hiring based on race",
-      "hiring based on gender",
-      "merit based hiring only",
-      "no quotas in hiring",
-      "disgraceful that race or gender are used",
-      "race decide whether to hire",
-      "gender decide whether to hire"
-    ],
-    "standardTerm": "Opposition to Race and Gender-Based Hiring Policies",
-    "plainEnglish": "I believe that hiring should be based solely on merit, and it's wrong to use race or gender as deciding factors."
-  },
-  "climateSkepticism": {
-    "plainLanguage": [
-      "climate change is probably a hoax",
-      "climate skepticism",
-      "climate denial",
-      "global warming hoax",
-      "not sure about climate change",
-      "climate change is probably"
-    ],
-    "standardTerm": "Climate Change Skepticism",
-    "plainEnglish": "I'm skeptical about climate change claims and the policies based on them."
-  },
-  "publicTransportation": {
-    "plainLanguage": [
-      "local transportation",
-      "affordable transportation",
-      "public transit",
-      "needs more transportation options",
-      "transportation needs",
-      "desperately needs more",
-      "affordable local transportation"
-    ],
-    "standardTerm": "Public Transportation and Infrastructure",
-    "plainEnglish": "I want more affordable local transportation options to help people get around."
-  },
-  "publicSafety": {
-    "plainLanguage": [
-      "jan 6th rioters",
-      "violent criminals",
-      "angry that jan 6th",
-      "rioters may get pardoned"
-    ],
-    "standardTerm": "Public Safety and Criminal Justice",
-    "plainEnglish": "I want a fair justice system that holds all lawbreakers accountable, including political rioters."
-  },
-  "technology": {
-    "plainLanguage": [
-      "AI could lead to scary",
-      "Sci-fy like stuff",
-      "AI",
-      "artificial intelligence",
-      "too hard for me to understand"
-    ],
-    "standardTerm": "Technology Policy and AI Regulation",
-    "plainEnglish": "I'm concerned about the potential risks of artificial intelligence and want proper regulation of new technologies."
-  }
-};
-
-// Function to check if a priority string contains enough words from a phrase
-function containsEnoughWords(priority: string, phrase: string, threshold = 0.7) {
-  const priorityWords = priority.toLowerCase().split(/\s+/);
-  const phraseWords = phrase.toLowerCase().split(/\s+/);
-  
-  let matchCount = 0;
-  for (const word of phraseWords) {
-    if (priorityWords.includes(word)) {
-      matchCount++;
-    }
-  }
-  
-  return matchCount / phraseWords.length >= threshold;
-}
-
-// Exact matching for specific test cases
-function findExactMatchForTestPriority(priority: string): { 
-  key: string, 
-  standardTerm: string, 
-  plainEnglish: string, 
-  matched: boolean 
-} | null {
-  const input = priority.toLowerCase();
-  
-  // Specific test case 1: Tax-related priority
-  if (input.includes("tired of paying so much income tax") && 
-      input.includes("work hard for my money") && 
-      input.includes("pass on to my children")) {
-    return {
-      key: "personalLiberty",
-      standardTerm: hardcodedIssueTerminology.personalLiberty.standardTerm,
-      plainEnglish: hardcodedIssueTerminology.personalLiberty.plainEnglish,
-      matched: true
-    };
-  }
-  
-  // Test case 2: Race/gender hiring
-  if (input.includes("disgraceful") && 
-      input.includes("race or gender") && 
-      input.includes("decide whether") && 
-      input.includes("hire")) {
-    return {
-      key: "opposeRaceGenderHiring",
-      standardTerm: hardcodedIssueTerminology.opposeRaceGenderHiring.standardTerm,
-      plainEnglish: hardcodedIssueTerminology.opposeRaceGenderHiring.plainEnglish,
-      matched: true
-    };
-  }
-  
-  // Test case 3: Climate skepticism
-  if (input.includes("climate change") && input.includes("probably a hoax")) {
-    return {
-      key: "climateSkepticism",
-      standardTerm: hardcodedIssueTerminology.climateSkepticism.standardTerm,
-      plainEnglish: hardcodedIssueTerminology.climateSkepticism.plainEnglish,
-      matched: true
-    };
-  }
-  
-  // Test case 4: Transportation
-  if (input.includes("desperately needs") && input.includes("transportation")) {
-    return {
-      key: "publicTransportation",
-      standardTerm: hardcodedIssueTerminology.publicTransportation.standardTerm,
-      plainEnglish: hardcodedIssueTerminology.publicTransportation.plainEnglish,
-      matched: true
-    };
-  }
-  
-  // Test case 5: Jan 6th rioters
-  if (input.includes("jan 6th rioters") && input.includes("violent criminals")) {
-    return {
-      key: "publicSafety",
-      standardTerm: hardcodedIssueTerminology.publicSafety.standardTerm,
-      plainEnglish: hardcodedIssueTerminology.publicSafety.plainEnglish,
-      matched: true
-    };
-  }
-  
-  // Test case 6: AI concerns
-  if (input.includes("ai could lead to scary") && input.includes("sci-fy")) {
-    return {
-      key: "technology",
-      standardTerm: hardcodedIssueTerminology.technology.standardTerm,
-      plainEnglish: hardcodedIssueTerminology.technology.plainEnglish,
-      matched: true
-    };
-  }
-  
-  return null;
-}
-
-// Function to find best match from issue terminology
-function findBestMatchForPriority(priority: string, terminology: any): { 
-  key: string, 
-  standardTerm: string, 
-  plainEnglish: string, 
-  matched: boolean 
-} {
-  const input = priority.toLowerCase();
-  console.log(`Processing priority: "${input}"`);
-  
-  // First try exact matching for test cases
-  const exactMatch = findExactMatchForTestPriority(priority);
-  if (exactMatch) {
-    console.log(`Exact match found for test case: ${exactMatch.key}`);
-    return exactMatch;
-  }
-  
-  // This is for normal word-by-word matching
-  let bestMatch = { key: "", score: 0 };
-  
-  // Find the best match from terminology
-  for (const [key, data] of Object.entries(terminology)) {
-    // Skip the fallback entry
-    if (key === "fallback") continue;
-    
-    // Skip entries without plainLanguage array
-    if (!data.plainLanguage || !Array.isArray(data.plainLanguage)) continue;
-    
-    for (const phrase of data.plainLanguage) {
-      // Skip empty phrases
-      if (!phrase || phrase.trim() === "") continue;
-      
-      const lowerPhrase = phrase.toLowerCase();
-      
-      // If the input contains the exact phrase
-      if (input.includes(lowerPhrase)) {
-        const score = lowerPhrase.length;
-        if (score > bestMatch.score) {
-          bestMatch = { key, score };
-          console.log(`New best match: ${key} with score ${score} from phrase "${lowerPhrase}"`);
-        }
-      }
-      // Try a more flexible word matching approach
-      else if (containsEnoughWords(input, lowerPhrase, 0.7)) {
-        const score = lowerPhrase.length * 0.7;
-        if (score > bestMatch.score) {
-          bestMatch = { key, score };
-          console.log(`Flexible match: ${key} with score ${score} from phrase "${lowerPhrase}"`);
-        }
-      }
-    }
-  }
-  
-  if (bestMatch.key && bestMatch.score > 0) {
-    const matchedData = terminology[bestMatch.key];
-    console.log(`Matched "${priority}" to "${bestMatch.key}": ${matchedData.standardTerm}`);
-    return {
-      key: bestMatch.key,
-      standardTerm: matchedData.standardTerm,
-      plainEnglish: matchedData.plainEnglish,
-      matched: true
-    };
-  }
-  
-  // No match found
-  console.log(`No match found for: "${priority}"`);
-  return {
-    key: "",
-    standardTerm: "",
-    plainEnglish: "",
-    matched: false
-  };
-}
-
-// Main analysis function
-async function analyzePriorities(priorities: string[], mode: "current" | "demo"): Promise<AnalyzePrioritiesResponse> {
-  console.log(`Analyzing ${priorities.length} priorities in ${mode} mode`);
-  
-  // Try to fetch terminology, fall back to hardcoded if fetch fails
-  const terminology = await fetchIssueTerminology().catch(err => {
-    console.error("Error fetching terminology:", err);
-    return hardcodedIssueTerminology;
-  });
-  
-  // Process each priority
-  const mappedPriorities: Array<{
-    original: string;
-    key: string;
-    standardTerm?: string;
-    plainEnglish?: string;
-    matched: boolean;
-  }> = [];
-  
-  const unmappedTerms: string[] = [];
-  
-  // Map all priorities
-  for (const priority of priorities) {
-    const { key, standardTerm, plainEnglish, matched } = findBestMatchForPriority(priority, terminology);
-    
-    mappedPriorities.push({
-      original: priority,
-      key,
-      standardTerm,
-      plainEnglish,
-      matched
-    });
-    
-    if (!matched) {
-      unmappedTerms.push(priority);
-    }
-  }
-  
-  // Generate the analysis text
-  let analysis = "Here's what I understand you care about:";
-  
-  // Add mapped priorities as bullet points (no extra newlines between bullets)
-  const matchedItems = mappedPriorities.filter(p => p.matched);
-  
-  if (matchedItems.length > 0) {
-    for (const item of matchedItems) {
-      analysis += `\n• ${item.standardTerm}: ${item.plainEnglish}`;
-    }
-  }
-  
-  // Add clarification requests for unmapped terms
-  if (unmappedTerms.length > 0) {
-    analysis += "\n\nCould you clarify more about:";
-    for (const term of unmappedTerms) {
-      analysis += `\n• "${term.substring(0, 40)}${term.length > 40 ? '...' : ''}"?`;
-    }
-  }
-  
-  // Get standardTerms for recommendations
-  const standardTerms = mappedPriorities
-    .filter(p => p.matched)
-    .map(p => p.standardTerm);
-  
-  // Generate mock recommendations based on the mode
-  let candidates = [];
-  let ballotMeasures = [];
-  let draftEmails = [];
-  let interestGroups = [];
-  let petitions = [];
-  
-  if (mode === "demo") {
-    // Demo mode recommendations
-    candidates = standardTerms.length > 0 ? [
-      {
-        name: "Jane Smith",
-        office: "State Representative",
-        highlights: standardTerms.slice(0, 2).map(term => `Advocates for ${term}`)
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openAIApiKey}`,
+        'Content-Type': 'application/json',
       },
-      {
-        name: "John Wilson",
-        office: "County Commissioner",
-        highlights: standardTerms.slice(0, 2).map(term => `Focused on ${term}`)
-      }
-    ] : [];
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a political analyst expert in converting casual language about political priorities into formal policy positions. Format the response as JSON with two fields: 1. "mappedPriorities": array of formal policy positions, 2. "analysis": comprehensive but concise analysis of the overall political perspective, 3. "unmappedTerms": array of terms that couldn\'t be confidently mapped to formal positions'
+          },
+          {
+            role: 'user',
+            content: `Analyze these political priorities and map them to formal policy positions: ${JSON.stringify(priorities)}`
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 1000
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('OpenAI API error:', errorText);
+      throw new Error(`OpenAI API error: ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log('OpenAI response:', data);
     
-    ballotMeasures = standardTerms.length > 0 ? [
-      {
-        title: `Proposition 123: ${standardTerms[0] || "Community Initiative"}`,
-        recommendation: `This measure relates to ${standardTerms[0] || "local concerns"}`
-      }
-    ] : [];
-  } else {
-    // Current mode recommendations
-    draftEmails = standardTerms.length > 0 ? [
-      {
-        to: "representative@gov.example",
-        subject: `Concerns about ${standardTerms[0] || "local issues"}`,
-        body: `Dear Representative,\n\nI am writing about ${standardTerms[0] || "important issues"} in our community. As your constituent, I believe this deserves attention.\n\nSincerely,\n[Your Name]`
-      }
-    ] : [];
+    if (!data.choices?.[0]?.message?.content) {
+      throw new Error('Invalid response from OpenAI API');
+    }
+    
+    return JSON.parse(data.choices[0].message.content);
+  } catch (error) {
+    console.error('Error in analyzePriorities:', error);
+    throw error;
   }
-  
-  // Interest groups and petitions (for both modes)
-  interestGroups = standardTerms.length > 0 ? [
-    {
-      name: `${standardTerms[0] || "Civic"} Action Group`,
-      url: "https://example.org/advocacy",
-      relevance: `This organization focuses on ${standardTerms[0] || "community issues"}`
-    }
-  ] : [];
-  
-  petitions = standardTerms.length > 0 ? [
-    {
-      title: `Petition for ${standardTerms[0] || "Community Change"}`,
-      url: "https://example.org/petition",
-      relevance: `This petition addresses ${standardTerms[0] || "local concerns"}`
-    }
-  ] : [];
-  
-  return {
-    mode,
-    analysis,
-    unmappedTerms,
-    candidates,
-    ballotMeasures,
-    draftEmails,
-    interestGroups,
-    petitions
-  };
 }
 
-// HTTP handler for the Edge Function
+async function fetchRepresentatives(zipCode: string) {
+  if (!googleCivicApiKey) {
+    console.warn('GOOGLE_CIVIC_API_KEY is not set, using demo data');
+    return getDemoRepresentatives();
+  }
+
+  try {
+    const url = `https://www.googleapis.com/civicinfo/v2/representatives?address=${zipCode}&key=${googleCivicApiKey}`;
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      console.error('Google Civic API error:', await response.text());
+      return getDemoRepresentatives();
+    }
+    
+    const data = await response.json();
+    
+    // Process and format the Google Civic API response
+    const representatives = [];
+    
+    // Map offices to officials
+    if (data.offices && data.officials) {
+      for (const office of data.offices) {
+        for (const officialIndex of office.officialIndices) {
+          const official = data.officials[officialIndex];
+          representatives.push({
+            name: official.name,
+            office: office.name,
+            party: official.party,
+            email: official.emails ? official.emails[0] : null,
+            phone: official.phones ? official.phones[0] : null,
+            photoUrl: official.photoUrl || null
+          });
+        }
+      }
+    }
+    
+    return representatives;
+  } catch (error) {
+    console.error('Error fetching representatives:', error);
+    return getDemoRepresentatives();
+  }
+}
+
+function getDemoRepresentatives() {
+  return [
+    {
+      name: "Jane Smith",
+      office: "State Representative",
+      party: "Independent",
+      email: "jsmith@state.gov",
+      phone: "(555) 123-4567"
+    },
+    {
+      name: "John Doe",
+      office: "U.S. Senator",
+      party: "Independent",
+      email: "senator@senate.gov",
+      phone: "(555) 765-4321"
+    }
+  ];
+}
+
+async function fetchCandidatesByState(state: string, mode: "current" | "demo") {
+  if (mode === "demo") {
+    return getDemoCandidates();
+  }
+  
+  if (!fecApiKey) {
+    console.warn('FEC_API_KEY is not set, using demo data');
+    return getDemoCandidates();
+  }
+  
+  try {
+    const year = new Date().getFullYear();
+    const url = `https://api.open.fec.gov/v1/candidates?api_key=${fecApiKey}&state=${state}&election_year=${year}&sort=name&per_page=20`;
+    
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      console.error('FEC API error:', await response.text());
+      return getDemoCandidates();
+    }
+    
+    const data = await response.json();
+    
+    return data.results.map((candidate: any) => ({
+      name: candidate.name,
+      office: candidate.office_full || "Unknown Office",
+      party: candidate.party_full || "Unknown Party"
+    }));
+  } catch (error) {
+    console.error('Error fetching candidates:', error);
+    return getDemoCandidates();
+  }
+}
+
+function getDemoCandidates() {
+  return [
+    {
+      name: "Maria Rodriguez",
+      office: "U.S. Representative",
+      highlights: [
+        "Supports middle-class tax relief",
+        "Advocates for small business growth",
+        "Focused on education reform"
+      ]
+    },
+    {
+      name: "James Wilson",
+      office: "State Senate",
+      highlights: [
+        "Promotes infrastructure development",
+        "Supports environmental conservation",
+        "Advocates for healthcare accessibility"
+      ]
+    }
+  ];
+}
+
+async function fetchBallotMeasures(state: string, mode: "current" | "demo") {
+  if (mode === "demo") {
+    return getDemoBallotMeasures();
+  }
+  
+  // Note: This would be replaced with a real API call in production
+  // Currently returning demo data since there's no single API that covers all states' ballot measures
+  console.warn('Using demo ballot measures - in production would use state-specific APIs');
+  return getDemoBallotMeasures();
+}
+
+function getDemoBallotMeasures() {
+  return [
+    {
+      title: "Proposition 1: Infrastructure Bond",
+      recommendation: "This measure would fund road improvements and public transportation. Consider your priorities on taxes and infrastructure."
+    },
+    {
+      title: "Measure B: School Funding",
+      recommendation: "This would increase education funding through property tax adjustments. Consider your views on education and taxation."
+    }
+  ];
+}
+
+async function generateEmailDraft(representative: any, priorities: string[]) {
+  console.log('Generating email draft for:', representative.name);
+  
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openAIApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an expert in constituent communication. Write a professional, convincing email that clearly communicates the constituent\'s priorities.'
+          },
+          {
+            role: 'user',
+            content: `Write an email to ${representative.name} (${representative.office}) expressing these priorities: ${JSON.stringify(priorities)}`
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 1000
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('OpenAI API error:', errorText);
+      throw new Error(`OpenAI API error: ${errorText}`);
+    }
+
+    const data = await response.json();
+    if (!data.choices?.[0]?.message?.content) {
+      throw new Error('Invalid response from OpenAI API');
+    }
+    return data.choices[0].message.content;
+  } catch (error) {
+    console.error('Error in generateEmailDraft:', error);
+    throw error;
+  }
+}
+
+async function findRelevantGroups(priorities: string[]) {
+  console.log('Finding relevant groups for priorities:', priorities);
+  
+  // A real implementation would use a database of verified organizations
+  // For now, using a simple list of legitimate national organizations
+  const verifiedGroups = [
+    {
+      name: "League of Women Voters",
+      url: "https://www.lwv.org/",
+      relevance: "Non-partisan organization focused on protecting democracy and voter rights"
+    },
+    {
+      name: "Common Cause",
+      url: "https://www.commoncause.org/",
+      relevance: "Government accountability and democratic reform organization"
+    },
+    {
+      name: "Sierra Club",
+      url: "https://www.sierraclub.org/",
+      relevance: "Environmental conservation and climate policy"
+    },
+    {
+      name: "ACLU",
+      url: "https://www.aclu.org/",
+      relevance: "Civil liberties and constitutional rights"
+    },
+    {
+      name: "Brookings Institution",
+      url: "https://www.brookings.edu/",
+      relevance: "Public policy research organization covering many domestic and international issues"
+    }
+  ];
+  
+  // In a real implementation, we would match priorities to organizations using a more sophisticated algorithm
+  // For now, just returning a subset of verified organizations
+  return verifiedGroups.slice(0, 3);
+}
+
+async function findRelevantPetitions(priorities: string[]) {
+  // A real implementation would use an API to fetch verified, active petitions
+  // For now, providing links to trusted petition sites where users can search
+  
+  const petitionSites = [
+    {
+      title: "Find petitions on Change.org",
+      url: "https://www.change.org",
+      relevance: "Platform for various citizen-created petitions"
+    },
+    {
+      title: "White House Petitions",
+      url: "https://petitions.whitehouse.gov/",
+      relevance: "Official US government petition site"
+    }
+  ];
+  
+  return petitionSites;
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -436,42 +315,80 @@ serve(async (req) => {
   }
 
   try {
-    // Parse request body
-    const reqBody: AnalyzePrioritiesRequest = await req.json();
-    const { mode, priorities } = reqBody;
-    
-    console.log(`Request received: mode=${mode}, priorities=${priorities.length}`);
-    priorities.forEach((p, i) => console.log(`Priority ${i+1}: ${p}`));
+    const requestData = await req.json();
+    const { priorities, mode, zipCode } = requestData;
+    console.log('Received request:', { priorities, mode, zipCode });
 
-    // Process priorities
-    const response = await analyzePriorities(priorities, mode);
-    
-    return new Response(
-      JSON.stringify(response),
-      { 
-        headers: { 
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        },
-        status: 200 
-      }
+    if (!Array.isArray(priorities) || priorities.length !== 6) {
+      throw new Error('Invalid priorities format');
+    }
+
+    if (!mode || (mode !== "current" && mode !== "demo")) {
+      throw new Error('Invalid mode');
+    }
+
+    // Get analyzed priorities and overall analysis
+    const priorityAnalysis = await analyzePriorities(priorities, mode);
+    console.log('Priority analysis completed');
+
+    // Fetch relevant data based on mode
+    let representatives = [];
+    let candidates = [];
+    let ballotMeasures = [];
+
+    // For current mode or demo mode, fetch appropriate data
+    if (zipCode) {
+      representatives = await fetchRepresentatives(zipCode);
+
+      // Get state from zip code for state-specific data
+      // This is simplified and would need a proper zip-to-state lookup in production
+      const state = "PA"; // Placeholder - would be determined from zip code
+      
+      candidates = await fetchCandidatesByState(state, mode);
+      ballotMeasures = await fetchBallotMeasures(state, mode);
+    }
+
+    // Generate email drafts for representatives
+    const draftEmails = await Promise.all(
+      representatives.slice(0, 2).map(async (rep) => ({
+        to: rep.name,
+        subject: `Constituent Priorities for Your Consideration`,
+        body: await generateEmailDraft(rep, priorities)
+      }))
     );
+    console.log('Email drafts generated');
+
+    // Find relevant interest groups based on verified organizations
+    const interestGroups = await findRelevantGroups(priorities);
+    console.log('Found relevant groups');
+
+    // Find relevant petitions from legitimate sources
+    const petitions = await findRelevantPetitions(priorities);
+    console.log('Found relevant petitions');
+
+    const response = {
+      mode,
+      analysis: priorityAnalysis.analysis,
+      unmappedTerms: priorityAnalysis.unmappedTerms || [],
+      candidates,
+      ballotMeasures,
+      draftEmails,
+      interestGroups,
+      petitions
+    };
+
+    console.log('Sending successful response');
+    return new Response(JSON.stringify(response), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   } catch (error) {
     console.error('Error in analyze-priorities function:', error);
-    
-    return new Response(
-      JSON.stringify({ 
-        error: `Failed to analyze priorities: ${error.message}`,
-        mode: "current",
-        analysis: "I'm sorry, I encountered an error analyzing your priorities. Please try again."
-      }),
-      { 
-        headers: { 
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        },
-        status: 500 
-      }
-    );
+    return new Response(JSON.stringify({ 
+      error: error.message || 'An unexpected error occurred',
+      details: error.toString()
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });
