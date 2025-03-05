@@ -1,4 +1,5 @@
-Voter Information Tool - Project Overview
+
+# Voter Information Tool - Project Overview
 
 Intent: To provide an accessible, free tool for US voters that:
 
