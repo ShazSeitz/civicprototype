@@ -151,16 +151,17 @@ async function fetchCandidatesByState(state: string, mode: "current" | "demo") {
     const year = 2024; // Always use election year 2024 for real data
     console.log(`Fetching candidates for state ${state}, year ${year} with FEC API key`);
     
-    // Fix: Properly encode state parameter and ensure clean URL formatting
+    // Fix: Use correct API endpoint format with trailing slash removed
     const encodedState = encodeURIComponent(state);
-    const url = `https://api.open.fec.gov/v1/candidates/?api_key=${fecApiKey}&state=${encodedState}&election_year=${year}&sort=name&per_page=20`;
+    const url = `https://api.open.fec.gov/v1/candidates?api_key=${fecApiKey}&state=${encodedState}&election_year=${year}&sort=name&per_page=20`;
     
-    console.log(`Making FEC API request to: ${url}`);
+    console.log(`Making FEC API request to: ${url.replace(fecApiKey, "REDACTED")}`);
     
     const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
+        'User-Agent': 'VoterInformationTool/1.0'
       }
     });
     
@@ -168,24 +169,52 @@ async function fetchCandidatesByState(state: string, mode: "current" | "demo") {
       const errorText = await response.text();
       console.error('FEC API error status:', response.status);
       console.error('FEC API error text:', errorText);
-      throw new Error('FEC_API_ERROR');
+      
+      // Check for common status codes and provide more specific error messages
+      if (response.status === 401 || response.status === 403) {
+        throw new Error('FEC_API_UNAUTHORIZED');
+      } else if (response.status === 404) {
+        throw new Error('FEC_API_ENDPOINT_NOT_FOUND');
+      } else if (response.status === 429) {
+        throw new Error('FEC_API_RATE_LIMIT');
+      } else {
+        throw new Error('FEC_API_ERROR');
+      }
     }
     
     const data = await response.json();
     console.log('FEC API response status:', response.status);
     console.log('FEC API response headers:', Object.fromEntries(response.headers.entries()));
-    console.log('FEC API response structure:', JSON.stringify(Object.keys(data)));
-    console.log('FEC API response sample:', JSON.stringify(data).substring(0, 200) + '...');
     
-    if (!data.results || !Array.isArray(data.results)) {
-      console.error('FEC API returned invalid data structure:', JSON.stringify(data).substring(0, 500));
-      throw new Error('FEC_API_INVALID_RESPONSE');
+    if (data) {
+      console.log('FEC API response keys:', Object.keys(data));
+      if (data.results) {
+        console.log(`Found ${data.results.length} candidates in response`);
+      } else {
+        console.error('No results key in response data');
+      }
+    } else {
+      console.error('Response data is null or undefined');
     }
     
-    console.log(`Found ${data.results.length} candidates in response`);
+    // More detailed validation of response structure
+    if (!data) {
+      throw new Error('FEC_API_EMPTY_RESPONSE');
+    }
+    
+    if (!data.results) {
+      console.error('FEC API returned data without results:', JSON.stringify(data).substring(0, 500));
+      // Return empty array as fallback instead of throwing error
+      return [];
+    }
+    
+    if (!Array.isArray(data.results)) {
+      console.error('FEC API results is not an array:', typeof data.results);
+      return [];
+    }
     
     return data.results.map((candidate: any) => ({
-      name: candidate.name,
+      name: candidate.name || "Unknown",
       office: candidate.office_full || "Unknown Office",
       party: candidate.party_full || "Unknown Party"
     }));
