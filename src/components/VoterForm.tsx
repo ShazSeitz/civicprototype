@@ -1,3 +1,4 @@
+
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -102,6 +103,18 @@ export const VoterForm = ({ onSubmit, isLoading }: VoterFormProps) => {
     });
   };
 
+  // Handle form submission with validation
+  const handleSubmit = form.handleSubmit(onSubmit, (errors) => {
+    console.log("Form validation errors:", errors);
+    if (errors.priorities) {
+      // Scroll to the priorities section
+      document.querySelector('.priorities-section')?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      });
+    }
+  });
+
   return (
     <Card className="mb-8 animate-fade-up">
       <CardContent className="pt-6">
@@ -129,7 +142,7 @@ export const VoterForm = ({ onSubmit, isLoading }: VoterFormProps) => {
         </div>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <FormField
               control={form.control}
               name="mode"
@@ -179,7 +192,7 @@ export const VoterForm = ({ onSubmit, isLoading }: VoterFormProps) => {
               )}
             />
 
-            <div className="space-y-3">
+            <div className="space-y-3 priorities-section">
               <FormLabel>Your Priorities</FormLabel>
               <p className="text-sm text-muted-foreground">Enter your top 6 concerns and values (max 250 characters each)</p>
               <DndContext

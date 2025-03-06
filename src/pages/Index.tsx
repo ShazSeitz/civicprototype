@@ -7,6 +7,9 @@ import Navbar from '../components/Navbar';
 import { VoterForm } from '@/components/VoterForm';
 import { RecommendationsList } from '@/components/RecommendationsList';
 import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle, RefreshCw } from "lucide-react";
+import { Button } from '@/components/ui/button';
 
 const formSchema = z.object({
   mode: z.enum(["current", "demo"], {
@@ -23,7 +26,13 @@ const Index = () => {
   const { toast } = useToast();
   const recommendationsRef = useRef<HTMLDivElement>(null);
 
-  const { data: recommendations, isLoading, isError, error } = useQuery({
+  const { 
+    data: recommendations, 
+    isLoading, 
+    isError, 
+    error,
+    refetch 
+  } = useQuery({
     queryKey: ['recommendations', formData, feedbackPriorities, submitCount],
     queryFn: async () => {
       if (!formData) return null;
@@ -81,7 +90,7 @@ const Index = () => {
       }
     },
     enabled: Boolean(formData),
-    retry: false,
+    retry: 1,
     refetchOnWindowFocus: false
   });
 
@@ -139,6 +148,26 @@ const Index = () => {
             onSubmit={onSubmit} 
             isLoading={isLoading} 
           />
+          
+          {isError && (
+            <Alert variant="destructive" className="mt-8 animate-fade-up">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>
+                <div className="mb-3">
+                  {error instanceof Error ? error.message : 'An unknown error occurred'}
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => refetch()} 
+                  className="flex items-center gap-2"
+                >
+                  <RefreshCw className="h-4 w-4" /> Try Again
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
           
           <div ref={recommendationsRef}>
             {recommendations && (

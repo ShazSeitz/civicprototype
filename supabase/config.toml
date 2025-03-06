@@ -3,3 +3,6 @@ project_id = "ijssgfvcxnhanluliliw"
 
 [functions.analyze-priorities]
 verify_jwt = false
+
+[functions.search-petitions]
+verify_jwt = false
