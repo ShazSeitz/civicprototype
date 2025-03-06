@@ -1,4 +1,5 @@
 
+
 # Voter Information Tool - Project Overview
 
 Intent: To provide an accessible, free tool for US voters that:
@@ -122,7 +123,6 @@ Core Features:
     Lists prioritized user concerns mapped to standardized terminology.
     Provides actionable recommendations.
     Offers one-click email draft functionality.
-    Includes direct links to additional resources.
 
 Technical Architecture:
 
@@ -195,3 +195,4 @@ Deployment Strategy:
     Cloud hosting with load balancing.
     Regular updates to data sources.
     Continuous monitoring and feedback loops.
+
