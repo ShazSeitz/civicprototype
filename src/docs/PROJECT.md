@@ -1,5 +1,6 @@
 
 
+
 # Voter Information Tool - Project Overview
 
 Intent: To provide an accessible, free tool for US voters that:
@@ -83,7 +84,7 @@ Core Features:
 
     Mode Selection:
         Current Date Mode: Uses live election cycle data.
-        DEMO Mode: November 2024 Election (fixed POTUS candidates).
+        DEMO Mode: November 2024 Election.
     Location Input:
         5-digit ZIP code validation.
         Region-specific recommendations.
@@ -111,7 +112,6 @@ Core Features:
         Relevant petition links.
     DEMO Mode:
         Local and federal candidate recommendations.
-        Fixed analysis for 4 POTUS candidates.
         Ballot measure suggestions.
         Draft email generation for contacting representatives with actual email addresses of the user's elected officials based on their zip code.
         Interest group recommendations.
@@ -195,4 +195,5 @@ Deployment Strategy:
     Cloud hosting with load balancing.
     Regular updates to data sources.
     Continuous monitoring and feedback loops.
+
 
