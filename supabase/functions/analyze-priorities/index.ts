@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 
@@ -219,10 +220,15 @@ async function fetchBallotMeasures(state: string, mode: "current" | "demo") {
   return [];
 }
 
-async function generateEmailDraft(representative: any, priorities: string[]) {
-  console.log('Generating email draft for:', representative.name);
+async function identifyOfficialIssueAreas(representative: any, formattedPriorities: any) {
+  console.log('Identifying issue areas for:', representative.name);
   
   try {
+    // Extract the formal policy positions from the analysis
+    const policyAreas = Object.keys(formattedPriorities).filter(key => 
+      key !== 'analysis' && key !== 'unmappedTerms'
+    );
+    
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -234,11 +240,108 @@ async function generateEmailDraft(representative: any, priorities: string[]) {
         messages: [
           {
             role: 'system',
-            content: 'You are an expert in constituent communication. Write a professional, convincing email that clearly communicates the constituent\'s priorities. Include recipient\'s email address if provided.'
+            content: `You are an expert on local, state, and federal elected officials in the US. 
+            Your task is to identify which policy areas a given official is most likely to engage with based on their office.
+            Return a JSON object with policy areas as keys and scores from 0-1 indicating likelihood of engagement.
+            Only include areas where there's a reasonable expectation of influence or interest based on their office.`
           },
           {
             role: 'user',
-            content: `Write an email to ${representative.name} (${representative.office}) expressing these priorities: ${JSON.stringify(priorities)}. ${representative.email ? `Include the email address ${representative.email} in the draft.` : ''}`
+            content: `Based on this official's position, identify which of these policy areas they are likely to engage with:
+            Official: ${representative.name}
+            Office: ${representative.office}
+            Party: ${representative.party || "Unknown"}
+            
+            Policy Areas to Consider: ${JSON.stringify(policyAreas)}`
+          }
+        ],
+        temperature: 0.3,
+        max_tokens: 800
+      }),
+    });
+
+    if (!response.ok) {
+      console.error('OpenAI API error:', await response.text());
+      return { matchScore: 0.5 }; // Default medium score if API fails
+    }
+
+    const data = await response.json();
+    if (!data.choices?.[0]?.message?.content) {
+      console.error('Invalid response from OpenAI API for official issue areas');
+      return { matchScore: 0.5 };
+    }
+    
+    try {
+      const contentString = data.choices[0].message.content;
+      console.log('Issue areas raw content:', contentString);
+      
+      // Try parsing directly
+      let issueAreas;
+      try {
+        issueAreas = JSON.parse(contentString);
+      } catch (parseError) {
+        // Extract JSON if wrapped in code blocks
+        const jsonMatch = contentString.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+        if (jsonMatch && jsonMatch[1]) {
+          issueAreas = JSON.parse(jsonMatch[1]);
+        } else {
+          const cleanedContent = contentString
+            .replace(/```json\n?/g, '')
+            .replace(/```\n?/g, '')
+            .trim();
+          issueAreas = JSON.parse(cleanedContent);
+        }
+      }
+      
+      // Calculate overall match score - average of individual scores
+      const scores = Object.values(issueAreas) as number[];
+      const averageScore = scores.length > 0 
+        ? scores.reduce((sum: number, score: number) => sum + score, 0) / scores.length 
+        : 0.5;
+      
+      return {
+        issueAreas,
+        matchScore: averageScore
+      };
+    } catch (error) {
+      console.error('Error parsing issue areas:', error);
+      return { matchScore: 0.5 };
+    }
+  } catch (error) {
+    console.error('Error in identifyOfficialIssueAreas:', error);
+    return { matchScore: 0.5 };
+  }
+}
+
+async function generateEmailDraft(representative: any, priorities: string[], issueAreas: any) {
+  console.log('Generating email draft for:', representative.name);
+  
+  try {
+    // Identify which priorities to focus on based on the official's issue areas
+    const focusedEmail = issueAreas && issueAreas.issueAreas ? true : false;
+    
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openAIApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: focusedEmail 
+              ? 'You are an expert in constituent communication. Write a targeted, concise email that focuses ONLY on the issues this official is most engaged with. Be brief, specific, and actionable. Include recipient\'s email address if provided.'
+              : 'You are an expert in constituent communication. Write a professional, convincing email that clearly communicates the constituent\'s priorities. Include recipient\'s email address if provided.'
+          },
+          {
+            role: 'user',
+            content: focusedEmail
+              ? `Write a focused email to ${representative.name} (${representative.office}) specifically about these priority areas they are known to champion: ${JSON.stringify(Object.keys(issueAreas.issueAreas).filter(area => issueAreas.issueAreas[area] > 0.6))}.
+                These are from my full set of priorities: ${JSON.stringify(priorities)}.
+                Make the email brief and specific. ${representative.email ? `Include the email address ${representative.email} in the draft.` : ''}`
+              : `Write an email to ${representative.name} (${representative.office}) expressing these priorities: ${JSON.stringify(priorities)}. ${representative.email ? `Include the email address ${representative.email} in the draft.` : ''}`
           }
         ],
         temperature: 0.7,
@@ -365,29 +468,62 @@ serve(async (req) => {
 
     let draftEmails = [];
     if (representatives.length > 0) {
-      const representativesWithEmail = representatives.filter(rep => rep.email);
+      // Identify issue areas for each representative
+      const representativesWithIssueAreas = await Promise.all(
+        representatives.map(async (rep) => {
+          const issueAreas = await identifyOfficialIssueAreas(rep, priorityAnalysis);
+          return {
+            ...rep,
+            issueAreas,
+          };
+        })
+      );
+      
+      // Sort representatives by match score (highest first)
+      representativesWithIssueAreas.sort((a, b) => 
+        (b.issueAreas?.matchScore || 0) - (a.issueAreas?.matchScore || 0)
+      );
+      
+      // Generate email drafts with issue area context
+      const representativesWithEmail = representativesWithIssueAreas.filter(rep => rep.email);
       
       if (representativesWithEmail.length > 0) {
         console.log(`Generating email drafts for ${representativesWithEmail.length} representatives with emails`);
         draftEmails = await Promise.all(
-          representativesWithEmail.map(async (rep) => ({
-            to: rep.name,
-            toEmail: rep.email,
-            office: rep.office,
-            subject: `Constituent Priorities for Your Consideration`,
-            body: await generateEmailDraft(rep, priorities)
-          }))
+          representativesWithEmail.map(async (rep) => {
+            const issueAreasObj = rep.issueAreas;
+            const emailBody = await generateEmailDraft(rep, priorities, issueAreasObj);
+            
+            const relevantIssues = issueAreasObj && issueAreasObj.issueAreas
+              ? Object.entries(issueAreasObj.issueAreas)
+                  .filter(([_, score]) => (score as number) > 0.6)
+                  .map(([issue, _]) => issue)
+              : [];
+            
+            return {
+              to: rep.name,
+              toEmail: rep.email,
+              office: rep.office,
+              subject: `Constituent Priorities for Your Consideration`,
+              body: emailBody,
+              matchScore: issueAreasObj?.matchScore || 0.5,
+              relevantIssues: relevantIssues
+            };
+          })
         );
         console.log('Email drafts generated');
       } else {
         console.log('No representatives with email addresses found');
         const genericRep = representatives[0];
+        const issueAreasObj = await identifyOfficialIssueAreas(genericRep, priorityAnalysis);
         draftEmails = [{
           to: genericRep.name,
           toEmail: null,
           office: genericRep.office,
           subject: `Constituent Priorities for Your Consideration`,
-          body: await generateEmailDraft(genericRep, priorities) + "\n\nNote: No email address was found for this official. You may need to visit their official website to find contact information."
+          body: await generateEmailDraft(genericRep, priorities, issueAreasObj) + "\n\nNote: No email address was found for this official. You may need to visit their official website to find contact information.",
+          matchScore: issueAreasObj?.matchScore || 0.5,
+          relevantIssues: []
         }];
       }
     }

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Copy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 
 interface Recommendations {
   mode?: "current" | "demo";
@@ -24,6 +25,8 @@ interface Recommendations {
     office?: string;
     subject: string;
     body: string;
+    matchScore?: number;
+    relevantIssues?: string[];
   }>;
   interestGroups?: Array<{
     name: string;
@@ -82,6 +85,11 @@ export const RecommendationsList = ({ recommendations, onFeedbackSubmit }: Recom
       setShowRecommendations(true);
     }
   };
+
+  // Sort emails by match score if available
+  const sortedEmails = recommendations.draftEmails 
+    ? [...recommendations.draftEmails].sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0))
+    : [];
 
   return (
     <Card className="animate-fade-up mt-8">
@@ -195,16 +203,26 @@ export const RecommendationsList = ({ recommendations, onFeedbackSubmit }: Recom
               </div>
             )}
 
-            {/* Draft Emails */}
-            {recommendations.draftEmails && recommendations.draftEmails.length > 0 && (
+            {/* Draft Emails - Now with issue area matching */}
+            {sortedEmails.length > 0 && (
               <div>
                 <h3 className="text-lg font-semibold mb-2">Draft Emails to Representatives</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Representatives are ordered by their engagement with your priority issues.
+                </p>
                 <div className="space-y-4">
-                  {recommendations.draftEmails.map((email, index) => (
+                  {sortedEmails.map((email, index) => (
                     <div key={index} className="p-4 bg-gray-50 rounded-lg">
                       <div className="flex justify-between items-start">
                         <div>
-                          <p className="font-medium">To: {email.to}</p>
+                          <div className="flex items-center space-x-2">
+                            <p className="font-medium">{email.to}</p>
+                            {email.matchScore && email.matchScore > 0.7 && (
+                              <Badge variant="default" className="bg-green-600">
+                                Priority Match
+                              </Badge>
+                            )}
+                          </div>
                           {email.office && <p className="text-xs text-gray-600">{email.office}</p>}
                           {email.toEmail ? (
                             <p className="text-sm text-gray-600">
@@ -216,6 +234,20 @@ export const RecommendationsList = ({ recommendations, onFeedbackSubmit }: Recom
                             <p className="text-sm text-gray-600 italic">Email address not available</p>
                           )}
                           <p className="text-sm text-gray-600">Subject: {email.subject}</p>
+                          
+                          {/* Display relevant issues this official champions */}
+                          {email.relevantIssues && email.relevantIssues.length > 0 && (
+                            <div className="mt-2">
+                              <p className="text-sm font-medium">Key Focus Areas:</p>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {email.relevantIssues.map((issue, i) => (
+                                  <Badge key={i} variant="outline" className="bg-blue-50">
+                                    {issue}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                         <Button
                           variant="outline"
