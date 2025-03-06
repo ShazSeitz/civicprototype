@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 
@@ -30,7 +29,7 @@ async function analyzePriorities(priorities: string[], mode: "current" | "demo")
         messages: [
           {
             role: 'system',
-            content: 'You are a political analyst expert in converting casual language about political priorities into formal policy positions. Format the response as JSON with two fields: 1. "mappedPriorities": array of formal policy positions, 2. "analysis": comprehensive but concise analysis of the overall political perspective, 3. "unmappedTerms": array of terms that couldn\'t be confidently mapped to formal positions'
+            content: 'You are a political analyst expert in converting casual language about political priorities into formal policy positions. Your response should include: 1) mappedPriorities: formal policy positions, 2) analysis: comprehensive but concise analysis of the overall political perspective, 3) unmappedTerms: terms that couldn\'t be confidently mapped to formal positions. Return your response as a simple JSON object with these three keys.'
           },
           {
             role: 'user',
@@ -55,7 +54,41 @@ async function analyzePriorities(priorities: string[], mode: "current" | "demo")
       throw new Error('Invalid response from OpenAI API');
     }
     
-    return JSON.parse(data.choices[0].message.content);
+    const contentString = data.choices[0].message.content;
+    console.log('Raw content from OpenAI:', contentString);
+    
+    try {
+      // Try to parse the content directly first
+      return JSON.parse(contentString);
+    } catch (parseError) {
+      console.log('Failed to parse content directly, attempting to extract JSON:', parseError);
+      
+      // If direct parsing fails, try to extract JSON from markdown code blocks
+      const jsonMatch = contentString.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+      if (jsonMatch && jsonMatch[1]) {
+        console.log('Extracted JSON from markdown:', jsonMatch[1]);
+        try {
+          return JSON.parse(jsonMatch[1]);
+        } catch (nestedError) {
+          console.error('Failed to parse extracted JSON:', nestedError);
+          throw new Error('Unable to parse OpenAI response');
+        }
+      }
+      
+      // If no JSON block found, try a fallback approach by removing markdown formatting
+      const cleanedContent = contentString
+        .replace(/```json\n?/g, '')
+        .replace(/```\n?/g, '')
+        .trim();
+      
+      console.log('Cleaned content:', cleanedContent);
+      try {
+        return JSON.parse(cleanedContent);
+      } catch (fallbackError) {
+        console.error('All parsing attempts failed:', fallbackError);
+        throw new Error('Failed to parse response from OpenAI');
+      }
+    }
   } catch (error) {
     console.error('Error in analyzePriorities:', error);
     throw error;
@@ -319,7 +352,7 @@ serve(async (req) => {
     const { priorities, mode, zipCode } = requestData;
     console.log('Received request:', { priorities, mode, zipCode });
 
-    if (!Array.isArray(priorities) || priorities.length !== 6) {
+    if (!Array.isArray(priorities) || priorities.length === 0) {
       throw new Error('Invalid priorities format');
     }
 
