@@ -101,17 +101,20 @@ Core Features:
     Current Date Mode (Active Election):
         Recommendations for elected officials.
         Analysis of ballot measures.
-        Draft email generation for contacting representatives.
+        Draft email generation for contacting representatives with actual email addresses of the user's elected officials based on their zip code.
         Links to relevant interest groups.
         Petition recommendations.
     Current Date Mode (No Active Election):
-        Draft email generation for current representatives.
+        Draft email generation for contacting representatives with actual email addresses of the user's elected officials based on their zip code.
         Interest group recommendations.
         Relevant petition links.
     DEMO Mode:
         Local and federal candidate recommendations.
         Fixed analysis for 4 POTUS candidates.
         Ballot measure suggestions.
+        Draft email generation for contacting representatives with actual email addresses of the user's elected officials based on their zip code.
+        Interest group recommendations.
+        Relevant petition links.
 
     Output Dashboard
 
