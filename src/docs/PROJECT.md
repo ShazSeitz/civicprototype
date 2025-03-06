@@ -1,6 +1,7 @@
 
 
 
+
 # Voter Information Tool - Project Overview
 
 Intent: To provide an accessible, free tool for US voters that:
@@ -197,3 +198,34 @@ Deployment Strategy:
     Continuous monitoring and feedback loops.
 
 
+## Advocacy Criteria for Email Recommendations
+
+    Input Data:
+        User Data: Use the user's zip code and their top 3 priorities.
+        Mapped Policy Terms: Ensure each of the 3 priorities is linked to the appropriate, standardized policy terms.
+
+    Retrieve and Map Elected Officials:
+        Source: Use Google Civic data to retrieve all elected officials for the given zip code.
+        Mapping: For each official, map their voting record, public positions, or relevant policy actions to the user's 3 policy terms.
+
+    Evaluate and Categorize Officials by Priority:
+        For Each Priority:
+            Key Decision Maker Check: Identify if there is a "key decision maker" for that priority. This may be determined by factors such as influential committee roles, a pivotal voting record, or strong public statements on the issue.
+            Default Option: If no key decision maker exists for the priority, identify the official classified as "may oppose" (i.e., one who is neutral or has a negative alignment with the policy term).
+
+    Select Unique Officials:
+        One Official per Priority: Ensure that each of the 3 emails is sent to a different elected official. No single official should appear in more than one category.
+        Conflict Resolution: If one official qualifies as a key decision maker (or "may oppose") for multiple priorities, assign them to the priority where their impact is most critical. For other priorities, select the next best candidate to maintain distinct recipients.
+
+    Generate Tailored Email Templates:
+        Template Personalization: Create 3 email templates that each focus on one of the top 3 priorities. Each template should:
+            Include the official's name and the user's zip code.
+            Reference the specific priority and the corresponding mapped policy term.
+            Use messaging appropriate to the official's category:
+                Key Decision Maker: Emphasize the urgency and potential influence of their decision.
+                May Oppose: Request reconsideration or urge them to align with constituent concerns.
+        Tone: Maintain respectful and concise language, ensuring the email clearly articulates the user's position on that specific issue.
+
+    Final Review and Customization:
+        User Review: Allow the user to review each of the 3 tailored emails.
+        Editing Option: Provide an option for the user to make final adjustments before sending.
