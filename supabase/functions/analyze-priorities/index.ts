@@ -241,13 +241,16 @@ async function identifyOfficialIssueAreas(representative: any, formattedPrioriti
           {
             role: 'system',
             content: `You are an expert on local, state, and federal elected officials in the US. 
-            Your task is to identify which policy areas a given official is most likely to engage with based on their office.
-            Return a JSON object with policy areas as keys and scores from 0-1 indicating likelihood of engagement.
+            Your task is to identify which policy areas a given official is most likely to engage with based on their office and party.
+            For each policy area, provide:
+            1. A score from 0-1 indicating likelihood of engagement
+            2. A stance indicator: "support" if they likely support this issue, "oppose" if they likely oppose it, or "neutral"
+            Return a JSON object with policy areas as keys and objects containing score and stance as values.
             Only include areas where there's a reasonable expectation of influence or interest based on their office.`
           },
           {
             role: 'user',
-            content: `Based on this official's position, identify which of these policy areas they are likely to engage with:
+            content: `Based on this official's position and party, identify which of these policy areas they are likely to engage with and whether they would support or oppose them:
             Official: ${representative.name}
             Office: ${representative.office}
             Party: ${representative.party || "Unknown"}
@@ -262,13 +265,13 @@ async function identifyOfficialIssueAreas(representative: any, formattedPrioriti
 
     if (!response.ok) {
       console.error('OpenAI API error:', await response.text());
-      return { matchScore: 0.5 }; // Default medium score if API fails
+      return { matchScore: 0.5, alignmentType: 'unknown' }; // Default medium score if API fails
     }
 
     const data = await response.json();
     if (!data.choices?.[0]?.message?.content) {
       console.error('Invalid response from OpenAI API for official issue areas');
-      return { matchScore: 0.5 };
+      return { matchScore: 0.5, alignmentType: 'unknown' };
     }
     
     try {
@@ -293,23 +296,45 @@ async function identifyOfficialIssueAreas(representative: any, formattedPrioriti
         }
       }
       
-      // Calculate overall match score - average of individual scores
-      const scores = Object.values(issueAreas) as number[];
-      const averageScore = scores.length > 0 
-        ? scores.reduce((sum: number, score: number) => sum + score, 0) / scores.length 
-        : 0.5;
+      // Calculate alignment scores
+      let supportScore = 0;
+      let opposeScore = 0;
+      let totalScore = 0;
+      
+      Object.entries(issueAreas).forEach(([area, data]: [string, any]) => {
+        const score = data.score || data;
+        const stance = data.stance || 'neutral';
+        
+        totalScore += score;
+        if (stance === 'support') {
+          supportScore += score;
+        } else if (stance === 'oppose') {
+          opposeScore += score;
+        }
+      });
+      
+      const averageScore = totalScore > 0 ? totalScore / Object.keys(issueAreas).length : 0.5;
+      
+      // Determine alignment type
+      let alignmentType = 'mixed';
+      if (supportScore > opposeScore * 2) {
+        alignmentType = 'aligned';
+      } else if (opposeScore > supportScore * 2) {
+        alignmentType = 'opposing';
+      }
       
       return {
         issueAreas,
-        matchScore: averageScore
+        matchScore: averageScore,
+        alignmentType
       };
     } catch (error) {
       console.error('Error parsing issue areas:', error);
-      return { matchScore: 0.5 };
+      return { matchScore: 0.5, alignmentType: 'unknown' };
     }
   } catch (error) {
     console.error('Error in identifyOfficialIssueAreas:', error);
-    return { matchScore: 0.5 };
+    return { matchScore: 0.5, alignmentType: 'unknown' };
   }
 }
 
@@ -319,6 +344,7 @@ async function generateEmailDraft(representative: any, priorities: string[], iss
   try {
     // Identify which priorities to focus on based on the official's issue areas
     const focusedEmail = issueAreas && issueAreas.issueAreas ? true : false;
+    const isOpposing = issueAreas && issueAreas.alignmentType === 'opposing';
     
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -331,14 +357,21 @@ async function generateEmailDraft(representative: any, priorities: string[], iss
         messages: [
           {
             role: 'system',
-            content: focusedEmail 
-              ? 'You are an expert in constituent communication. Write a targeted, concise email that focuses ONLY on the issues this official is most engaged with. Be brief, specific, and actionable. Include recipient\'s email address if provided.'
-              : 'You are an expert in constituent communication. Write a professional, convincing email that clearly communicates the constituent\'s priorities. Include recipient\'s email address if provided.'
+            content: isOpposing 
+              ? 'You are an expert in constituent communication. Write a targeted, respectful email to an official who may OPPOSE the constituent\'s priorities. The tone should be firm but constructive, presenting evidence and reasoning to potentially change their mind. Be factual, not accusatory. Include recipient\'s email address if provided.'
+              : 'You are an expert in constituent communication. Write a targeted, concise email that focuses ONLY on the issues this official is most engaged with. Be brief, specific, and actionable. Include recipient\'s email address if provided.'
           },
           {
             role: 'user',
             content: focusedEmail
-              ? `Write a focused email to ${representative.name} (${representative.office}) specifically about these priority areas they are known to champion: ${JSON.stringify(Object.keys(issueAreas.issueAreas).filter(area => issueAreas.issueAreas[area] > 0.6))}.
+              ? `Write a ${isOpposing ? 'respectful but firm' : 'focused'} email to ${representative.name} (${representative.office}) ${isOpposing ? 
+                'who may OPPOSE these priority areas: ' : 
+                'specifically about these priority areas they are known to champion: '}${JSON.stringify(Object.entries(issueAreas.issueAreas)
+                  .filter(([_, data]: [string, any]) => {
+                    const score = typeof data === 'object' ? data.score || 0 : data || 0;
+                    return score > 0.6;
+                  })
+                  .map(([issue, _]) => issue))}.
                 These are from my full set of priorities: ${JSON.stringify(priorities)}.
                 Make the email brief and specific. ${representative.email ? `Include the email address ${representative.email} in the draft.` : ''}`
               : `Write an email to ${representative.name} (${representative.office}) expressing these priorities: ${JSON.stringify(priorities)}. ${representative.email ? `Include the email address ${representative.email} in the draft.` : ''}`
@@ -479,13 +512,25 @@ serve(async (req) => {
         })
       );
       
-      // Sort representatives by match score (highest first)
-      representativesWithIssueAreas.sort((a, b) => 
-        (b.issueAreas?.matchScore || 0) - (a.issueAreas?.matchScore || 0)
-      );
+      // Create two arrays: one for aligned officials and one for opposing officials
+      const alignedOfficials = representativesWithIssueAreas
+        .filter(rep => rep.issueAreas.alignmentType === 'aligned')
+        .sort((a, b) => (b.issueAreas?.matchScore || 0) - (a.issueAreas?.matchScore || 0));
+      
+      const opposingOfficials = representativesWithIssueAreas
+        .filter(rep => rep.issueAreas.alignmentType === 'opposing')
+        .sort((a, b) => (b.issueAreas?.matchScore || 0) - (a.issueAreas?.matchScore || 0));
+      
+      // Merge the arrays with aligned officials first, then opposing
+      const sortedRepresentatives = [...alignedOfficials, ...opposingOfficials];
+      
+      // Fallback to other officials if no aligned or opposing found
+      if (sortedRepresentatives.length === 0) {
+        sortedRepresentatives.push(...representativesWithIssueAreas);
+      }
       
       // Generate email drafts with issue area context
-      const representativesWithEmail = representativesWithIssueAreas.filter(rep => rep.email);
+      const representativesWithEmail = sortedRepresentatives.filter(rep => rep.email);
       
       if (representativesWithEmail.length > 0) {
         console.log(`Generating email drafts for ${representativesWithEmail.length} representatives with emails`);
@@ -494,10 +539,17 @@ serve(async (req) => {
             const issueAreasObj = rep.issueAreas;
             const emailBody = await generateEmailDraft(rep, priorities, issueAreasObj);
             
+            // Extract relevant issues and their stances
             const relevantIssues = issueAreasObj && issueAreasObj.issueAreas
               ? Object.entries(issueAreasObj.issueAreas)
-                  .filter(([_, score]) => (score as number) > 0.6)
-                  .map(([issue, _]) => issue)
+                  .filter(([_, data]: [string, any]) => {
+                    const score = typeof data === 'object' ? data.score || 0 : data || 0;
+                    return score > 0.6;
+                  })
+                  .map(([issue, data]: [string, any]) => {
+                    const stance = typeof data === 'object' ? data.stance || 'neutral' : 'neutral';
+                    return { issue, stance };
+                  })
               : [];
             
             return {
@@ -507,6 +559,7 @@ serve(async (req) => {
               subject: `Constituent Priorities for Your Consideration`,
               body: emailBody,
               matchScore: issueAreasObj?.matchScore || 0.5,
+              alignmentType: issueAreasObj?.alignmentType || 'unknown',
               relevantIssues: relevantIssues
             };
           })
@@ -523,6 +576,7 @@ serve(async (req) => {
           subject: `Constituent Priorities for Your Consideration`,
           body: await generateEmailDraft(genericRep, priorities, issueAreasObj) + "\n\nNote: No email address was found for this official. You may need to visit their official website to find contact information.",
           matchScore: issueAreasObj?.matchScore || 0.5,
+          alignmentType: issueAreasObj?.alignmentType || 'unknown',
           relevantIssues: []
         }];
       }

@@ -1,8 +1,7 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Copy } from "lucide-react";
+import { Copy, ThumbsUp, ThumbsDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -26,7 +25,8 @@ interface Recommendations {
     subject: string;
     body: string;
     matchScore?: number;
-    relevantIssues?: string[];
+    alignmentType?: 'aligned' | 'opposing' | 'mixed' | 'unknown';
+    relevantIssues?: Array<{issue: string, stance: string}>;
   }>;
   interestGroups?: Array<{
     name: string;
@@ -86,9 +86,23 @@ export const RecommendationsList = ({ recommendations, onFeedbackSubmit }: Recom
     }
   };
 
-  // Sort emails by match score if available
-  const sortedEmails = recommendations.draftEmails 
-    ? [...recommendations.draftEmails].sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0))
+  // Group emails by alignment type
+  const alignedEmails = recommendations.draftEmails 
+    ? recommendations.draftEmails
+        .filter(email => email.alignmentType === 'aligned')
+        .sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0))
+    : [];
+
+  const opposingEmails = recommendations.draftEmails 
+    ? recommendations.draftEmails
+        .filter(email => email.alignmentType === 'opposing')
+        .sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0))
+    : [];
+
+  const otherEmails = recommendations.draftEmails 
+    ? recommendations.draftEmails
+        .filter(email => email.alignmentType !== 'aligned' && email.alignmentType !== 'opposing')
+        .sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0))
     : [];
 
   return (
@@ -203,68 +217,183 @@ export const RecommendationsList = ({ recommendations, onFeedbackSubmit }: Recom
               </div>
             )}
 
-            {/* Draft Emails - Now with issue area matching */}
-            {sortedEmails.length > 0 && (
+            {/* Draft Emails - Now with issue area matching and alignment information */}
+            {(alignedEmails.length > 0 || opposingEmails.length > 0 || otherEmails.length > 0) && (
               <div>
                 <h3 className="text-lg font-semibold mb-2">Draft Emails to Representatives</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Representatives are ordered by their engagement with your priority issues.
-                </p>
-                <div className="space-y-4">
-                  {sortedEmails.map((email, index) => (
-                    <div key={index} className="p-4 bg-gray-50 rounded-lg">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <div className="flex items-center space-x-2">
-                            <p className="font-medium">{email.to}</p>
-                            {email.matchScore && email.matchScore > 0.7 && (
-                              <Badge variant="default" className="bg-green-600">
-                                Priority Match
-                              </Badge>
-                            )}
-                          </div>
-                          {email.office && <p className="text-xs text-gray-600">{email.office}</p>}
-                          {email.toEmail ? (
-                            <p className="text-sm text-gray-600">
-                              Email: <a href={`mailto:${email.toEmail}`} className="text-blue-600 hover:underline">
-                                {email.toEmail}
-                              </a>
-                            </p>
-                          ) : (
-                            <p className="text-sm text-gray-600 italic">Email address not available</p>
-                          )}
-                          <p className="text-sm text-gray-600">Subject: {email.subject}</p>
-                          
-                          {/* Display relevant issues this official champions */}
-                          {email.relevantIssues && email.relevantIssues.length > 0 && (
-                            <div className="mt-2">
-                              <p className="text-sm font-medium">Key Focus Areas:</p>
-                              <div className="flex flex-wrap gap-1 mt-1">
-                                {email.relevantIssues.map((issue, i) => (
-                                  <Badge key={i} variant="outline" className="bg-blue-50">
-                                    {issue}
-                                  </Badge>
-                                ))}
+                
+                {/* Aligned Officials (Supportive of your priorities) */}
+                {alignedEmails.length > 0 && (
+                  <div className="mb-6">
+                    <h4 className="text-md font-medium mb-2 flex items-center">
+                      <ThumbsUp className="h-4 w-4 mr-2 text-green-600" />
+                      Officials Who Support Your Priorities
+                    </h4>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      These representatives are likely to champion causes you care about.
+                    </p>
+                    <div className="space-y-4">
+                      {alignedEmails.map((email, index) => (
+                        <div key={index} className="p-4 bg-gray-50 border-l-4 border-green-500 rounded-lg">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <div className="flex items-center space-x-2">
+                                <p className="font-medium">{email.to}</p>
+                                <Badge variant="default" className="bg-green-600">
+                                  Supportive
+                                </Badge>
                               </div>
+                              {email.office && <p className="text-xs text-gray-600">{email.office}</p>}
+                              {email.toEmail ? (
+                                <p className="text-sm text-gray-600">
+                                  Email: <a href={`mailto:${email.toEmail}`} className="text-blue-600 hover:underline">
+                                    {email.toEmail}
+                                  </a>
+                                </p>
+                              ) : (
+                                <p className="text-sm text-gray-600 italic">Email address not available</p>
+                              )}
+                              <p className="text-sm text-gray-600">Subject: {email.subject}</p>
+                              
+                              {/* Display relevant issues this official champions */}
+                              {email.relevantIssues && email.relevantIssues.length > 0 && (
+                                <div className="mt-2">
+                                  <p className="text-sm font-medium">Key Focus Areas:</p>
+                                  <div className="flex flex-wrap gap-1 mt-1">
+                                    {email.relevantIssues.map((issue, i) => (
+                                      <Badge key={i} variant="outline" className={`${issue.stance === 'support' ? 'bg-green-50 border-green-200' : issue.stance === 'oppose' ? 'bg-red-50 border-red-200' : 'bg-blue-50'}`}>
+                                        {issue.issue}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                          )}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => copyToClipboard(email.body)}
+                              className="ml-2"
+                            >
+                              <Copy className="h-4 w-4 mr-1" />
+                              Copy
+                            </Button>
+                          </div>
+                          <div className="mt-2 p-3 bg-white rounded border text-sm whitespace-pre-wrap">
+                            {email.body}
+                          </div>
                         </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => copyToClipboard(email.body)}
-                          className="ml-2"
-                        >
-                          <Copy className="h-4 w-4 mr-1" />
-                          Copy
-                        </Button>
-                      </div>
-                      <div className="mt-2 p-3 bg-white rounded border text-sm whitespace-pre-wrap">
-                        {email.body}
-                      </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  </div>
+                )}
+
+                {/* Opposing Officials */}
+                {opposingEmails.length > 0 && (
+                  <div className="mb-6">
+                    <h4 className="text-md font-medium mb-2 flex items-center">
+                      <ThumbsDown className="h-4 w-4 mr-2 text-red-600" />
+                      Officials Who May Oppose Your Priorities
+                    </h4>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      These representatives may have different views on issues you care about. Consider writing to them to respectfully voice your perspective.
+                    </p>
+                    <div className="space-y-4">
+                      {opposingEmails.map((email, index) => (
+                        <div key={index} className="p-4 bg-gray-50 border-l-4 border-red-500 rounded-lg">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <div className="flex items-center space-x-2">
+                                <p className="font-medium">{email.to}</p>
+                                <Badge variant="destructive">
+                                  May Oppose
+                                </Badge>
+                              </div>
+                              {email.office && <p className="text-xs text-gray-600">{email.office}</p>}
+                              {email.toEmail ? (
+                                <p className="text-sm text-gray-600">
+                                  Email: <a href={`mailto:${email.toEmail}`} className="text-blue-600 hover:underline">
+                                    {email.toEmail}
+                                  </a>
+                                </p>
+                              ) : (
+                                <p className="text-sm text-gray-600 italic">Email address not available</p>
+                              )}
+                              <p className="text-sm text-gray-600">Subject: {email.subject}</p>
+                              
+                              {/* Display relevant issues this official works on */}
+                              {email.relevantIssues && email.relevantIssues.length > 0 && (
+                                <div className="mt-2">
+                                  <p className="text-sm font-medium">Potential Points of Disagreement:</p>
+                                  <div className="flex flex-wrap gap-1 mt-1">
+                                    {email.relevantIssues.map((issue, i) => (
+                                      <Badge key={i} variant="outline" className={`${issue.stance === 'support' ? 'bg-green-50 border-green-200' : issue.stance === 'oppose' ? 'bg-red-50 border-red-200' : 'bg-blue-50'}`}>
+                                        {issue.issue}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => copyToClipboard(email.body)}
+                              className="ml-2"
+                            >
+                              <Copy className="h-4 w-4 mr-1" />
+                              Copy
+                            </Button>
+                          </div>
+                          <div className="mt-2 p-3 bg-white rounded border text-sm whitespace-pre-wrap">
+                            {email.body}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Other Officials with uncertain alignment */}
+                {otherEmails.length > 0 && (
+                  <div>
+                    <h4 className="text-md font-medium mb-2">Other Representatives</h4>
+                    <div className="space-y-4">
+                      {otherEmails.map((email, index) => (
+                        <div key={index} className="p-4 bg-gray-50 rounded-lg">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <p className="font-medium">{email.to}</p>
+                              {email.office && <p className="text-xs text-gray-600">{email.office}</p>}
+                              {email.toEmail ? (
+                                <p className="text-sm text-gray-600">
+                                  Email: <a href={`mailto:${email.toEmail}`} className="text-blue-600 hover:underline">
+                                    {email.toEmail}
+                                  </a>
+                                </p>
+                              ) : (
+                                <p className="text-sm text-gray-600 italic">Email address not available</p>
+                              )}
+                              <p className="text-sm text-gray-600">Subject: {email.subject}</p>
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => copyToClipboard(email.body)}
+                              className="ml-2"
+                            >
+                              <Copy className="h-4 w-4 mr-1" />
+                              Copy
+                            </Button>
+                          </div>
+                          <div className="mt-2 p-3 bg-white rounded border text-sm whitespace-pre-wrap">
+                            {email.body}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
