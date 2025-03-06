@@ -141,17 +141,14 @@ async function fetchRepresentatives(zipCode: string) {
 }
 
 async function fetchCandidatesByState(state: string, mode: "current" | "demo") {
-  if (mode === "demo") {
-    return getDemoCandidates();
-  }
-  
   if (!fecApiKey) {
     console.warn('FEC_API_KEY is not set');
     throw new Error('FEC_API_NOT_CONFIGURED');
   }
   
   try {
-    const year = new Date().getFullYear();
+    // For both current mode and demo mode, we fetch real ballot data for November 2024
+    const year = 2024; // Always use election year 2024 for real data
     const url = `https://api.open.fec.gov/v1/candidates?api_key=${fecApiKey}&state=${state}&election_year=${year}&sort=name&per_page=20`;
     
     const response = await fetch(url);
@@ -174,51 +171,13 @@ async function fetchCandidatesByState(state: string, mode: "current" | "demo") {
   }
 }
 
-function getDemoCandidates() {
-  return [
-    {
-      name: "Maria Rodriguez",
-      office: "U.S. Representative",
-      highlights: [
-        "Supports middle-class tax relief",
-        "Advocates for small business growth",
-        "Focused on education reform"
-      ]
-    },
-    {
-      name: "James Wilson",
-      office: "State Senate",
-      highlights: [
-        "Promotes infrastructure development",
-        "Supports environmental conservation",
-        "Advocates for healthcare accessibility"
-      ]
-    }
-  ];
-}
-
 async function fetchBallotMeasures(state: string, mode: "current" | "demo") {
-  if (mode === "demo") {
-    return getDemoBallotMeasures();
-  }
+  // Since there's no single API for ballot measures across all states,
+  // log that this is currently not implemented
+  console.warn('Ballot measures API not implemented - would need to use state-specific APIs');
   
-  // Note: This would be replaced with a real API call in production
-  // Currently returning demo data since there's no single API that covers all states' ballot measures
-  console.warn('Using demo ballot measures - in production would use state-specific APIs');
-  return getDemoBallotMeasures();
-}
-
-function getDemoBallotMeasures() {
-  return [
-    {
-      title: "Proposition 1: Infrastructure Bond",
-      recommendation: "This measure would fund road improvements and public transportation. Consider your priorities on taxes and infrastructure."
-    },
-    {
-      title: "Measure B: School Funding",
-      recommendation: "This would increase education funding through property tax adjustments. Consider your views on education and taxation."
-    }
-  ];
+  // Return an empty array instead of demo data
+  return [];
 }
 
 async function generateEmailDraft(representative: any, priorities: string[]) {
@@ -268,8 +227,7 @@ async function generateEmailDraft(representative: any, priorities: string[]) {
 async function findRelevantGroups(priorities: string[]) {
   console.log('Finding relevant groups for priorities:', priorities);
   
-  // A real implementation would use a database of verified organizations
-  // For now, using a simple list of legitimate national organizations
+  // Using only verified, real organizations (no made-up data)
   const verifiedGroups = [
     {
       name: "League of Women Voters",
@@ -301,26 +259,6 @@ async function findRelevantGroups(priorities: string[]) {
   // In a real implementation, we would match priorities to organizations using a more sophisticated algorithm
   // For now, just returning a subset of verified organizations
   return verifiedGroups.slice(0, 3);
-}
-
-async function findRelevantPetitions(priorities: string[]) {
-  // A real implementation would use an API to fetch verified, active petitions
-  // For now, providing links to trusted petition sites where users can search
-  
-  const petitionSites = [
-    {
-      title: "Find petitions on Change.org",
-      url: "https://www.change.org",
-      relevance: "Platform for various citizen-created petitions"
-    },
-    {
-      title: "White House Petitions",
-      url: "https://petitions.whitehouse.gov/",
-      relevance: "Official US government petition site"
-    }
-  ];
-  
-  return petitionSites;
 }
 
 serve(async (req) => {
@@ -364,24 +302,18 @@ serve(async (req) => {
         apiStatuses.googleCivic = error.message || 'error';
       }
 
-      if (mode === 'current') {
-        // Get state from zip code for state-specific data
-        // This is simplified and would need a proper zip-to-state lookup in production
-        const state = "PA"; // Placeholder - would be determined from zip code
-        
-        try {
-          candidates = await fetchCandidatesByState(state, mode);
-        } catch (error) {
-          console.error('Candidates fetch error:', error);
-          apiStatuses.fec = error.message || 'error';
-        }
-        
-        ballotMeasures = await fetchBallotMeasures(state, mode);
-      } else {
-        // Demo mode
-        candidates = getDemoCandidates();
-        ballotMeasures = getDemoBallotMeasures();
+      // Get state from zip code for state-specific data
+      // This is simplified and would need a proper zip-to-state lookup in production
+      const state = "PA"; // Placeholder - would be determined from zip code
+      
+      try {
+        candidates = await fetchCandidatesByState(state, mode);
+      } catch (error) {
+        console.error('Candidates fetch error:', error);
+        apiStatuses.fec = error.message || 'error';
       }
+      
+      ballotMeasures = await fetchBallotMeasures(state, mode);
     }
 
     // Generate email drafts for representatives if available
@@ -401,9 +333,29 @@ serve(async (req) => {
     const interestGroups = await findRelevantGroups(priorities);
     console.log('Found relevant groups');
 
-    // Find relevant petitions from legitimate sources
-    const petitions = await findRelevantPetitions(priorities);
-    console.log('Found relevant petitions');
+    // For petitions, fetch real data from the search-petitions function
+    let petitions = [];
+    try {
+      const petitionsResponse = await fetch(
+        "https://iozwrlajqoihohbapysh.functions.supabase.co/search-petitions",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...corsHeaders
+          },
+          body: JSON.stringify({ priorities }),
+        }
+      );
+      
+      if (petitionsResponse.ok) {
+        petitions = await petitionsResponse.json();
+      } else {
+        console.error('Error fetching petitions:', await petitionsResponse.text());
+      }
+    } catch (error) {
+      console.error('Error calling search-petitions function:', error);
+    }
 
     const response = {
       mode,
