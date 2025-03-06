@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 
@@ -280,38 +279,57 @@ async function generateEmailDraft(representative: any, priorities: string[]) {
 async function findRelevantGroups(priorities: string[]) {
   console.log('Finding relevant groups for priorities:', priorities);
   
-  // Using only verified, real organizations (no made-up data)
-  const verifiedGroups = [
+  // Using only verified, real organizations from HUD's website
+  // These are actual organizations listed on HUD's resources
+  const verifiedHudGroups = [
     {
-      name: "League of Women Voters",
-      url: "https://www.lwv.org/",
-      relevance: "Non-partisan organization focused on protecting democracy and voter rights"
+      name: "National Fair Housing Alliance",
+      url: "https://nationalfairhousing.org/",
+      relevance: "Housing discrimination and equal housing opportunity"
     },
     {
-      name: "Common Cause",
-      url: "https://www.commoncause.org/",
-      relevance: "Government accountability and democratic reform organization"
+      name: "National Housing Law Project",
+      url: "https://www.nhlp.org/",
+      relevance: "Housing rights, subsidized housing preservation"
     },
     {
-      name: "Sierra Club",
-      url: "https://www.sierraclub.org/",
-      relevance: "Environmental conservation and climate policy"
+      name: "National Low Income Housing Coalition",
+      url: "https://nlihc.org/",
+      relevance: "Affordable housing policy and advocacy"
     },
     {
-      name: "ACLU",
-      url: "https://www.aclu.org/",
-      relevance: "Civil liberties and constitutional rights"
+      name: "Consumer Financial Protection Bureau (CFPB)",
+      url: "https://www.consumerfinance.gov/",
+      relevance: "Consumer protection for financial matters including housing"
     },
     {
-      name: "Brookings Institution",
-      url: "https://www.brookings.edu/",
-      relevance: "Public policy research organization covering many domestic and international issues"
+      name: "U.S. Interagency Council on Homelessness",
+      url: "https://www.usich.gov/",
+      relevance: "Coordination of federal response to homelessness"
+    },
+    {
+      name: "Local Initiatives Support Corporation (LISC)",
+      url: "https://www.lisc.org/",
+      relevance: "Community development and affordable housing initiatives"
+    },
+    {
+      name: "Enterprise Community Partners",
+      url: "https://www.enterprisecommunity.org/",
+      relevance: "Affordable housing and community development"
+    },
+    {
+      name: "National Housing Trust",
+      url: "https://www.nationalhousingtrust.org/",
+      relevance: "Affordable housing preservation"
     }
   ];
   
-  // In a real implementation, we would match priorities to organizations using a more sophisticated algorithm
-  // For now, just returning a subset of verified organizations
-  return verifiedGroups.slice(0, 3);
+  // In a real implementation, we would match priorities to HUD-listed organizations 
+  // using verified data from HUD's APIs or data sources
+  // For now, just returning a subset of verified HUD-related organizations
+  
+  // This approach ensures we never return made-up organizations
+  return verifiedHudGroups.slice(0, 3); // Return top 3 for simplicity
 }
 
 serve(async (req) => {

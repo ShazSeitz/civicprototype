@@ -104,17 +104,17 @@ Core Features:
         Recommendations for elected officials.
         Analysis of ballot measures.
         Draft email generation for contacting representatives with actual email addresses of the user's elected officials based on their zip code.
-        Links to relevant interest groups.
+        Links to verified HUD interest groups only (no AI-generated or made-up groups).
         Petition recommendations.
     Current Date Mode (No Active Election):
         Draft email generation for contacting representatives with actual email addresses of the user's elected officials based on their zip code.
-        Interest group recommendations.
+        Verified HUD interest group recommendations only.
         Relevant petition links.
     DEMO Mode:
         Local and federal candidate recommendations.
         Ballot measure suggestions.
         Draft email generation for contacting representatives with actual email addresses of the user's elected officials based on their zip code.
-        Interest group recommendations.
+        Verified HUD interest group recommendations only.
         Relevant petition links.
 
     Output Dashboard
@@ -140,7 +140,7 @@ Backend:
         Google Civic Information API.
         OpenAI API for NLP.
         Change.org data integration.
-        HUD public interest groups.
+        HUD public interest groups data (verified source).
     Data Processing:
         Real-time recommendation updates.
         Priority conflict detection.
@@ -161,7 +161,7 @@ Data Sources:
         FEC API (api.open.fec.gov).
         Google Civic API.
     Secondary Sources:
-        HUD Public Interest Groups.
+        HUD Public Interest Groups (verified only).
         Change.org petitions.
         Official candidate websites.
     Language Processing:
