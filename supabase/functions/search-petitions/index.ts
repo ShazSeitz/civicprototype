@@ -12,15 +12,15 @@ const searchPetitions = async (query: string) => {
   try {
     console.log(`Searching for petitions with query: ${query}`);
     
-    // For demo purposes, return hardcoded petition data
+    // For demo purposes, return petitions with clear indication they are placeholders
     // In a production environment, would implement proper web scraping or API calls
     return [
       {
-        title: `Petition related to ${query}`,
+        title: `PLACEHOLDER: Petition related to ${query}`,
         url: "https://www.change.org/",
-        relevance: `This petition addresses issues related to ${query}`,
+        relevance: `This is a placeholder. In production, this would be a real petition about ${query}`,
         supporterCount: Math.floor(Math.random() * 10000) + 500,
-        description: `A community initiative focused on ${query} and related concerns`
+        description: `This is a demo petition placeholder. Real implementation would require proper API integration.`
       }
     ];
   } catch (error) {

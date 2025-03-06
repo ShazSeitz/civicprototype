@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 
@@ -97,8 +98,8 @@ async function analyzePriorities(priorities: string[], mode: "current" | "demo")
 
 async function fetchRepresentatives(zipCode: string) {
   if (!googleCivicApiKey) {
-    console.warn('GOOGLE_CIVIC_API_KEY is not set, using demo data');
-    return getDemoRepresentatives();
+    console.warn('GOOGLE_CIVIC_API_KEY is not set');
+    throw new Error('GOOGLE_CIVIC_API_NOT_CONFIGURED');
   }
 
   try {
@@ -107,7 +108,7 @@ async function fetchRepresentatives(zipCode: string) {
     
     if (!response.ok) {
       console.error('Google Civic API error:', await response.text());
-      return getDemoRepresentatives();
+      throw new Error('GOOGLE_CIVIC_API_ERROR');
     }
     
     const data = await response.json();
@@ -135,27 +136,8 @@ async function fetchRepresentatives(zipCode: string) {
     return representatives;
   } catch (error) {
     console.error('Error fetching representatives:', error);
-    return getDemoRepresentatives();
+    throw error;
   }
-}
-
-function getDemoRepresentatives() {
-  return [
-    {
-      name: "Jane Smith",
-      office: "State Representative",
-      party: "Independent",
-      email: "jsmith@state.gov",
-      phone: "(555) 123-4567"
-    },
-    {
-      name: "John Doe",
-      office: "U.S. Senator",
-      party: "Independent",
-      email: "senator@senate.gov",
-      phone: "(555) 765-4321"
-    }
-  ];
 }
 
 async function fetchCandidatesByState(state: string, mode: "current" | "demo") {
@@ -164,8 +146,8 @@ async function fetchCandidatesByState(state: string, mode: "current" | "demo") {
   }
   
   if (!fecApiKey) {
-    console.warn('FEC_API_KEY is not set, using demo data');
-    return getDemoCandidates();
+    console.warn('FEC_API_KEY is not set');
+    throw new Error('FEC_API_NOT_CONFIGURED');
   }
   
   try {
@@ -176,7 +158,7 @@ async function fetchCandidatesByState(state: string, mode: "current" | "demo") {
     
     if (!response.ok) {
       console.error('FEC API error:', await response.text());
-      return getDemoCandidates();
+      throw new Error('FEC_API_ERROR');
     }
     
     const data = await response.json();
@@ -188,7 +170,7 @@ async function fetchCandidatesByState(state: string, mode: "current" | "demo") {
     }));
   } catch (error) {
     console.error('Error fetching candidates:', error);
-    return getDemoCandidates();
+    throw error;
   }
 }
 
@@ -368,28 +350,52 @@ serve(async (req) => {
     let representatives = [];
     let candidates = [];
     let ballotMeasures = [];
+    let apiStatuses = {
+      googleCivic: 'success',
+      fec: 'success'
+    };
 
     // For current mode or demo mode, fetch appropriate data
     if (zipCode) {
-      representatives = await fetchRepresentatives(zipCode);
+      try {
+        representatives = await fetchRepresentatives(zipCode);
+      } catch (error) {
+        console.error('Representatives fetch error:', error);
+        apiStatuses.googleCivic = error.message || 'error';
+      }
 
-      // Get state from zip code for state-specific data
-      // This is simplified and would need a proper zip-to-state lookup in production
-      const state = "PA"; // Placeholder - would be determined from zip code
-      
-      candidates = await fetchCandidatesByState(state, mode);
-      ballotMeasures = await fetchBallotMeasures(state, mode);
+      if (mode === 'current') {
+        // Get state from zip code for state-specific data
+        // This is simplified and would need a proper zip-to-state lookup in production
+        const state = "PA"; // Placeholder - would be determined from zip code
+        
+        try {
+          candidates = await fetchCandidatesByState(state, mode);
+        } catch (error) {
+          console.error('Candidates fetch error:', error);
+          apiStatuses.fec = error.message || 'error';
+        }
+        
+        ballotMeasures = await fetchBallotMeasures(state, mode);
+      } else {
+        // Demo mode
+        candidates = getDemoCandidates();
+        ballotMeasures = getDemoBallotMeasures();
+      }
     }
 
-    // Generate email drafts for representatives
-    const draftEmails = await Promise.all(
-      representatives.slice(0, 2).map(async (rep) => ({
-        to: rep.name,
-        subject: `Constituent Priorities for Your Consideration`,
-        body: await generateEmailDraft(rep, priorities)
-      }))
-    );
-    console.log('Email drafts generated');
+    // Generate email drafts for representatives if available
+    let draftEmails = [];
+    if (representatives.length > 0) {
+      draftEmails = await Promise.all(
+        representatives.slice(0, 2).map(async (rep) => ({
+          to: rep.name,
+          subject: `Constituent Priorities for Your Consideration`,
+          body: await generateEmailDraft(rep, priorities)
+        }))
+      );
+      console.log('Email drafts generated');
+    }
 
     // Find relevant interest groups based on verified organizations
     const interestGroups = await findRelevantGroups(priorities);
@@ -407,7 +413,8 @@ serve(async (req) => {
       ballotMeasures,
       draftEmails,
       interestGroups,
-      petitions
+      petitions,
+      apiStatuses
     };
 
     console.log('Sending successful response');

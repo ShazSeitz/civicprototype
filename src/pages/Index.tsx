@@ -64,6 +64,21 @@ const Index = () => {
           throw new Error('No data returned from analysis');
         }
 
+        // Check for API errors
+        if (data.apiStatuses) {
+          if (data.apiStatuses.googleCivic === 'GOOGLE_CIVIC_API_NOT_CONFIGURED') {
+            throw new Error('Google Civic API is not configured. Please add your API key.');
+          } else if (data.apiStatuses.googleCivic === 'GOOGLE_CIVIC_API_ERROR') {
+            throw new Error('Failed to connect to Google Civic API. Please check your API key and try again.');
+          }
+          
+          if (data.apiStatuses.fec === 'FEC_API_NOT_CONFIGURED') {
+            throw new Error('FEC API is not configured. Please add your API key.');
+          } else if (data.apiStatuses.fec === 'FEC_API_ERROR') {
+            throw new Error('Failed to connect to FEC API. Please check your API key and try again.');
+          }
+        }
+
         // Display unmapped terms in console
         if (data.unmappedTerms && data.unmappedTerms.length > 0) {
           console.log('Unmapped terms detected:', data.unmappedTerms);
