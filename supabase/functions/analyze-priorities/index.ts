@@ -151,25 +151,38 @@ async function fetchCandidatesByState(state: string, mode: "current" | "demo") {
     const year = 2024; // Always use election year 2024 for real data
     console.log(`Fetching candidates for state ${state}, year ${year} with FEC API key`);
     
-    const url = `https://api.open.fec.gov/v1/candidates?api_key=${fecApiKey}&state=${state}&election_year=${year}&sort=name&per_page=20`;
+    // Fix: Properly encode state parameter and ensure clean URL formatting
+    const encodedState = encodeURIComponent(state);
+    const url = `https://api.open.fec.gov/v1/candidates/?api_key=${fecApiKey}&state=${encodedState}&election_year=${year}&sort=name&per_page=20`;
     
     console.log(`Making FEC API request to: ${url}`);
     
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      }
+    });
     
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('FEC API error:', errorText);
+      console.error('FEC API error status:', response.status);
+      console.error('FEC API error text:', errorText);
       throw new Error('FEC_API_ERROR');
     }
     
     const data = await response.json();
-    console.log('FEC API response:', JSON.stringify(data).substring(0, 200) + '...');
+    console.log('FEC API response status:', response.status);
+    console.log('FEC API response headers:', Object.fromEntries(response.headers.entries()));
+    console.log('FEC API response structure:', JSON.stringify(Object.keys(data)));
+    console.log('FEC API response sample:', JSON.stringify(data).substring(0, 200) + '...');
     
     if (!data.results || !Array.isArray(data.results)) {
-      console.error('FEC API returned invalid data structure:', data);
+      console.error('FEC API returned invalid data structure:', JSON.stringify(data).substring(0, 500));
       throw new Error('FEC_API_INVALID_RESPONSE');
     }
+    
+    console.log(`Found ${data.results.length} candidates in response`);
     
     return data.results.map((candidate: any) => ({
       name: candidate.name,
