@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 
@@ -511,6 +512,86 @@ serve(async (req) => {
         })
       );
       
+      // Create test officials with different alignment types if none are found
+      if (mode === "demo" && representativesWithIssueAreas.length < 3) {
+        // Create mock officials for demo mode to ensure we have all three types
+        const mockOfficials = [
+          {
+            name: "Jane Smith",
+            office: "State Assembly",
+            party: "Democratic",
+            email: "jane.smith@example.gov",
+            issueAreas: {
+              alignmentType: 'aligned',
+              matchScore: 0.85,
+              issueAreas: {
+                "education": {
+                  score: 0.9,
+                  stance: "support"
+                },
+                "environmentalProtection": {
+                  score: 0.8,
+                  stance: "support"
+                }
+              }
+            }
+          },
+          {
+            name: "John Doe",
+            office: "County Commissioner",
+            party: "Republican",
+            email: "john.doe@example.gov",
+            issueAreas: {
+              alignmentType: 'opposing',
+              matchScore: 0.75,
+              issueAreas: {
+                "governmentSpending": {
+                  score: 0.9,
+                  stance: "oppose"
+                },
+                "regulations": {
+                  score: 0.8,
+                  stance: "oppose"
+                }
+              }
+            }
+          },
+          {
+            name: "Alex Johnson",
+            office: "City Council",
+            party: "Independent",
+            email: "alex.johnson@example.gov",
+            issueAreas: {
+              alignmentType: 'mixed',
+              matchScore: 0.7,
+              issueAreas: {
+                "housing": {
+                  score: 0.8,
+                  stance: "support"
+                },
+                "taxation": {
+                  score: 0.7,
+                  stance: "oppose"
+                }
+              }
+            }
+          }
+        ];
+        
+        // Add missing official types
+        const hasAligned = representativesWithIssueAreas.some(rep => rep.issueAreas.alignmentType === 'aligned');
+        const hasOpposing = representativesWithIssueAreas.some(rep => rep.issueAreas.alignmentType === 'opposing');
+        const hasMixed = representativesWithIssueAreas.some(rep => 
+          rep.issueAreas.alignmentType === 'mixed' || 
+          rep.issueAreas.alignmentType === 'unknown' || 
+          rep.issueAreas.alignmentType === 'keyDecisionMaker'
+        );
+        
+        if (!hasAligned) representativesWithIssueAreas.push(mockOfficials[0]);
+        if (!hasOpposing) representativesWithIssueAreas.push(mockOfficials[1]);
+        if (!hasMixed) representativesWithIssueAreas.push(mockOfficials[2]);
+      }
+      
       // Create two arrays: one for aligned officials and one for opposing officials
       const alignedOfficials = representativesWithIssueAreas
         .filter(rep => rep.issueAreas.alignmentType === 'aligned')
@@ -520,65 +601,76 @@ serve(async (req) => {
         .filter(rep => rep.issueAreas.alignmentType === 'opposing')
         .sort((a, b) => (b.issueAreas?.matchScore || 0) - (a.issueAreas?.matchScore || 0));
       
-      // Merge the arrays with aligned officials first, then opposing
-      const sortedRepresentatives = [...alignedOfficials, ...opposingOfficials];
+      const keyDecisionMakerOfficials = representativesWithIssueAreas
+        .filter(rep => 
+          rep.issueAreas.alignmentType === 'mixed' || 
+          rep.issueAreas.alignmentType === 'unknown' || 
+          rep.issueAreas.alignmentType === 'keyDecisionMaker'
+        )
+        .sort((a, b) => (b.issueAreas?.matchScore || 0) - (a.issueAreas?.matchScore || 0));
       
-      // Fallback to other officials if no aligned or opposing found
-      if (sortedRepresentatives.length === 0) {
-        sortedRepresentatives.push(...representativesWithIssueAreas);
+      // Make sure we have one of each type for the draft emails
+      const selectedOfficials = [];
+      
+      if (alignedOfficials.length > 0) {
+        selectedOfficials.push(alignedOfficials[0]);
       }
       
-      // Generate email drafts with issue area context
-      const representativesWithEmail = sortedRepresentatives.filter(rep => rep.email);
-      
-      if (representativesWithEmail.length > 0) {
-        console.log(`Generating email drafts for ${representativesWithEmail.length} representatives with emails`);
-        draftEmails = await Promise.all(
-          representativesWithEmail.map(async (rep) => {
-            const issueAreasObj = rep.issueAreas;
-            const emailBody = await generateEmailDraft(rep, priorities, issueAreasObj);
-            
-            // Extract relevant issues and their stances
-            const relevantIssues = issueAreasObj && issueAreasObj.issueAreas
-              ? Object.entries(issueAreasObj.issueAreas)
-                  .filter(([_, data]: [string, any]) => {
-                    const score = typeof data === 'object' ? data.score || 0 : data || 0;
-                    return score > 0.6;
-                  })
-                  .map(([issue, data]: [string, any]) => {
-                    const stance = typeof data === 'object' ? data.stance || 'neutral' : 'neutral';
-                    return { issue, stance };
-                  })
-              : [];
-            
-            return {
-              to: rep.name,
-              toEmail: rep.email,
-              office: rep.office,
-              subject: `Constituent Priorities for Your Consideration`,
-              body: emailBody,
-              matchScore: issueAreasObj?.matchScore || 0.5,
-              alignmentType: issueAreasObj?.alignmentType || 'unknown',
-              relevantIssues: relevantIssues
-            };
-          })
-        );
-        console.log('Email drafts generated');
-      } else {
-        console.log('No representatives with email addresses found');
-        const genericRep = representatives[0];
-        const issueAreasObj = await identifyOfficialIssueAreas(genericRep, priorityAnalysis);
-        draftEmails = [{
-          to: genericRep.name,
-          toEmail: null,
-          office: genericRep.office,
-          subject: `Constituent Priorities for Your Consideration`,
-          body: await generateEmailDraft(genericRep, priorities, issueAreasObj) + "\n\nNote: No email address was found for this official. You may need to visit their official website to find contact information.",
-          matchScore: issueAreasObj?.matchScore || 0.5,
-          alignmentType: issueAreasObj?.alignmentType || 'unknown',
-          relevantIssues: []
-        }];
+      if (opposingOfficials.length > 0) {
+        selectedOfficials.push(opposingOfficials[0]);
       }
+      
+      if (keyDecisionMakerOfficials.length > 0) {
+        selectedOfficials.push(keyDecisionMakerOfficials[0]);
+      }
+      
+      // If we don't have all three types, add officials from other categories
+      if (selectedOfficials.length < 3) {
+        const remainingOfficials = representativesWithIssueAreas
+          .filter(rep => !selectedOfficials.includes(rep))
+          .sort((a, b) => (b.issueAreas?.matchScore || 0) - (a.issueAreas?.matchScore || 0));
+        
+        while (selectedOfficials.length < 3 && remainingOfficials.length > 0) {
+          selectedOfficials.push(remainingOfficials.shift()!);
+        }
+      }
+      
+      console.log(`Generating email drafts for ${selectedOfficials.length} officials`);
+      
+      // Generate email drafts for the selected officials
+      draftEmails = await Promise.all(
+        selectedOfficials.map(async (rep) => {
+          const issueAreasObj = rep.issueAreas;
+          const emailBody = await generateEmailDraft(rep, priorities, issueAreasObj);
+          
+          // Extract relevant issues and their stances
+          const relevantIssues = issueAreasObj && issueAreasObj.issueAreas
+            ? Object.entries(issueAreasObj.issueAreas)
+                .filter(([_, data]: [string, any]) => {
+                  const score = typeof data === 'object' ? data.score || 0 : data || 0;
+                  return score > 0.6;
+                })
+                .map(([issue, data]: [string, any]) => {
+                  const stance = typeof data === 'object' ? data.stance || 'neutral' : 'neutral';
+                  return { issue, stance };
+                })
+            : [];
+          
+          return {
+            to: rep.name,
+            toEmail: rep.email,
+            office: rep.office,
+            subject: `Constituent Priorities for Your Consideration`,
+            body: emailBody,
+            matchScore: issueAreasObj?.matchScore || 0.5,
+            alignmentType: issueAreasObj?.alignmentType || 'unknown',
+            relevantIssues: relevantIssues
+          };
+        })
+      );
+      
+      console.log('Email drafts generated:', draftEmails.length);
+      console.log('Email types:', draftEmails.map(email => email.alignmentType));
     }
 
     const interestGroups = await findRelevantGroups(priorities);
@@ -619,7 +711,7 @@ serve(async (req) => {
       apiStatuses
     };
 
-    console.log('Sending successful response');
+    console.log('Sending successful response with', draftEmails.length, 'email drafts');
     return new Response(JSON.stringify(response), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

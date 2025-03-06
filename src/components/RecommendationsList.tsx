@@ -97,6 +97,8 @@ export const RecommendationsList = ({ recommendations, onFeedbackSubmit }: Recom
       };
     }
 
+    console.log("Draft emails received:", recommendations.draftEmails);
+    
     // Sort within each category by match score
     const supporterEmails = recommendations.draftEmails
       .filter(email => email.alignmentType === 'aligned')
@@ -110,18 +112,27 @@ export const RecommendationsList = ({ recommendations, onFeedbackSubmit }: Recom
       .filter(email => email.alignmentType === 'mixed' || email.alignmentType === 'unknown' || email.alignmentType === 'keyDecisionMaker')
       .sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0));
 
+    console.log("Supporter emails:", supporterEmails.length);
+    console.log("Opposing emails:", opposingEmails.length);
+    console.log("Key decision maker emails:", keyDecisionMakerEmails.length);
+
+    // If we have no emails in a category, use the first available email from any category
+    const fallbackEmail = recommendations.draftEmails[0];
+    
     // Pick top from each category
     return {
-      supporterEmail: supporterEmails.length > 0 ? supporterEmails[0] : null,
-      opposingEmail: opposingEmails.length > 0 ? opposingEmails[0] : null,
-      keyDecisionMakerEmail: keyDecisionMakerEmails.length > 0 ? keyDecisionMakerEmails[0] : null,
+      supporterEmail: supporterEmails.length > 0 ? supporterEmails[0] : (fallbackEmail ? {...fallbackEmail, alignmentType: 'aligned'} : null),
+      opposingEmail: opposingEmails.length > 0 ? opposingEmails[0] : (fallbackEmail ? {...fallbackEmail, alignmentType: 'opposing'} : null),
+      keyDecisionMakerEmail: keyDecisionMakerEmails.length > 0 ? keyDecisionMakerEmails[0] : (fallbackEmail ? {...fallbackEmail, alignmentType: 'mixed'} : null),
     };
   };
 
   const { supporterEmail, opposingEmail, keyDecisionMakerEmail } = getTopThreeOfficials();
-
+  
   // Combine all emails that will be displayed
   const selectedEmails = [supporterEmail, opposingEmail, keyDecisionMakerEmail].filter(email => email !== null);
+
+  console.log("Selected emails for display:", selectedEmails.length);
 
   return (
     <Card className="animate-fade-up mt-8">
