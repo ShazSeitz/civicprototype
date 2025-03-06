@@ -1,7 +1,8 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Copy, ThumbsUp, ThumbsDown } from "lucide-react";
+import { Copy, ThumbsUp, ThumbsDown, Scale } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -25,7 +26,7 @@ interface Recommendations {
     subject: string;
     body: string;
     matchScore?: number;
-    alignmentType?: 'aligned' | 'opposing' | 'mixed' | 'unknown';
+    alignmentType?: 'aligned' | 'opposing' | 'mixed' | 'unknown' | 'keyDecisionMaker';
     relevantIssues?: Array<{issue: string, stance: string}>;
   }>;
   interestGroups?: Array<{
@@ -86,24 +87,41 @@ export const RecommendationsList = ({ recommendations, onFeedbackSubmit }: Recom
     }
   };
 
-  // Group emails by alignment type
-  const alignedEmails = recommendations.draftEmails 
-    ? recommendations.draftEmails
-        .filter(email => email.alignmentType === 'aligned')
-        .sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0))
-    : [];
+  // Select top officials by category according to advocacy rules
+  const getTopThreeOfficials = () => {
+    if (!recommendations.draftEmails || recommendations.draftEmails.length === 0) {
+      return {
+        supporterEmail: null,
+        opposingEmail: null,
+        keyDecisionMakerEmail: null
+      };
+    }
 
-  const opposingEmails = recommendations.draftEmails 
-    ? recommendations.draftEmails
-        .filter(email => email.alignmentType === 'opposing')
-        .sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0))
-    : [];
+    // Sort within each category by match score
+    const supporterEmails = recommendations.draftEmails
+      .filter(email => email.alignmentType === 'aligned')
+      .sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0));
 
-  const otherEmails = recommendations.draftEmails 
-    ? recommendations.draftEmails
-        .filter(email => email.alignmentType !== 'aligned' && email.alignmentType !== 'opposing')
-        .sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0))
-    : [];
+    const opposingEmails = recommendations.draftEmails
+      .filter(email => email.alignmentType === 'opposing')
+      .sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0));
+    
+    const keyDecisionMakerEmails = recommendations.draftEmails
+      .filter(email => email.alignmentType === 'mixed' || email.alignmentType === 'unknown' || email.alignmentType === 'keyDecisionMaker')
+      .sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0));
+
+    // Pick top from each category
+    return {
+      supporterEmail: supporterEmails.length > 0 ? supporterEmails[0] : null,
+      opposingEmail: opposingEmails.length > 0 ? opposingEmails[0] : null,
+      keyDecisionMakerEmail: keyDecisionMakerEmails.length > 0 ? keyDecisionMakerEmails[0] : null,
+    };
+  };
+
+  const { supporterEmail, opposingEmail, keyDecisionMakerEmail } = getTopThreeOfficials();
+
+  // Combine all emails that will be displayed
+  const selectedEmails = [supporterEmail, opposingEmail, keyDecisionMakerEmail].filter(email => email !== null);
 
   return (
     <Card className="animate-fade-up mt-8">
@@ -217,180 +235,196 @@ export const RecommendationsList = ({ recommendations, onFeedbackSubmit }: Recom
               </div>
             )}
 
-            {/* Draft Emails - Now with issue area matching and alignment information */}
-            {(alignedEmails.length > 0 || opposingEmails.length > 0 || otherEmails.length > 0) && (
+            {/* Draft Emails - Limited to 3 strategic emails */}
+            {selectedEmails.length > 0 && (
               <div>
-                <h3 className="text-lg font-semibold mb-2">Draft Emails to Representatives</h3>
+                <h3 className="text-lg font-semibold mb-2">Strategic Advocacy Emails (Top 3)</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Selected based on maximizing your advocacy impact across supportive, opposing, and key decision-making officials.
+                </p>
                 
-                {/* Aligned Officials (Supportive of your priorities) */}
-                {alignedEmails.length > 0 && (
+                {/* Supportive Official Email */}
+                {supporterEmail && (
                   <div className="mb-6">
                     <h4 className="text-md font-medium mb-2 flex items-center">
                       <ThumbsUp className="h-4 w-4 mr-2 text-green-600" />
-                      Officials Who Support Your Priorities
+                      Champion: Thank and Encourage
                     </h4>
                     <p className="text-sm text-muted-foreground mb-4">
-                      These representatives are likely to champion causes you care about.
+                      This official supports your priorities - thank them and encourage continued support.
                     </p>
-                    <div className="space-y-4">
-                      {alignedEmails.map((email, index) => (
-                        <div key={index} className="p-4 bg-gray-50 border-l-4 border-green-500 rounded-lg">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <div className="flex items-center space-x-2">
-                                <p className="font-medium">{email.to}</p>
-                                <Badge variant="default" className="bg-green-600">
-                                  Supportive
-                                </Badge>
+                    <div className="p-4 bg-gray-50 border-l-4 border-green-500 rounded-lg mb-4">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="flex items-center space-x-2">
+                            <p className="font-medium">{supporterEmail.to}</p>
+                            <Badge variant="default" className="bg-green-600">
+                              Supportive
+                            </Badge>
+                          </div>
+                          {supporterEmail.office && <p className="text-xs text-gray-600">{supporterEmail.office}</p>}
+                          {supporterEmail.toEmail ? (
+                            <p className="text-sm text-gray-600">
+                              Email: <a href={`mailto:${supporterEmail.toEmail}`} className="text-blue-600 hover:underline">
+                                {supporterEmail.toEmail}
+                              </a>
+                            </p>
+                          ) : (
+                            <p className="text-sm text-gray-600 italic">Email address not available</p>
+                          )}
+                          <p className="text-sm text-gray-600">Subject: {supporterEmail.subject}</p>
+                          
+                          {/* Display relevant issues this official champions */}
+                          {supporterEmail.relevantIssues && supporterEmail.relevantIssues.length > 0 && (
+                            <div className="mt-2">
+                              <p className="text-sm font-medium">Key Focus Areas:</p>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {supporterEmail.relevantIssues.map((issue, i) => (
+                                  <Badge key={i} variant="outline" className={`${issue.stance === 'support' ? 'bg-green-50 border-green-200' : issue.stance === 'oppose' ? 'bg-red-50 border-red-200' : 'bg-blue-50'}`}>
+                                    {issue.issue}
+                                  </Badge>
+                                ))}
                               </div>
-                              {email.office && <p className="text-xs text-gray-600">{email.office}</p>}
-                              {email.toEmail ? (
-                                <p className="text-sm text-gray-600">
-                                  Email: <a href={`mailto:${email.toEmail}`} className="text-blue-600 hover:underline">
-                                    {email.toEmail}
-                                  </a>
-                                </p>
-                              ) : (
-                                <p className="text-sm text-gray-600 italic">Email address not available</p>
-                              )}
-                              <p className="text-sm text-gray-600">Subject: {email.subject}</p>
-                              
-                              {/* Display relevant issues this official champions */}
-                              {email.relevantIssues && email.relevantIssues.length > 0 && (
-                                <div className="mt-2">
-                                  <p className="text-sm font-medium">Key Focus Areas:</p>
-                                  <div className="flex flex-wrap gap-1 mt-1">
-                                    {email.relevantIssues.map((issue, i) => (
-                                      <Badge key={i} variant="outline" className={`${issue.stance === 'support' ? 'bg-green-50 border-green-200' : issue.stance === 'oppose' ? 'bg-red-50 border-red-200' : 'bg-blue-50'}`}>
-                                        {issue.issue}
-                                      </Badge>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
                             </div>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => copyToClipboard(email.body)}
-                              className="ml-2"
-                            >
-                              <Copy className="h-4 w-4 mr-1" />
-                              Copy
-                            </Button>
-                          </div>
-                          <div className="mt-2 p-3 bg-white rounded border text-sm whitespace-pre-wrap">
-                            {email.body}
-                          </div>
+                          )}
                         </div>
-                      ))}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => copyToClipboard(supporterEmail.body)}
+                          className="ml-2"
+                        >
+                          <Copy className="h-4 w-4 mr-1" />
+                          Copy
+                        </Button>
+                      </div>
+                      <div className="mt-2 p-3 bg-white rounded border text-sm whitespace-pre-wrap">
+                        {supporterEmail.body}
+                      </div>
                     </div>
                   </div>
                 )}
 
-                {/* Opposing Officials */}
-                {opposingEmails.length > 0 && (
+                {/* Opposing Official Email */}
+                {opposingEmail && (
                   <div className="mb-6">
                     <h4 className="text-md font-medium mb-2 flex items-center">
                       <ThumbsDown className="h-4 w-4 mr-2 text-red-600" />
-                      Officials Who May Oppose Your Priorities
+                      Opposition: Respectful Advocacy
                     </h4>
                     <p className="text-sm text-muted-foreground mb-4">
-                      These representatives may have different views on issues you care about. Consider writing to them to respectfully voice your perspective.
+                      This official may have different views on issues you care about. This email respectfully presents your perspective.
                     </p>
-                    <div className="space-y-4">
-                      {opposingEmails.map((email, index) => (
-                        <div key={index} className="p-4 bg-gray-50 border-l-4 border-red-500 rounded-lg">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <div className="flex items-center space-x-2">
-                                <p className="font-medium">{email.to}</p>
-                                <Badge variant="destructive">
-                                  May Oppose
-                                </Badge>
+                    <div className="p-4 bg-gray-50 border-l-4 border-red-500 rounded-lg mb-4">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="flex items-center space-x-2">
+                            <p className="font-medium">{opposingEmail.to}</p>
+                            <Badge variant="destructive">
+                              May Oppose
+                            </Badge>
+                          </div>
+                          {opposingEmail.office && <p className="text-xs text-gray-600">{opposingEmail.office}</p>}
+                          {opposingEmail.toEmail ? (
+                            <p className="text-sm text-gray-600">
+                              Email: <a href={`mailto:${opposingEmail.toEmail}`} className="text-blue-600 hover:underline">
+                                {opposingEmail.toEmail}
+                              </a>
+                            </p>
+                          ) : (
+                            <p className="text-sm text-gray-600 italic">Email address not available</p>
+                          )}
+                          <p className="text-sm text-gray-600">Subject: {opposingEmail.subject}</p>
+                          
+                          {/* Display relevant issues this official works on */}
+                          {opposingEmail.relevantIssues && opposingEmail.relevantIssues.length > 0 && (
+                            <div className="mt-2">
+                              <p className="text-sm font-medium">Potential Points of Disagreement:</p>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {opposingEmail.relevantIssues.map((issue, i) => (
+                                  <Badge key={i} variant="outline" className={`${issue.stance === 'support' ? 'bg-green-50 border-green-200' : issue.stance === 'oppose' ? 'bg-red-50 border-red-200' : 'bg-blue-50'}`}>
+                                    {issue.issue}
+                                  </Badge>
+                                ))}
                               </div>
-                              {email.office && <p className="text-xs text-gray-600">{email.office}</p>}
-                              {email.toEmail ? (
-                                <p className="text-sm text-gray-600">
-                                  Email: <a href={`mailto:${email.toEmail}`} className="text-blue-600 hover:underline">
-                                    {email.toEmail}
-                                  </a>
-                                </p>
-                              ) : (
-                                <p className="text-sm text-gray-600 italic">Email address not available</p>
-                              )}
-                              <p className="text-sm text-gray-600">Subject: {email.subject}</p>
-                              
-                              {/* Display relevant issues this official works on */}
-                              {email.relevantIssues && email.relevantIssues.length > 0 && (
-                                <div className="mt-2">
-                                  <p className="text-sm font-medium">Potential Points of Disagreement:</p>
-                                  <div className="flex flex-wrap gap-1 mt-1">
-                                    {email.relevantIssues.map((issue, i) => (
-                                      <Badge key={i} variant="outline" className={`${issue.stance === 'support' ? 'bg-green-50 border-green-200' : issue.stance === 'oppose' ? 'bg-red-50 border-red-200' : 'bg-blue-50'}`}>
-                                        {issue.issue}
-                                      </Badge>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
                             </div>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => copyToClipboard(email.body)}
-                              className="ml-2"
-                            >
-                              <Copy className="h-4 w-4 mr-1" />
-                              Copy
-                            </Button>
-                          </div>
-                          <div className="mt-2 p-3 bg-white rounded border text-sm whitespace-pre-wrap">
-                            {email.body}
-                          </div>
+                          )}
                         </div>
-                      ))}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => copyToClipboard(opposingEmail.body)}
+                          className="ml-2"
+                        >
+                          <Copy className="h-4 w-4 mr-1" />
+                          Copy
+                        </Button>
+                      </div>
+                      <div className="mt-2 p-3 bg-white rounded border text-sm whitespace-pre-wrap">
+                        {opposingEmail.body}
+                      </div>
                     </div>
                   </div>
                 )}
 
-                {/* Other Officials with uncertain alignment */}
-                {otherEmails.length > 0 && (
+                {/* Key Decision-Maker Email */}
+                {keyDecisionMakerEmail && (
                   <div>
-                    <h4 className="text-md font-medium mb-2">Other Representatives</h4>
-                    <div className="space-y-4">
-                      {otherEmails.map((email, index) => (
-                        <div key={index} className="p-4 bg-gray-50 rounded-lg">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <p className="font-medium">{email.to}</p>
-                              {email.office && <p className="text-xs text-gray-600">{email.office}</p>}
-                              {email.toEmail ? (
-                                <p className="text-sm text-gray-600">
-                                  Email: <a href={`mailto:${email.toEmail}`} className="text-blue-600 hover:underline">
-                                    {email.toEmail}
-                                  </a>
-                                </p>
-                              ) : (
-                                <p className="text-sm text-gray-600 italic">Email address not available</p>
-                              )}
-                              <p className="text-sm text-gray-600">Subject: {email.subject}</p>
+                    <h4 className="text-md font-medium mb-2 flex items-center">
+                      <Scale className="h-4 w-4 mr-2 text-blue-600" />
+                      Key Decision-Maker: Swing Vote
+                    </h4>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      This official is in a position to make a significant impact on your priorities. Your voice could help sway their decision.
+                    </p>
+                    <div className="p-4 bg-gray-50 border-l-4 border-blue-500 rounded-lg">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="flex items-center space-x-2">
+                            <p className="font-medium">{keyDecisionMakerEmail.to}</p>
+                            <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-300">
+                              Key Decision-Maker
+                            </Badge>
+                          </div>
+                          {keyDecisionMakerEmail.office && <p className="text-xs text-gray-600">{keyDecisionMakerEmail.office}</p>}
+                          {keyDecisionMakerEmail.toEmail ? (
+                            <p className="text-sm text-gray-600">
+                              Email: <a href={`mailto:${keyDecisionMakerEmail.toEmail}`} className="text-blue-600 hover:underline">
+                                {keyDecisionMakerEmail.toEmail}
+                              </a>
+                            </p>
+                          ) : (
+                            <p className="text-sm text-gray-600 italic">Email address not available</p>
+                          )}
+                          <p className="text-sm text-gray-600">Subject: {keyDecisionMakerEmail.subject}</p>
+                          
+                          {/* Display relevant issues this official works on */}
+                          {keyDecisionMakerEmail.relevantIssues && keyDecisionMakerEmail.relevantIssues.length > 0 && (
+                            <div className="mt-2">
+                              <p className="text-sm font-medium">Key Policy Areas:</p>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {keyDecisionMakerEmail.relevantIssues.map((issue, i) => (
+                                  <Badge key={i} variant="outline" className="bg-blue-50 border-blue-200">
+                                    {issue.issue}
+                                  </Badge>
+                                ))}
+                              </div>
                             </div>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => copyToClipboard(email.body)}
-                              className="ml-2"
-                            >
-                              <Copy className="h-4 w-4 mr-1" />
-                              Copy
-                            </Button>
-                          </div>
-                          <div className="mt-2 p-3 bg-white rounded border text-sm whitespace-pre-wrap">
-                            {email.body}
-                          </div>
+                          )}
                         </div>
-                      ))}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => copyToClipboard(keyDecisionMakerEmail.body)}
+                          className="ml-2"
+                        >
+                          <Copy className="h-4 w-4 mr-1" />
+                          Copy
+                        </Button>
+                      </div>
+                      <div className="mt-2 p-3 bg-white rounded border text-sm whitespace-pre-wrap">
+                        {keyDecisionMakerEmail.body}
+                      </div>
                     </div>
                   </div>
                 )}
