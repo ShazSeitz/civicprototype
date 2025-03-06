@@ -20,6 +20,8 @@ interface Recommendations {
   }>;
   draftEmails?: Array<{
     to: string;
+    toEmail?: string | null;
+    office?: string;
     subject: string;
     body: string;
   }>;
@@ -203,6 +205,16 @@ export const RecommendationsList = ({ recommendations, onFeedbackSubmit }: Recom
                       <div className="flex justify-between items-start">
                         <div>
                           <p className="font-medium">To: {email.to}</p>
+                          {email.office && <p className="text-xs text-gray-600">{email.office}</p>}
+                          {email.toEmail ? (
+                            <p className="text-sm text-gray-600">
+                              Email: <a href={`mailto:${email.toEmail}`} className="text-blue-600 hover:underline">
+                                {email.toEmail}
+                              </a>
+                            </p>
+                          ) : (
+                            <p className="text-sm text-gray-600 italic">Email address not available</p>
+                          )}
                           <p className="text-sm text-gray-600">Subject: {email.subject}</p>
                         </div>
                         <Button

@@ -58,12 +58,10 @@ async function analyzePriorities(priorities: string[], mode: "current" | "demo")
     console.log('Raw content from OpenAI:', contentString);
     
     try {
-      // Try to parse the content directly first
       return JSON.parse(contentString);
     } catch (parseError) {
       console.log('Failed to parse content directly, attempting to extract JSON:', parseError);
       
-      // If direct parsing fails, try to extract JSON from markdown code blocks
       const jsonMatch = contentString.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
       if (jsonMatch && jsonMatch[1]) {
         console.log('Extracted JSON from markdown:', jsonMatch[1]);
@@ -75,7 +73,6 @@ async function analyzePriorities(priorities: string[], mode: "current" | "demo")
         }
       }
       
-      // If no JSON block found, try a fallback approach by removing markdown formatting
       const cleanedContent = contentString
         .replace(/```json\n?/g, '')
         .replace(/```\n?/g, '')
@@ -112,10 +109,8 @@ async function fetchRepresentatives(zipCode: string) {
     
     const data = await response.json();
     
-    // Process and format the Google Civic API response
     const representatives = [];
     
-    // Map offices to officials
     if (data.offices && data.officials) {
       for (const office of data.offices) {
         for (const officialIndex of office.officialIndices) {
@@ -146,11 +141,9 @@ async function fetchCandidatesByState(state: string, mode: "current" | "demo") {
   }
   
   try {
-    // For both current mode and demo mode, we fetch real ballot data for November 2024
-    const year = 2024; // Always use election year 2024 for real data
+    const year = 2024;
     console.log(`Fetching candidates for state ${state}, year ${year} with FEC API key`);
     
-    // Fix: Use correct API endpoint format with trailing slash removed
     const encodedState = encodeURIComponent(state);
     const url = `https://api.open.fec.gov/v1/candidates?api_key=${fecApiKey}&state=${encodedState}&election_year=${year}&sort=name&per_page=20`;
     
@@ -169,7 +162,6 @@ async function fetchCandidatesByState(state: string, mode: "current" | "demo") {
       console.error('FEC API error status:', response.status);
       console.error('FEC API error text:', errorText);
       
-      // Check for common status codes and provide more specific error messages
       if (response.status === 401 || response.status === 403) {
         throw new Error('FEC_API_UNAUTHORIZED');
       } else if (response.status === 404) {
@@ -196,14 +188,12 @@ async function fetchCandidatesByState(state: string, mode: "current" | "demo") {
       console.error('Response data is null or undefined');
     }
     
-    // More detailed validation of response structure
     if (!data) {
       throw new Error('FEC_API_EMPTY_RESPONSE');
     }
     
     if (!data.results) {
       console.error('FEC API returned data without results:', JSON.stringify(data).substring(0, 500));
-      // Return empty array as fallback instead of throwing error
       return [];
     }
     
@@ -224,11 +214,8 @@ async function fetchCandidatesByState(state: string, mode: "current" | "demo") {
 }
 
 async function fetchBallotMeasures(state: string, mode: "current" | "demo") {
-  // Since there's no single API for ballot measures across all states,
-  // log that this is currently not implemented
   console.warn('Ballot measures API not implemented - would need to use state-specific APIs');
   
-  // Return an empty array instead of demo data
   return [];
 }
 
@@ -247,11 +234,11 @@ async function generateEmailDraft(representative: any, priorities: string[]) {
         messages: [
           {
             role: 'system',
-            content: 'You are an expert in constituent communication. Write a professional, convincing email that clearly communicates the constituent\'s priorities.'
+            content: 'You are an expert in constituent communication. Write a professional, convincing email that clearly communicates the constituent\'s priorities. Include recipient\'s email address if provided.'
           },
           {
             role: 'user',
-            content: `Write an email to ${representative.name} (${representative.office}) expressing these priorities: ${JSON.stringify(priorities)}`
+            content: `Write an email to ${representative.name} (${representative.office}) expressing these priorities: ${JSON.stringify(priorities)}. ${representative.email ? `Include the email address ${representative.email} in the draft.` : ''}`
           }
         ],
         temperature: 0.7,
@@ -279,8 +266,6 @@ async function generateEmailDraft(representative: any, priorities: string[]) {
 async function findRelevantGroups(priorities: string[]) {
   console.log('Finding relevant groups for priorities:', priorities);
   
-  // Using only verified, real organizations from HUD's website
-  // These are actual organizations listed on HUD's resources
   const verifiedHudGroups = [
     {
       name: "National Fair Housing Alliance",
@@ -324,16 +309,10 @@ async function findRelevantGroups(priorities: string[]) {
     }
   ];
   
-  // In a real implementation, we would match priorities to HUD-listed organizations 
-  // using verified data from HUD's APIs or data sources
-  // For now, just returning a subset of verified HUD-related organizations
-  
-  // This approach ensures we never return made-up organizations
-  return verifiedHudGroups.slice(0, 3); // Return top 3 for simplicity
+  return verifiedHudGroups.slice(0, 3);
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -351,11 +330,9 @@ serve(async (req) => {
       throw new Error('Invalid mode');
     }
 
-    // Get analyzed priorities and overall analysis
     const priorityAnalysis = await analyzePriorities(priorities, mode);
     console.log('Priority analysis completed');
 
-    // Fetch relevant data based on mode
     let representatives = [];
     let candidates = [];
     let ballotMeasures = [];
@@ -364,18 +341,17 @@ serve(async (req) => {
       fec: 'success'
     };
 
-    // For current mode or demo mode, fetch appropriate data
     if (zipCode) {
       try {
         representatives = await fetchRepresentatives(zipCode);
+        console.log(`Retrieved ${representatives.length} representatives:`, 
+          representatives.map(r => `${r.name} (${r.office}), email: ${r.email || 'none'}`));
       } catch (error: any) {
         console.error('Representatives fetch error:', error);
         apiStatuses.googleCivic = error.message || 'error';
       }
 
-      // Get state from zip code for state-specific data
-      // This is simplified and would need a proper zip-to-state lookup in production
-      const state = "PA"; // Placeholder - would be determined from zip code
+      const state = "PA";
       
       try {
         candidates = await fetchCandidatesByState(state, mode);
@@ -387,24 +363,38 @@ serve(async (req) => {
       ballotMeasures = await fetchBallotMeasures(state, mode);
     }
 
-    // Generate email drafts for representatives if available
     let draftEmails = [];
     if (representatives.length > 0) {
-      draftEmails = await Promise.all(
-        representatives.slice(0, 2).map(async (rep) => ({
-          to: rep.name,
+      const representativesWithEmail = representatives.filter(rep => rep.email);
+      
+      if (representativesWithEmail.length > 0) {
+        console.log(`Generating email drafts for ${representativesWithEmail.length} representatives with emails`);
+        draftEmails = await Promise.all(
+          representativesWithEmail.map(async (rep) => ({
+            to: rep.name,
+            toEmail: rep.email,
+            office: rep.office,
+            subject: `Constituent Priorities for Your Consideration`,
+            body: await generateEmailDraft(rep, priorities)
+          }))
+        );
+        console.log('Email drafts generated');
+      } else {
+        console.log('No representatives with email addresses found');
+        const genericRep = representatives[0];
+        draftEmails = [{
+          to: genericRep.name,
+          toEmail: null,
+          office: genericRep.office,
           subject: `Constituent Priorities for Your Consideration`,
-          body: await generateEmailDraft(rep, priorities)
-        }))
-      );
-      console.log('Email drafts generated');
+          body: await generateEmailDraft(genericRep, priorities) + "\n\nNote: No email address was found for this official. You may need to visit their official website to find contact information."
+        }];
+      }
     }
 
-    // Find relevant interest groups based on verified organizations
     const interestGroups = await findRelevantGroups(priorities);
     console.log('Found relevant groups');
 
-    // For petitions, fetch real data from the search-petitions function
     let petitions = [];
     try {
       const petitionsResponse = await fetch(
