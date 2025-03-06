@@ -149,16 +149,27 @@ async function fetchCandidatesByState(state: string, mode: "current" | "demo") {
   try {
     // For both current mode and demo mode, we fetch real ballot data for November 2024
     const year = 2024; // Always use election year 2024 for real data
+    console.log(`Fetching candidates for state ${state}, year ${year} with FEC API key`);
+    
     const url = `https://api.open.fec.gov/v1/candidates?api_key=${fecApiKey}&state=${state}&election_year=${year}&sort=name&per_page=20`;
+    
+    console.log(`Making FEC API request to: ${url}`);
     
     const response = await fetch(url);
     
     if (!response.ok) {
-      console.error('FEC API error:', await response.text());
+      const errorText = await response.text();
+      console.error('FEC API error:', errorText);
       throw new Error('FEC_API_ERROR');
     }
     
     const data = await response.json();
+    console.log('FEC API response:', JSON.stringify(data).substring(0, 200) + '...');
+    
+    if (!data.results || !Array.isArray(data.results)) {
+      console.error('FEC API returned invalid data structure:', data);
+      throw new Error('FEC_API_INVALID_RESPONSE');
+    }
     
     return data.results.map((candidate: any) => ({
       name: candidate.name,
@@ -297,7 +308,7 @@ serve(async (req) => {
     if (zipCode) {
       try {
         representatives = await fetchRepresentatives(zipCode);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Representatives fetch error:', error);
         apiStatuses.googleCivic = error.message || 'error';
       }
@@ -308,7 +319,7 @@ serve(async (req) => {
       
       try {
         candidates = await fetchCandidatesByState(state, mode);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Candidates fetch error:', error);
         apiStatuses.fec = error.message || 'error';
       }
