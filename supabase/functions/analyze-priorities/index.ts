@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 
@@ -512,87 +511,7 @@ serve(async (req) => {
         })
       );
       
-      // Create test officials with different alignment types if none are found
-      if (mode === "demo" && representativesWithIssueAreas.length < 3) {
-        // Create mock officials for demo mode to ensure we have all three types
-        const mockOfficials = [
-          {
-            name: "Jane Smith",
-            office: "State Assembly",
-            party: "Democratic",
-            email: "jane.smith@example.gov",
-            issueAreas: {
-              alignmentType: 'aligned',
-              matchScore: 0.85,
-              issueAreas: {
-                "education": {
-                  score: 0.9,
-                  stance: "support"
-                },
-                "environmentalProtection": {
-                  score: 0.8,
-                  stance: "support"
-                }
-              }
-            }
-          },
-          {
-            name: "John Doe",
-            office: "County Commissioner",
-            party: "Republican",
-            email: "john.doe@example.gov",
-            issueAreas: {
-              alignmentType: 'opposing',
-              matchScore: 0.75,
-              issueAreas: {
-                "governmentSpending": {
-                  score: 0.9,
-                  stance: "oppose"
-                },
-                "regulations": {
-                  score: 0.8,
-                  stance: "oppose"
-                }
-              }
-            }
-          },
-          {
-            name: "Alex Johnson",
-            office: "City Council",
-            party: "Independent",
-            email: "alex.johnson@example.gov",
-            issueAreas: {
-              alignmentType: 'mixed',
-              matchScore: 0.7,
-              issueAreas: {
-                "housing": {
-                  score: 0.8,
-                  stance: "support"
-                },
-                "taxation": {
-                  score: 0.7,
-                  stance: "oppose"
-                }
-              }
-            }
-          }
-        ];
-        
-        // Add missing official types
-        const hasAligned = representativesWithIssueAreas.some(rep => rep.issueAreas.alignmentType === 'aligned');
-        const hasOpposing = representativesWithIssueAreas.some(rep => rep.issueAreas.alignmentType === 'opposing');
-        const hasMixed = representativesWithIssueAreas.some(rep => 
-          rep.issueAreas.alignmentType === 'mixed' || 
-          rep.issueAreas.alignmentType === 'unknown' || 
-          rep.issueAreas.alignmentType === 'keyDecisionMaker'
-        );
-        
-        if (!hasAligned) representativesWithIssueAreas.push(mockOfficials[0]);
-        if (!hasOpposing) representativesWithIssueAreas.push(mockOfficials[1]);
-        if (!hasMixed) representativesWithIssueAreas.push(mockOfficials[2]);
-      }
-      
-      // Create two arrays: one for aligned officials and one for opposing officials
+      // Create three arrays: one for aligned officials, one for opposing officials, and one for key decision makers
       const alignedOfficials = representativesWithIssueAreas
         .filter(rep => rep.issueAreas.alignmentType === 'aligned')
         .sort((a, b) => (b.issueAreas?.matchScore || 0) - (a.issueAreas?.matchScore || 0));
@@ -609,33 +528,187 @@ serve(async (req) => {
         )
         .sort((a, b) => (b.issueAreas?.matchScore || 0) - (a.issueAreas?.matchScore || 0));
       
-      // Make sure we have one of each type for the draft emails
-      const selectedOfficials = [];
+      // IMPROVED SELECTION LOGIC: Ensure we select unique officials for each category
+      // Start with empty selections
+      let selectedSupporter = null;
+      let selectedOpposer = null;
+      let selectedKeyDecisionMaker = null;
       
+      // Set of names of already selected officials to ensure uniqueness
+      const selectedOfficialNames = new Set();
+      
+      // Select the best supporter that hasn't been selected yet
       if (alignedOfficials.length > 0) {
-        selectedOfficials.push(alignedOfficials[0]);
-      }
-      
-      if (opposingOfficials.length > 0) {
-        selectedOfficials.push(opposingOfficials[0]);
-      }
-      
-      if (keyDecisionMakerOfficials.length > 0) {
-        selectedOfficials.push(keyDecisionMakerOfficials[0]);
-      }
-      
-      // If we don't have all three types, add officials from other categories
-      if (selectedOfficials.length < 3) {
-        const remainingOfficials = representativesWithIssueAreas
-          .filter(rep => !selectedOfficials.includes(rep))
-          .sort((a, b) => (b.issueAreas?.matchScore || 0) - (a.issueAreas?.matchScore || 0));
-        
-        while (selectedOfficials.length < 3 && remainingOfficials.length > 0) {
-          selectedOfficials.push(remainingOfficials.shift()!);
+        for (const official of alignedOfficials) {
+          if (!selectedOfficialNames.has(official.name)) {
+            selectedSupporter = official;
+            selectedOfficialNames.add(official.name);
+            break;
+          }
         }
       }
       
-      console.log(`Generating email drafts for ${selectedOfficials.length} officials`);
+      // Select the best opposer that hasn't been selected yet
+      if (opposingOfficials.length > 0) {
+        for (const official of opposingOfficials) {
+          if (!selectedOfficialNames.has(official.name)) {
+            selectedOpposer = official;
+            selectedOfficialNames.add(official.name);
+            break;
+          }
+        }
+      }
+      
+      // Select the best key decision maker that hasn't been selected yet
+      if (keyDecisionMakerOfficials.length > 0) {
+        for (const official of keyDecisionMakerOfficials) {
+          if (!selectedOfficialNames.has(official.name)) {
+            selectedKeyDecisionMaker = official;
+            selectedOfficialNames.add(official.name);
+            break;
+          }
+        }
+      }
+      
+      // If we're missing any category, look for alternatives from other categories
+      // Make sure we don't select the same official twice
+      
+      // If we don't have a supporter, look in other categories
+      if (!selectedSupporter) {
+        const allOtherOfficials = [...opposingOfficials, ...keyDecisionMakerOfficials]
+          .filter(rep => !selectedOfficialNames.has(rep.name))
+          .sort((a, b) => (b.issueAreas?.matchScore || 0) - (a.issueAreas?.matchScore || 0));
+          
+        if (allOtherOfficials.length > 0) {
+          selectedSupporter = allOtherOfficials[0];
+          selectedOfficialNames.add(selectedSupporter.name);
+          // Override the alignment type for display purposes
+          selectedSupporter = {
+            ...selectedSupporter,
+            issueAreas: {
+              ...selectedSupporter.issueAreas,
+              alignmentType: 'aligned'
+            }
+          };
+        }
+      }
+      
+      // If we don't have an opposer, look in other categories
+      if (!selectedOpposer) {
+        const allOtherOfficials = [...alignedOfficials, ...keyDecisionMakerOfficials]
+          .filter(rep => !selectedOfficialNames.has(rep.name))
+          .sort((a, b) => (b.issueAreas?.matchScore || 0) - (a.issueAreas?.matchScore || 0));
+          
+        if (allOtherOfficials.length > 0) {
+          selectedOpposer = allOtherOfficials[0];
+          selectedOfficialNames.add(selectedOpposer.name);
+          // Override the alignment type for display purposes
+          selectedOpposer = {
+            ...selectedOpposer,
+            issueAreas: {
+              ...selectedOpposer.issueAreas,
+              alignmentType: 'opposing'
+            }
+          };
+        }
+      }
+      
+      // If we don't have a key decision maker, look in other categories
+      if (!selectedKeyDecisionMaker) {
+        const allOtherOfficials = [...alignedOfficials, ...opposingOfficials]
+          .filter(rep => !selectedOfficialNames.has(rep.name))
+          .sort((a, b) => (b.issueAreas?.matchScore || 0) - (a.issueAreas?.matchScore || 0));
+          
+        if (allOtherOfficials.length > 0) {
+          selectedKeyDecisionMaker = allOtherOfficials[0];
+          selectedOfficialNames.add(selectedKeyDecisionMaker.name);
+          // Override the alignment type for display purposes
+          selectedKeyDecisionMaker = {
+            ...selectedKeyDecisionMaker,
+            issueAreas: {
+              ...selectedKeyDecisionMaker.issueAreas,
+              alignmentType: 'mixed'
+            }
+          };
+        }
+      }
+      
+      // In extreme cases where we still don't have 3 unique officials, create additional mock officials in demo mode
+      if (mode === "demo") {
+        if (!selectedSupporter) {
+          const mockOfficial = {
+            name: "Emma Parker",
+            office: "State Senate",
+            party: "Democratic",
+            email: "emma.parker@example.gov",
+            issueAreas: {
+              alignmentType: 'aligned',
+              matchScore: 0.82,
+              issueAreas: {
+                "healthcare": {
+                  score: 0.9, 
+                  stance: "support"
+                }
+              }
+            }
+          };
+          selectedSupporter = mockOfficial;
+          selectedOfficialNames.add(mockOfficial.name);
+        }
+        
+        if (!selectedOpposer) {
+          const mockOfficial = {
+            name: "Michael Roberts",
+            office: "County Board",
+            party: "Republican",
+            email: "michael.roberts@example.gov",
+            issueAreas: {
+              alignmentType: 'opposing',
+              matchScore: 0.78,
+              issueAreas: {
+                "taxes": {
+                  score: 0.85,
+                  stance: "oppose"
+                }
+              }
+            }
+          };
+          selectedOpposer = mockOfficial;
+          selectedOfficialNames.add(mockOfficial.name);
+        }
+        
+        if (!selectedKeyDecisionMaker) {
+          const mockOfficial = {
+            name: "Taylor Wilson",
+            office: "City Planning Commission",
+            party: "Independent",
+            email: "taylor.wilson@example.gov",
+            issueAreas: {
+              alignmentType: 'mixed',
+              matchScore: 0.75,
+              issueAreas: {
+                "infrastructure": {
+                  score: 0.8,
+                  stance: "support"
+                },
+                "budget": {
+                  score: 0.7,
+                  stance: "neutral"
+                }
+              }
+            }
+          };
+          selectedKeyDecisionMaker = mockOfficial;
+          selectedOfficialNames.add(mockOfficial.name);
+        }
+      }
+      
+      // Combine selected officials, filtering out any nulls
+      const selectedOfficials = [selectedSupporter, selectedOpposer, selectedKeyDecisionMaker]
+        .filter(official => official !== null);
+      
+      console.log('Selected unique officials:', selectedOfficials.map(o => o.name));
+      console.log(`Selected ${selectedOfficials.length} unique officials for emails`);
       
       // Generate email drafts for the selected officials
       draftEmails = await Promise.all(
@@ -671,6 +744,21 @@ serve(async (req) => {
       
       console.log('Email drafts generated:', draftEmails.length);
       console.log('Email types:', draftEmails.map(email => email.alignmentType));
+      console.log('Email recipients:', draftEmails.map(email => email.to));
+      
+      // Final verification that all emails go to different officials
+      const emailRecipients = new Set();
+      draftEmails = draftEmails.filter(email => {
+        if (emailRecipients.has(email.to)) {
+          console.log(`Filtering out duplicate email to ${email.to}`);
+          return false;
+        }
+        emailRecipients.add(email.to);
+        return true;
+      });
+      
+      console.log('Final deduplicated emails:', draftEmails.length);
+      console.log('Final email recipients:', draftEmails.map(email => email.to));
     }
 
     const interestGroups = await findRelevantGroups(priorities);
