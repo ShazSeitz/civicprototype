@@ -1,7 +1,5 @@
-
 import { useState, useRef, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import * as z from "zod";
 import { supabase } from '@/integrations/supabase/client';
 import Navbar from '../components/Navbar';
 import { VoterForm } from '@/components/VoterForm';
@@ -10,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from '@/components/ui/button';
+import { VoterFormValues } from '@/schemas/voterFormSchema';
 
 const formSchema = z.object({
   mode: z.enum(["current", "demo"], {
@@ -38,7 +37,6 @@ const Index = () => {
       if (!formData) return null;
       
       try {
-        // Combine original priorities with feedback priorities
         const allPriorities = [...formData.priorities, ...feedbackPriorities];
         console.log('Submitting form data:', { ...formData, priorities: allPriorities });
         
@@ -64,7 +62,6 @@ const Index = () => {
           throw new Error('No data returned from analysis');
         }
 
-        // Check for API errors
         if (data.apiStatuses) {
           if (data.apiStatuses.googleCivic === 'GOOGLE_CIVIC_API_NOT_CONFIGURED') {
             throw new Error('Google Civic API is not configured. Please add your API key.');
@@ -79,7 +76,6 @@ const Index = () => {
           }
         }
 
-        // Display unmapped terms in console
         if (data.unmappedTerms && data.unmappedTerms.length > 0) {
           console.log('Unmapped terms detected:', data.unmappedTerms);
           saveUnmappedTerms(data.unmappedTerms);
@@ -109,15 +105,9 @@ const Index = () => {
     refetchOnWindowFocus: false
   });
 
-  // Function to save unmapped terms to the JSON file
   const saveUnmappedTerms = async (terms: string[]) => {
     try {
-      // In a real production app, this would call an API endpoint
-      // For the purpose of this demo, we'll log the terms that would be saved
       console.log('Unmapped terms that need mapping:', terms);
-      
-      // For demo purposes, we're logging these to the console
-      // and showing a toast notification
       toast({
         title: "Unmapped Terms Detected",
         description: `${terms.length} priorities couldn't be mapped to existing terms and have been logged.`,
@@ -137,7 +127,7 @@ const Index = () => {
     }
   }, [recommendations]);
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
+  const onSubmit = (values: VoterFormValues) => {
     console.log('Form submitted with values:', values);
     setFormData(values);
     setFeedbackPriorities([]); // Reset feedback when new form is submitted
