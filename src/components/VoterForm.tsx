@@ -50,6 +50,59 @@ const testPersonas = {
   }
 };
 
+// Pool of potential priorities for random generation
+const priorityPool = [
+  "Concerned about access to affordable healthcare in my community",
+  "Worried about the quality of education in public schools",
+  "Want to see more investment in renewable energy",
+  "Think we need better mental health services for veterans",
+  "Would like to see term limits for elected officials",
+  "Concerned about privacy and data security online",
+  "Want more transparency in how tax dollars are spent",
+  "Concerned about the national debt and government spending",
+  "Want to protect Social Security for future generations",
+  "Think local small businesses need more support",
+  "Worried about drug prices and prescription medication costs",
+  "Concerned about the cost of college education and student loan debt",
+  "Want to see more investment in rural broadband access",
+  "Think we need better public transportation options",
+  "Concerned about gerrymandering and fair district boundaries",
+  "Want stricter gun control measures",
+  "Believe in stronger Second Amendment protections",
+  "Think foreign policy should focus more on diplomacy",
+  "Want stronger border security measures",
+  "Believe in creating easier paths to citizenship",
+  "Concerned about Supreme Court decisions and judicial impartiality",
+  "Want to see police reform and accountability",
+  "Think we need more support for law enforcement",
+  "Want to see protection for reproductive rights",
+  "Concerned about religious freedom protections"
+];
+
+// Function to generate a random US ZIP code
+const generateRandomZipCode = () => {
+  const zipDigits = [];
+  for (let i = 0; i < 5; i++) {
+    zipDigits.push(Math.floor(Math.random() * 10));
+  }
+  return zipDigits.join('');
+};
+
+// Function to generate random priorities
+const generateRandomPriorities = () => {
+  // Shuffle the priority pool and take 6 items
+  const shuffled = [...priorityPool].sort(() => 0.5 - Math.random());
+  return shuffled.slice(0, 6);
+};
+
+// Generate random data for persona3
+const generatePersona3 = () => {
+  return {
+    zipCode: generateRandomZipCode(),
+    priorities: generateRandomPriorities()
+  };
+};
+
 // Form validation schema
 const formSchema = z.object({
   mode: z.enum(["current", "demo"], {
@@ -94,8 +147,12 @@ export const VoterForm = ({ onSubmit, isLoading }: VoterFormProps) => {
     }
   };
 
-  const loadPersona = (persona: 'persona1' | 'persona2') => {
-    const selectedPersona = testPersonas[persona];
+  const loadPersona = (persona: 'persona1' | 'persona2' | 'persona3') => {
+    // For persona3, we generate random data on each call
+    const selectedPersona = persona === 'persona3' 
+      ? generatePersona3() 
+      : testPersonas[persona];
+      
     form.reset({
       mode: 'demo',
       zipCode: selectedPersona.zipCode,
@@ -119,7 +176,7 @@ export const VoterForm = ({ onSubmit, isLoading }: VoterFormProps) => {
     <Card className="mb-8 animate-fade-up">
       <CardContent className="pt-6">
         {/* Test Persona Buttons */}
-        <div className="flex gap-4 mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+        <div className="flex flex-wrap gap-4 mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
           <span className="flex items-center text-sm text-muted-foreground font-medium">
             Run test personas:
           </span>
@@ -138,6 +195,14 @@ export const VoterForm = ({ onSubmit, isLoading }: VoterFormProps) => {
             className="h-8 px-3"
           >
             Persona 2
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => loadPersona('persona3')}
+            className="h-8 px-3"
+          >
+            Random Persona
           </Button>
         </div>
 
