@@ -1,4 +1,3 @@
-
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -50,33 +49,33 @@ const testPersonas = {
   }
 };
 
-// Pool of potential priorities for random generation
+// Pool of potential priorities for random generation with more everyday language
 const priorityPool = [
-  "Concerned about access to affordable healthcare in my community",
-  "Worried about the quality of education in public schools",
-  "Want to see more investment in renewable energy",
-  "Think we need better mental health services for veterans",
-  "Would like to see term limits for elected officials",
-  "Concerned about privacy and data security online",
-  "Want more transparency in how tax dollars are spent",
-  "Concerned about the national debt and government spending",
-  "Want to protect Social Security for future generations",
-  "Think local small businesses need more support",
-  "Worried about drug prices and prescription medication costs",
-  "Concerned about the cost of college education and student loan debt",
-  "Want to see more investment in rural broadband access",
-  "Think we need better public transportation options",
-  "Concerned about gerrymandering and fair district boundaries",
-  "Want stricter gun control measures",
-  "Believe in stronger Second Amendment protections",
-  "Think foreign policy should focus more on diplomacy",
-  "Want stronger border security measures",
-  "Believe in creating easier paths to citizenship",
-  "Concerned about Supreme Court decisions and judicial impartiality",
-  "Want to see police reform and accountability",
-  "Think we need more support for law enforcement",
-  "Want to see protection for reproductive rights",
-  "Concerned about religious freedom protections"
+  "I can't afford my medical bills and I'm worried about my family's health",
+  "The schools in my neighborhood are falling apart and my kids aren't learning enough",
+  "Gas prices are too high and I'm worried about being able to afford my commute",
+  "Our veterans aren't getting the help they need when they come home",
+  "Politicians stay in office too long and nothing ever changes",
+  "I'm worried about companies knowing too much about me online",
+  "I have no idea where my tax money goes and it feels like it's wasted",
+  "The government keeps spending money we don't have",
+  "I'm worried Social Security won't be there when I retire",
+  "Small shops in my town are closing because they can't compete with big stores",
+  "My prescription costs more than my car payment",
+  "My kid's college loans are crushing them financially",
+  "Internet at my house is terrible and I can't work from home",
+  "I have to drive everywhere because there's no good bus service",
+  "It seems like politicians pick their voters instead of voters picking politicians",
+  "There are too many shootings in schools and we need to do something",
+  "The government shouldn't touch our guns - it's our right to protect ourselves",
+  "We should try talking to other countries more before getting into conflicts",
+  "Too many people are crossing the border illegally and it's not fair",
+  "It takes way too long for immigrants to become citizens even when they follow all the rules",
+  "The Supreme Court seems more political than fair these days",
+  "Some police officers get away with treating minorities badly",
+  "Police are being attacked and disrespected and need more support",
+  "Women should be able to make their own healthcare decisions without government interference",
+  "My religious values are under attack in today's culture"
 ];
 
 // Function to generate a random US ZIP code
