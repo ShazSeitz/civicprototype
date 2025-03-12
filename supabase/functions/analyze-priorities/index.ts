@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 
@@ -7,7 +8,8 @@ const corsHeaders = {
 }
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-const googleCivicApiKey = Deno.env.get('GOOGLE_CIVIC_API_KEY');
+// Try to get Google Civic API key from either GOOGLE_CIVIC_API_KEY or CIVIC_API_KEY
+const googleCivicApiKey = Deno.env.get('GOOGLE_CIVIC_API_KEY') || Deno.env.get('CIVIC_API_KEY');
 const fecApiKey = Deno.env.get('FEC_API_KEY');
 
 if (!openAIApiKey) {
@@ -93,21 +95,29 @@ async function analyzePriorities(priorities: string[], mode: "current" | "demo")
 }
 
 async function fetchRepresentatives(zipCode: string) {
+  // Log the Google Civic API key status
   if (!googleCivicApiKey) {
-    console.warn('GOOGLE_CIVIC_API_KEY is not set');
+    console.warn('No Google Civic API key found - checked both GOOGLE_CIVIC_API_KEY and CIVIC_API_KEY');
     throw new Error('GOOGLE_CIVIC_API_NOT_CONFIGURED');
   }
 
   try {
+    console.log(`Fetching representatives for ZIP code: ${zipCode}`);
     const url = `https://www.googleapis.com/civicinfo/v2/representatives?address=${zipCode}&key=${googleCivicApiKey}`;
+    console.log(`Making Google Civic API request to: ${url.replace(googleCivicApiKey, "REDACTED")}`);
+    
     const response = await fetch(url);
     
     if (!response.ok) {
-      console.error('Google Civic API error:', await response.text());
+      const errorText = await response.text();
+      console.error('Google Civic API error status:', response.status);
+      console.error('Google Civic API error text:', errorText);
       throw new Error('GOOGLE_CIVIC_API_ERROR');
     }
     
     const data = await response.json();
+    console.log('Google Civic API response status:', response.status);
+    console.log('Google Civic API response headers:', Object.fromEntries(response.headers.entries()));
     
     const representatives = [];
     
