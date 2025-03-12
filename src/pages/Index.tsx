@@ -6,14 +6,21 @@ import { VoterForm } from '@/components/VoterForm';
 import { RecommendationsList } from '@/components/RecommendationsList';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, RefreshCw } from "lucide-react";
+import { AlertCircle, RefreshCw, CheckCircle } from "lucide-react";
 import { Button } from '@/components/ui/button';
-import { VoterFormValues, formSchema } from '@/schemas/voterFormSchema';
+import { VoterFormValues } from '@/schemas/voterFormSchema';
 
 const Index = () => {
   const [formData, setFormData] = useState<VoterFormValues | null>(null);
   const [feedbackPriorities, setFeedbackPriorities] = useState<string[]>([]);
   const [submitCount, setSubmitCount] = useState(0);
+  const [apiStatus, setApiStatus] = useState<{
+    googleCivic: 'unknown' | 'connected' | 'error' | 'not_configured';
+    fec: 'unknown' | 'connected' | 'error' | 'not_configured';
+  }>({
+    googleCivic: 'unknown',
+    fec: 'unknown'
+  });
   const { toast } = useToast();
   const recommendationsRef = useRef<HTMLDivElement>(null);
 
@@ -55,15 +62,50 @@ const Index = () => {
         }
 
         if (data.apiStatuses) {
+          setApiStatus({
+            googleCivic: data.apiStatuses.googleCivic === 'CONNECTED' ? 'connected' : 
+                         data.apiStatuses.googleCivic === 'GOOGLE_CIVIC_API_NOT_CONFIGURED' ? 'not_configured' :
+                         data.apiStatuses.googleCivic === 'GOOGLE_CIVIC_API_ERROR' ? 'error' : 'unknown',
+            fec: data.apiStatuses.fec === 'CONNECTED' ? 'connected' :
+                 data.apiStatuses.fec === 'FEC_API_NOT_CONFIGURED' ? 'not_configured' :
+                 data.apiStatuses.fec === 'FEC_API_ERROR' ? 'error' : 'unknown'
+          });
+
           if (data.apiStatuses.googleCivic === 'GOOGLE_CIVIC_API_NOT_CONFIGURED') {
+            toast({
+              title: "API Configuration Issue",
+              description: "Google Civic API key is not configured. Please add your API key in Supabase.",
+              variant: "destructive",
+            });
             throw new Error('Google Civic API is not configured. Please add your API key.');
           } else if (data.apiStatuses.googleCivic === 'GOOGLE_CIVIC_API_ERROR') {
+            toast({
+              title: "API Connection Error",
+              description: "Failed to connect to Google Civic API. Please check your API key and try again.",
+              variant: "destructive",
+            });
             throw new Error('Failed to connect to Google Civic API. Please check your API key and try again.');
+          } else if (data.apiStatuses.googleCivic === 'CONNECTED') {
+            toast({
+              title: "API Connected",
+              description: "Successfully connected to Google Civic API.",
+              variant: "default",
+            });
           }
           
           if (data.apiStatuses.fec === 'FEC_API_NOT_CONFIGURED') {
+            toast({
+              title: "API Configuration Issue",
+              description: "FEC API key is not configured. Please add your API key in Supabase.",
+              variant: "destructive",
+            });
             throw new Error('FEC API is not configured. Please add your API key.');
           } else if (data.apiStatuses.fec === 'FEC_API_ERROR') {
+            toast({
+              title: "API Connection Error",
+              description: "Failed to connect to FEC API. Please check your API key and try again.",
+              variant: "destructive",
+            });
             throw new Error('Failed to connect to FEC API. Please check your API key and try again.');
           }
         }
@@ -131,6 +173,62 @@ const Index = () => {
     setSubmitCount(prev => prev + 1);
   };
 
+  const checkApiConnectivity = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('analyze-priorities', {
+        body: { checkApiOnly: true }
+      });
+
+      if (error) {
+        console.error('API check error:', error);
+        toast({
+          title: "Error",
+          description: error.message || 'Failed to check API connectivity',
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (data && data.apiStatuses) {
+        setApiStatus({
+          googleCivic: data.apiStatuses.googleCivic === 'CONNECTED' ? 'connected' : 
+                       data.apiStatuses.googleCivic === 'GOOGLE_CIVIC_API_NOT_CONFIGURED' ? 'not_configured' :
+                       data.apiStatuses.googleCivic === 'GOOGLE_CIVIC_API_ERROR' ? 'error' : 'unknown',
+          fec: data.apiStatuses.fec === 'CONNECTED' ? 'connected' :
+               data.apiStatuses.fec === 'FEC_API_NOT_CONFIGURED' ? 'not_configured' :
+               data.apiStatuses.fec === 'FEC_API_ERROR' ? 'error' : 'unknown'
+        });
+
+        if (data.apiStatuses.googleCivic === 'CONNECTED') {
+          toast({
+            title: "Google Civic API",
+            description: "Successfully connected to the API.",
+            variant: "default",
+          });
+        } else if (data.apiStatuses.googleCivic === 'GOOGLE_CIVIC_API_NOT_CONFIGURED') {
+          toast({
+            title: "Google Civic API",
+            description: "API key not configured. Please add your API key.",
+            variant: "destructive",
+          });
+        } else if (data.apiStatuses.googleCivic === 'GOOGLE_CIVIC_API_ERROR') {
+          toast({
+            title: "Google Civic API",
+            description: "Connection error. Please check your API key.",
+            variant: "destructive",
+          });
+        }
+      }
+    } catch (err: any) {
+      console.error('API check failed:', err);
+      toast({
+        title: "Error",
+        description: err.message || 'Failed to check API connectivity',
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
       <Navbar />
@@ -140,6 +238,23 @@ const Index = () => {
           <h1 className="text-4xl font-bold text-center mb-4 animate-fade-up">
             Voter Information Tool
           </h1>
+          
+          <div className="mb-6 flex justify-center">
+            <Button 
+              variant="outline" 
+              onClick={checkApiConnectivity}
+              className="flex items-center gap-2"
+            >
+              {apiStatus.googleCivic === 'connected' ? (
+                <CheckCircle className="h-4 w-4 text-green-500" />
+              ) : apiStatus.googleCivic === 'error' ? (
+                <AlertCircle className="h-4 w-4 text-red-500" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
+              Check Google Civic API Connection
+            </Button>
+          </div>
           
           <VoterForm 
             onSubmit={onSubmit} 

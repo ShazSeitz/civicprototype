@@ -1,7 +1,7 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 
+// CORS headers
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -13,7 +13,61 @@ const googleCivicApiKey = Deno.env.get('GOOGLE_CIVIC_API_KEY') || Deno.env.get('
 const fecApiKey = Deno.env.get('FEC_API_KEY');
 
 if (!openAIApiKey) {
-  throw new Error('OPENAI_API_KEY is not set');
+  console.warn('OPENAI_API_KEY is not set');
+}
+
+// Function to test API connectivity
+async function testGoogleCivicApiConnection() {
+  if (!googleCivicApiKey) {
+    console.warn('No Google Civic API key found - checked both GOOGLE_CIVIC_API_KEY and CIVIC_API_KEY');
+    return 'GOOGLE_CIVIC_API_NOT_CONFIGURED';
+  }
+
+  try {
+    // Use a test zip code to verify API connectivity
+    const testZip = '10001';
+    console.log(`Testing Google Civic API connectivity with test ZIP: ${testZip}`);
+    const url = `https://www.googleapis.com/civicinfo/v2/representatives?address=${testZip}&key=${googleCivicApiKey}`;
+    
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Google Civic API test failed with status:', response.status);
+      console.error('Google Civic API error details:', errorText);
+      return 'GOOGLE_CIVIC_API_ERROR';
+    }
+    
+    console.log('Google Civic API test successful');
+    return 'CONNECTED';
+  } catch (error) {
+    console.error('Error testing Google Civic API connection:', error);
+    return 'GOOGLE_CIVIC_API_ERROR';
+  }
+}
+
+async function testFecApiConnection() {
+  if (!fecApiKey) {
+    console.warn('FEC_API_KEY is not set');
+    return 'FEC_API_NOT_CONFIGURED';
+  }
+
+  try {
+    // Simple test to check API connectivity
+    const url = `https://api.open.fec.gov/v1/candidates/?api_key=${fecApiKey}&page=1&per_page=1`;
+    
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      console.error('FEC API test failed:', await response.text());
+      return 'FEC_API_ERROR';
+    }
+    
+    return 'CONNECTED';
+  } catch (error) {
+    console.error('Error testing FEC API connection:', error);
+    return 'FEC_API_ERROR';
+  }
 }
 
 async function analyzePriorities(priorities: string[], mode: "current" | "demo") {
@@ -95,7 +149,6 @@ async function analyzePriorities(priorities: string[], mode: "current" | "demo")
 }
 
 async function fetchRepresentatives(zipCode: string) {
-  // Log the Google Civic API key status
   if (!googleCivicApiKey) {
     console.warn('No Google Civic API key found - checked both GOOGLE_CIVIC_API_KEY and CIVIC_API_KEY');
     throw new Error('GOOGLE_CIVIC_API_NOT_CONFIGURED');
@@ -459,12 +512,40 @@ async function findRelevantGroups(priorities: string[]) {
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    const requestData = await req.json();
-    const { priorities, mode, zipCode } = requestData;
+    const body = await req.json();
+    console.log('Request body:', JSON.stringify(body));
+
+    // If this is just an API connectivity check
+    if (body.checkApiOnly) {
+      console.log('Performing API connectivity check only');
+      
+      // Test all API connections in parallel
+      const [googleCivicStatus, fecStatus] = await Promise.all([
+        testGoogleCivicApiConnection(),
+        testFecApiConnection()
+      ]);
+      
+      return new Response(
+        JSON.stringify({
+          apiStatuses: {
+            googleCivic: googleCivicStatus,
+            fec: fecStatus
+          }
+        }),
+        {
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+    }
+
+    const { priorities, mode, zipCode } = body;
     console.log('Received request:', { priorities, mode, zipCode });
 
     if (!Array.isArray(priorities) || priorities.length === 0) {
