@@ -8,18 +8,10 @@ import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from '@/components/ui/button';
-import { VoterFormValues } from '@/schemas/voterFormSchema';
-
-const formSchema = z.object({
-  mode: z.enum(["current", "demo"], {
-    required_error: "Please select a mode.",
-  }),
-  zipCode: z.string().min(5, "Please enter a valid ZIP code.").max(10),
-  priorities: z.array(z.string().min(1, "Priority cannot be empty")).length(6, "Please enter all 6 priorities"),
-});
+import { VoterFormValues, formSchema } from '@/schemas/voterFormSchema';
 
 const Index = () => {
-  const [formData, setFormData] = useState<z.infer<typeof formSchema> | null>(null);
+  const [formData, setFormData] = useState<VoterFormValues | null>(null);
   const [feedbackPriorities, setFeedbackPriorities] = useState<string[]>([]);
   const [submitCount, setSubmitCount] = useState(0);
   const { toast } = useToast();
