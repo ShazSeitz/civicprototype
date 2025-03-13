@@ -181,9 +181,12 @@ const Index = () => {
         variant: "default",
       });
       
+      console.log('Sending Google Civic API check request');
       const { data, error } = await supabase.functions.invoke('analyze-priorities', {
         body: { checkGoogleCivicApiOnly: true }
       });
+
+      console.log('Google Civic API check response:', data, error);
 
       if (error) {
         console.error('Google Civic API check error:', error);
@@ -241,9 +244,12 @@ const Index = () => {
         variant: "default",
       });
       
+      console.log('Sending FEC API check request');
       const { data, error } = await supabase.functions.invoke('analyze-priorities', {
         body: { checkFecApiOnly: true }
       });
+
+      console.log('FEC API check response:', data, error);
 
       if (error) {
         console.error('FEC API check error:', error);
@@ -260,7 +266,10 @@ const Index = () => {
           ...prevStatus,
           fec: data.apiStatuses.fec === 'CONNECTED' ? 'connected' :
                data.apiStatuses.fec === 'FEC_API_NOT_CONFIGURED' ? 'not_configured' :
-               data.apiStatuses.fec === 'FEC_API_ERROR' ? 'error' : 'unknown'
+               data.apiStatuses.fec === 'FEC_API_ERROR' || 
+               data.apiStatuses.fec === 'FEC_API_UNAUTHORIZED' || 
+               data.apiStatuses.fec === 'FEC_API_ENDPOINT_NOT_FOUND' || 
+               data.apiStatuses.fec === 'FEC_API_RATE_LIMIT' ? 'error' : 'unknown'
         }));
 
         if (data.apiStatuses.fec === 'CONNECTED') {
@@ -275,10 +284,28 @@ const Index = () => {
             description: "API key not configured. Please add your API key.",
             variant: "destructive",
           });
+        } else if (data.apiStatuses.fec === 'FEC_API_UNAUTHORIZED') {
+          toast({
+            title: "FEC API",
+            description: "API key is invalid or unauthorized.",
+            variant: "destructive",
+          });
+        } else if (data.apiStatuses.fec === 'FEC_API_ENDPOINT_NOT_FOUND') {
+          toast({
+            title: "FEC API",
+            description: "API endpoint not found. Please check service status.",
+            variant: "destructive",
+          });
+        } else if (data.apiStatuses.fec === 'FEC_API_RATE_LIMIT') {
+          toast({
+            title: "FEC API",
+            description: "Rate limit exceeded. Please try again later.",
+            variant: "destructive",
+          });
         } else if (data.apiStatuses.fec === 'FEC_API_ERROR') {
           toast({
             title: "FEC API",
-            description: "Connection error. Please check your API key.",
+            description: "Connection error. Please check your API key and service status.",
             variant: "destructive",
           });
         }

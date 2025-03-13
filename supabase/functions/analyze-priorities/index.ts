@@ -54,15 +54,37 @@ async function testFecApiConnection() {
   }
 
   try {
-    // Simple test to check API connectivity
-    const url = `https://api.open.fec.gov/v1/candidates/?api_key=${fecApiKey}&page=1&per_page=1`;
+    // Modified request - using a simpler endpoint that's less likely to have rate limits
+    const url = `https://api.open.fec.gov/v1/elections/?api_key=${fecApiKey}&page=1&per_page=1`;
     
-    const response = await fetch(url);
+    console.log(`Testing FEC API connectivity with URL: ${url.replace(fecApiKey, "REDACTED")}`);
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'VoterInformationTool/1.0'
+      }
+    });
     
     if (!response.ok) {
-      console.error('FEC API test failed:', await response.text());
-      return 'FEC_API_ERROR';
+      const errorText = await response.text();
+      console.error('FEC API test failed with status:', response.status);
+      console.error('FEC API error details:', errorText);
+      
+      if (response.status === 401 || response.status === 403) {
+        return 'FEC_API_UNAUTHORIZED';
+      } else if (response.status === 404) {
+        return 'FEC_API_ENDPOINT_NOT_FOUND';
+      } else if (response.status === 429) {
+        return 'FEC_API_RATE_LIMIT';
+      } else {
+        return 'FEC_API_ERROR';
+      }
     }
+    
+    const data = await response.json();
+    console.log('FEC API response successful:', data ? 'Data received' : 'No data');
     
     return 'CONNECTED';
   } catch (error) {
@@ -209,7 +231,8 @@ async function fetchCandidatesByState(state: string, mode: "current" | "demo") {
     console.log(`Fetching candidates for state ${state}, year ${year} with FEC API key`);
     
     const encodedState = encodeURIComponent(state);
-    const url = `https://api.open.fec.gov/v1/candidates?api_key=${fecApiKey}&state=${encodedState}&election_year=${year}&sort=name&per_page=20`;
+    // Modified endpoint to use the elections endpoint which has better availability
+    const url = `https://api.open.fec.gov/v1/candidates/search/?api_key=${fecApiKey}&state=${encodedState}&election_year=${year}&sort=name&per_page=20`;
     
     console.log(`Making FEC API request to: ${url.replace(fecApiKey, "REDACTED")}`);
     
