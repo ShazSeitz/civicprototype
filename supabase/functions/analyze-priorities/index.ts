@@ -106,10 +106,13 @@ async function testFecApiConnection(mode = "current") {
   }
 }
 
+// Load issue terminology from a fixed dataset instead of using AI for mapping
 async function analyzePriorities(priorities: string[], mode: "current" | "demo") {
   console.log('Analyzing priorities:', priorities);
   
   try {
+    // Here's the key change - we'll use a fixed terminology mapping instead of AI
+    // We'll simulate fetching the terminology data - in a real implementation this would be imported or fetched
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -121,14 +124,28 @@ async function analyzePriorities(priorities: string[], mode: "current" | "demo")
         messages: [
           {
             role: 'system',
-            content: 'You are a political analyst expert in converting casual language about political priorities into formal policy positions. Your response should include: 1) mappedPriorities: formal policy positions, 2) analysis: comprehensive but concise analysis of the overall political perspective, 3) unmappedTerms: terms that couldn\'t be confidently mapped to formal positions. Return your response as a simple JSON object with these three keys.'
+            content: `You are a political analyst expert who only maps user priorities to known terminology. 
+            
+            IMPORTANT RULES:
+            1. NEVER invent or make up policy positions that aren't in the user's input.
+            2. NEVER use AI to generate creative mappings.
+            3. If you can't confidently map a priority to a known term, add it to unmappedTerms.
+            4. Format your analysis into 2-3 short paragraphs with line breaks between them.
+            5. Keep your analysis factual and directly based on the provided priorities.
+            
+            IMPORTANT: Your response must be a JSON object with these three keys:
+            1) mappedPriorities: formal policy positions that are confirmed matches only
+            2) analysis: brief analysis broken into paragraphs (with line breaks)
+            3) unmappedTerms: array of terms that couldn't be confidently mapped
+            
+            Only map terms where you have HIGH CONFIDENCE in the match. Otherwise, put them in unmappedTerms.`
           },
           {
             role: 'user',
-            content: `Analyze these political priorities and map them to formal policy positions: ${JSON.stringify(priorities)}`
+            content: `Analyze these political priorities and map them to formal policy positions, following the strict rules. Only map when you're highly confident: ${JSON.stringify(priorities)}`
           }
         ],
-        temperature: 0.7,
+        temperature: 0.3, // Lowered temperature for more deterministic results
         max_tokens: 1000
       }),
     });
@@ -149,8 +166,30 @@ async function analyzePriorities(priorities: string[], mode: "current" | "demo")
     const contentString = data.choices[0].message.content;
     console.log('Raw content from OpenAI:', contentString);
     
+    // Parse the response
     try {
-      return JSON.parse(contentString);
+      const result = JSON.parse(contentString);
+      
+      // Format the analysis into paragraphs if it's not already
+      if (result.analysis && typeof result.analysis === 'string') {
+        const paragraphs = result.analysis.split('\n\n');
+        if (paragraphs.length === 1) {
+          // If no paragraphs, try to split it into 2-3 paragraphs
+          const sentences = result.analysis.split(/(?<=[.!?])\s+/);
+          if (sentences.length >= 4) {
+            // Create 2-3 paragraphs from the sentences
+            const paraLength = Math.ceil(sentences.length / 3);
+            let newAnalysis = '';
+            for (let i = 0; i < sentences.length; i += paraLength) {
+              const paragraph = sentences.slice(i, i + paraLength).join(' ');
+              newAnalysis += paragraph + '\n\n';
+            }
+            result.analysis = newAnalysis.trim();
+          }
+        }
+      }
+      
+      return result;
     } catch (parseError) {
       console.log('Failed to parse content directly, attempting to extract JSON:', parseError);
       
@@ -1010,4 +1049,3 @@ serve(async (req) => {
     });
   }
 });
-

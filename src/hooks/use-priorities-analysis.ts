@@ -31,12 +31,14 @@ export function usePrioritiesAnalysis() {
   
   const saveUnmappedTerms = async (terms: string[]) => {
     try {
-      console.log('Unmapped terms that need mapping:', terms);
-      toast({
-        title: "Unmapped Terms Detected",
-        description: `${terms.length} priorities couldn't be mapped to existing terms and have been logged.`,
-        variant: "default",
-      });
+      if (terms && terms.length > 0) {
+        console.log('Unmapped terms that need mapping:', terms);
+        toast({
+          title: "Unmapped Terms Detected",
+          description: `${terms.length} priorities couldn't be mapped to existing terms and have been logged for future updates.`,
+          variant: "default",
+        });
+      }
     } catch (error) {
       console.error('Error saving unmapped terms:', error);
     }
@@ -140,9 +142,26 @@ export function usePrioritiesAnalysis() {
           saveUnmappedTerms(data.unmappedTerms);
         }
 
+        // Format analysis into paragraphs if it's not already
+        let formattedAnalysis = data.analysis;
+        if (formattedAnalysis && !formattedAnalysis.includes('\n\n')) {
+          // Ensure analysis is formatted into readable paragraphs
+          const sentences = formattedAnalysis.split(/(?<=[.!?])\s+/);
+          if (sentences.length >= 4) {
+            // Create 2-3 paragraphs from the sentences
+            const paraLength = Math.ceil(sentences.length / 3);
+            let newAnalysis = '';
+            for (let i = 0; i < sentences.length; i += paraLength) {
+              const paragraph = sentences.slice(i, i + paraLength).join(' ');
+              newAnalysis += paragraph + '\n\n';
+            }
+            formattedAnalysis = newAnalysis.trim();
+          }
+        }
+
         return {
           mode: data.mode,
-          analysis: data.analysis,
+          analysis: formattedAnalysis,
           candidates: data.candidates || [],
           ballotMeasures: data.ballotMeasures || [],
           draftEmails: data.draftEmails || [],
