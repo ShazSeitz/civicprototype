@@ -42,13 +42,15 @@ export function SetApiKeyDialog({ apiType, onApiKeySet }: SetApiKeyDialogProps) 
     setIsSubmitting(true);
 
     try {
-      const secretName = apiType === 'fec' ? 'FEC_API_KEY' : 'GOOGLE_CIVIC_API_KEY';
-      const { error } = await supabase.functions.invoke('set-api-key', {
+      console.log(`Submitting ${apiType} API key...`);
+      const { data, error } = await supabase.functions.invoke('set-api-key', {
         body: { 
           apiType, 
           apiKey 
         }
       });
+
+      console.log('Response from set-api-key function:', data, error);
 
       if (error) {
         console.error('Error setting API key:', error);

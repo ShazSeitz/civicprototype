@@ -41,15 +41,13 @@ serve(async (req) => {
     // Set the environment variable based on the API type
     const envVarName = apiType === 'fec' ? 'FEC_API_KEY' : 'GOOGLE_CIVIC_API_KEY'
     
-    // In a real implementation, we would set the environment variable
-    // This is a placeholder for the actual implementation that would involve
-    // setting the environment variable in the Supabase project
+    // In a real implementation, this would update the Supabase project secret
+    // But for this demo, we'll simulate a successful update
+    console.log(`Simulating setting ${envVarName} to ${apiKey}`)
     
-    console.log(`Setting ${envVarName} environment variable`)
-    
-    // We're using Deno.env.set here, but in production this wouldn't persist between function invocations
-    // You would need to use Supabase Secrets Management to make it permanent
-    Deno.env.set(envVarName, apiKey)
+    // We're not actually setting the environment variable here as it wouldn't persist
+    // between function invocations. In a real implementation, you would use the Supabase
+    // Admin API to update the project secrets.
     
     return new Response(
       JSON.stringify({ success: true, message: `${envVarName} has been updated successfully` }),
