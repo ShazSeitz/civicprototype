@@ -125,6 +125,13 @@ export function usePrioritiesAnalysis() {
               variant: "destructive",
             });
             throw new Error('Failed to connect to FEC API. Please check your API key and try again.');
+          } else if (data.apiStatuses.fec === 'FEC_API_UNAUTHORIZED') {
+            toast({
+              title: "API Authorization Error",
+              description: "FEC API key is invalid or unauthorized. Please enter a new API key.",
+              variant: "destructive",
+            });
+            throw new Error('FEC API key is invalid or unauthorized. Please enter a new API key.');
           }
         }
 

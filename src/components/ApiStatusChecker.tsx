@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, RefreshCw, CheckCircle } from "lucide-react";
+import { SetApiKeyDialog } from './SetApiKeyDialog';
 
 export type ApiStatus = 'unknown' | 'connected' | 'error' | 'not_configured';
 
@@ -53,7 +54,7 @@ export const ApiStatusChecker = ({
       }
 
       if (data && data.apiStatuses) {
-        const newStatus = {
+        const newStatus: { googleCivic: ApiStatus; fec: ApiStatus } = {
           ...apiStatus,
           googleCivic: data.apiStatuses.googleCivic === 'CONNECTED' ? 'connected' : 
                       data.apiStatuses.googleCivic === 'GOOGLE_CIVIC_API_NOT_CONFIGURED' ? 'not_configured' :
@@ -119,7 +120,7 @@ export const ApiStatusChecker = ({
       }
 
       if (data && data.apiStatuses) {
-        const newStatus = {
+        const newStatus: { googleCivic: ApiStatus; fec: ApiStatus } = {
           ...apiStatus,
           fec: data.apiStatuses.fec === 'CONNECTED' ? 'connected' :
               data.apiStatuses.fec === 'FEC_API_NOT_CONFIGURED' ? 'not_configured' :
@@ -181,36 +182,57 @@ export const ApiStatusChecker = ({
   };
 
   return (
-    <div className="mb-6 flex justify-center gap-4">
-      <Button 
-        variant="outline" 
-        onClick={checkGoogleCivicApi}
-        className="flex items-center gap-2"
-      >
-        {apiStatus.googleCivic === 'connected' ? (
-          <CheckCircle className="h-4 w-4 text-green-500" />
-        ) : apiStatus.googleCivic === 'error' || apiStatus.googleCivic === 'not_configured' ? (
-          <AlertCircle className="h-4 w-4 text-red-500" />
-        ) : (
-          <RefreshCw className="h-4 w-4" />
-        )}
-        Check Google Civic API Connection
-      </Button>
+    <div className="mb-6 space-y-4">
+      <div className="flex justify-center gap-4">
+        <Button 
+          variant="outline" 
+          onClick={checkGoogleCivicApi}
+          className="flex items-center gap-2"
+        >
+          {apiStatus.googleCivic === 'connected' ? (
+            <CheckCircle className="h-4 w-4 text-green-500" />
+          ) : apiStatus.googleCivic === 'error' || apiStatus.googleCivic === 'not_configured' ? (
+            <AlertCircle className="h-4 w-4 text-red-500" />
+          ) : (
+            <RefreshCw className="h-4 w-4" />
+          )}
+          Check Google Civic API Connection
+        </Button>
+        
+        <Button 
+          variant="outline" 
+          onClick={checkFecApi}
+          className="flex items-center gap-2"
+        >
+          {apiStatus.fec === 'connected' ? (
+            <CheckCircle className="h-4 w-4 text-green-500" />
+          ) : apiStatus.fec === 'error' || apiStatus.fec === 'not_configured' ? (
+            <AlertCircle className="h-4 w-4 text-red-500" />
+          ) : (
+            <RefreshCw className="h-4 w-4" />
+          )}
+          Check FEC API Connection
+        </Button>
+      </div>
       
-      <Button 
-        variant="outline" 
-        onClick={checkFecApi}
-        className="flex items-center gap-2"
-      >
-        {apiStatus.fec === 'connected' ? (
-          <CheckCircle className="h-4 w-4 text-green-500" />
-        ) : apiStatus.fec === 'error' || apiStatus.fec === 'not_configured' ? (
-          <AlertCircle className="h-4 w-4 text-red-500" />
-        ) : (
-          <RefreshCw className="h-4 w-4" />
-        )}
-        Check FEC API Connection
-      </Button>
+      {(apiStatus.googleCivic === 'not_configured' || apiStatus.googleCivic === 'error' || 
+        apiStatus.fec === 'not_configured' || apiStatus.fec === 'error') && (
+        <div className="flex justify-center gap-4">
+          {(apiStatus.googleCivic === 'not_configured' || apiStatus.googleCivic === 'error') && (
+            <SetApiKeyDialog 
+              apiType="googleCivic" 
+              onApiKeySet={checkGoogleCivicApi} 
+            />
+          )}
+          
+          {(apiStatus.fec === 'not_configured' || apiStatus.fec === 'error') && (
+            <SetApiKeyDialog 
+              apiType="fec" 
+              onApiKeySet={checkFecApi} 
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 };
