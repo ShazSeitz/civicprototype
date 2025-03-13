@@ -67,3 +67,43 @@
 - Compare and contrast tables showing trade offs of different candidates and ballot issues
 - Share features
 
+## Application Interface Components:
+
+### API Connection Verification
+- **API Connection Buttons:** Two prominent buttons at the top of the interface to verify connection status:
+  1. **Check Google Civic API Connection:** Verifies the application can access election data from Google Civic API
+  2. **Check FEC API Connection:** Verifies the application can access campaign finance data from the Federal Election Commission API
+  - Each button displays a clear visual indicator (green checkmark for success, red alert for failure) of connection status
+  - Toast notifications appear with detailed connection status information
+
+### Test Personas Section
+- **Test Persona Controls:** Located immediately above the main form
+  - Three distinct buttons for loading different personas:
+    1. **Persona 1:** Loads a predefined voter with specific priorities and ZIP code
+    2. **Persona 2:** Loads an alternative predefined voter profile
+    3. **Random Persona:** Dynamically generates a voter with random priorities and ZIP code
+  - Designed with a light background and border to visually distinguish them from the main form
+  - Clicking any test persona button automatically populates the form with that persona's data and sets mode to "demo"
+
+### Debug Tool
+- **Terminology Debug Tool:** Accessible from the navigation menu
+  - Provides a specialized interface for testing the terminology mapping system
+  - Includes a text input area for entering natural language priorities
+  - Displays detailed mapping results showing:
+    - Matched categories with confidence scores
+    - Recognized standardized terms
+    - Plain English explanations
+    - Match details for transparency
+  - Used primarily by developers and content specialists to refine the mapping system
+
+### Email Generation Logic
+- The system evaluates elected officials based on their alignment with user priorities
+- Officials are categorized into three groups:
+  1. **Aligned officials:** Those likely to support the user's priorities
+  2. **Opposing officials:** Those likely to oppose the user's priorities
+  3. **Key decision makers:** Those with mixed or neutral stance
+- Email drafts are generated with appropriate messaging strategies for each category:
+  - **Supportive:** Thank you + reinforcement
+  - **Opposing:** Educational + persuasive
+  - **Mixed:** Acknowledge agreement + persuade on differences
+

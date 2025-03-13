@@ -24,3 +24,6 @@ export const generatePersona3 = () => {
     priorities: generateRandomPriorities()
   };
 };
+
+// For future expansion, we could add more sophisticated persona generation
+// such as themed personas (environmental focus, economic focus, etc.)

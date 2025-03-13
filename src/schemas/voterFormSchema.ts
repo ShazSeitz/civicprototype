@@ -11,3 +11,9 @@ export const formSchema = z.object({
 });
 
 export type VoterFormValues = z.infer<typeof formSchema>;
+
+// This schema is used to validate user input before sending to the API
+// It ensures that:
+// - A valid mode is selected (current date or demo mode)
+// - The ZIP code is exactly 5 digits and contains only numbers
+// - Exactly 6 priorities are provided, none of which are empty
