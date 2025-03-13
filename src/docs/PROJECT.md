@@ -46,6 +46,7 @@ VoterPrime is a nonpartisan primer that makes it easy for US citizens to make co
   - Buttons for loading predefined personas or generating a random persona (populating zip code and priorities, and setting mode to demo).
 
 ## 5. Outputs & Presentation
+- Any outputs that can not be displayed instantly should display a progress animation so that the user knows that the application is working
 
 ### 5.1. Mode-Specific Recommendations
 
