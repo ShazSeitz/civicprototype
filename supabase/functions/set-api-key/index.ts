@@ -1,5 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.48.1'
 
 // CORS headers
 const corsHeaders = {
@@ -39,18 +40,47 @@ serve(async (req) => {
     }
     
     // Set the environment variable based on the API type
-    const envVarName = apiType === 'fec' ? 'FEC_API_KEY' : 'GOOGLE_CIVIC_API_KEY'
+    const secretName = apiType === 'fec' ? 'FEC_API_KEY' : 'GOOGLE_CIVIC_API_KEY'
     
-    // In a real implementation, this would update the Supabase project secret
-    // But for this demo, we'll simulate a successful update
-    console.log(`Simulating setting ${envVarName} to ${apiKey}`)
+    // Create a Supabase client with service role key to manage secrets
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
+    const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
     
-    // We're not actually setting the environment variable here as it wouldn't persist
-    // between function invocations. In a real implementation, you would use the Supabase
-    // Admin API to update the project secrets.
+    if (!supabaseUrl || !supabaseServiceRoleKey) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Server configuration error: Missing Supabase URL or service role key' 
+        }),
+        { 
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
+    }
+    
+    const supabase = createClient(supabaseUrl, supabaseServiceRoleKey)
+    
+    // Update the project secret
+    const { error } = await supabase.functions.setSecret(secretName, apiKey)
+    
+    if (error) {
+      console.error(`Error setting ${secretName}:`, error)
+      return new Response(
+        JSON.stringify({ 
+          error: `Failed to set ${secretName}`,
+          details: error.message
+        }),
+        { 
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
+    }
+    
+    console.log(`Successfully set ${secretName}`)
     
     return new Response(
-      JSON.stringify({ success: true, message: `${envVarName} has been updated successfully` }),
+      JSON.stringify({ success: true, message: `${secretName} has been updated successfully` }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
