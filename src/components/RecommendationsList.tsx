@@ -29,12 +29,12 @@ export function RecommendationsList({ recommendations, onFeedbackSubmit }: Recom
     
     if (paragraphs.length > 1) {
       return paragraphs.map((paragraph, index) => (
-        <p key={index} className="mb-4">{paragraph}</p>
+        <p key={index} className="mb-4 text-left">{paragraph}</p>
       ));
     }
     
     // If no double newlines, render as a single paragraph
-    return <p>{analysis}</p>;
+    return <p className="text-left">{analysis}</p>;
   };
 
   return (
@@ -47,7 +47,7 @@ export function RecommendationsList({ recommendations, onFeedbackSubmit }: Recom
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="prose prose-sm">
+          <div className="prose prose-sm text-left">
             {renderAnalysis(recommendations.analysis)}
           </div>
         </CardContent>
@@ -61,7 +61,8 @@ export function RecommendationsList({ recommendations, onFeedbackSubmit }: Recom
                 onChange={(e) => setFeedback(e.target.value)}
                 className="flex-1"
               />
-              <Button onClick={handleSubmitFeedback}>Add</Button>
+              <Button onClick={handleSubmitFeedback} variant="outline">Clarify</Button>
+              <Button onClick={handleSubmitFeedback}>Get Recommendations</Button>
             </div>
           </div>
         </CardFooter>
