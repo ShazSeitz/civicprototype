@@ -59,11 +59,13 @@ export function usePrioritiesAnalysis() {
         const allPriorities = [...formData.priorities, ...feedbackPriorities];
         console.log('Submitting form data:', { ...formData, priorities: allPriorities });
         
+        // Include a roleFilter parameter to ensure appropriate matching of officials to issues
         const { data, error } = await supabase.functions.invoke('analyze-priorities', {
           body: { 
             mode: formData.mode, 
             zipCode: formData.zipCode,
-            priorities: allPriorities 
+            priorities: allPriorities,
+            improveMatching: true // Signal to the function to use improved matching logic
           }
         });
 
@@ -81,6 +83,7 @@ export function usePrioritiesAnalysis() {
           throw new Error('No data returned from analysis');
         }
 
+        // Handle API status checks
         if (data.apiStatuses) {
           setApiStatus({
             googleCivic: data.apiStatuses.googleCivic === 'CONNECTED' ? 'connected' : 
@@ -91,6 +94,7 @@ export function usePrioritiesAnalysis() {
                  data.apiStatuses.fec === 'FEC_API_ERROR' ? 'error' : 'unknown'
           });
 
+          // Handle API configuration issues
           if (data.apiStatuses.googleCivic === 'GOOGLE_CIVIC_API_NOT_CONFIGURED') {
             toast({
               title: "API Configuration Issue",
@@ -113,6 +117,7 @@ export function usePrioritiesAnalysis() {
             });
           }
           
+          // Handle FEC API status
           if (data.apiStatuses.fec === 'FEC_API_NOT_CONFIGURED') {
             toast({
               title: "API Configuration Issue",
@@ -137,6 +142,7 @@ export function usePrioritiesAnalysis() {
           }
         }
 
+        // Process unmapped terms
         if (data.unmappedTerms && data.unmappedTerms.length > 0) {
           console.log('Unmapped terms detected:', data.unmappedTerms);
           saveUnmappedTerms(data.unmappedTerms);
@@ -159,10 +165,26 @@ export function usePrioritiesAnalysis() {
           }
         }
 
+        // Process and enhance the candidates data to include alignment info if not present
+        const enhancedCandidates = data.candidates?.map(candidate => {
+          if (!candidate.alignment) {
+            // If the server didn't provide alignment data, add placeholder
+            return {
+              ...candidate,
+              alignment: {
+                type: 'unknown',
+                supportedPriorities: [],
+                conflictingPriorities: []
+              }
+            };
+          }
+          return candidate;
+        }) || [];
+
         return {
           mode: data.mode,
           analysis: formattedAnalysis,
-          candidates: data.candidates || [],
+          candidates: enhancedCandidates,
           ballotMeasures: data.ballotMeasures || [],
           draftEmails: data.draftEmails || [],
           interestGroups: data.interestGroups || [],
