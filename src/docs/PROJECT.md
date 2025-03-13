@@ -1,109 +1,173 @@
 
-# VoterPrime - Project Documentation
+# VoterPrime – Project Documentation
 
-## Value Proposition:
+## 1. Purpose & Value Proposition
 
-**VoterPrime is a non partisan primer that makes it easy for US citizens to make confident voting decisions and become engaged participants in democracy.**
+VoterPrime is a nonpartisan primer that makes it easy for US citizens to make confident voting decisions and become engaged participants in democracy. By entering their zip code and articulating their priorities in their own words, users receive customized, factual recommendations on candidates and ballot measures, copy-and-send emails to relevant elected officials, and learn about interest groups and petitions that align with their core values and concerns.
 
-- By entering their zip code and articulating their priorities in their own words, a user can quickly get customized recommendations to help them make informed decisions about candidates and ballot measures, copy and send emails to relevant elected officials, and learn about interest groups and petitions that align with their core values and most salient concerns.
-- It's not enough to increase voter turnout or make voting more accessible, we also need to help voters make confident voting decisions at a time when partisanship, political fatigue and mistrust in both media and institutions is at an all time high.
-- Consumers expect their shopping apps to allow them to compare and contrast purchase options, save items to a shopping cart while they decide, receive updates, submit their own feedback, and celebrate their decisions.
-- VoterPrime will be the Zappos of voter decision making.
+- **Empowerment**: Users make informed decisions without wading through partisan rhetoric or sensationalized news.
+- **User-Friendly Detail**: Both quick summaries and in-depth details on candidates, issues, and interest groups.
+- **Actionable Outputs**: Direct links, editable draft emails, and clear recommendations.
+- **Party-Agnostic Approach**: Maps authentic user input (via free-text) to standardized policy categories using a Political Priorities Mapping Engine powered by natural language processing (NLP) and sentiment analysis.
+- **Dual Modes**: Supports both real election cycles (using live data) and a DEMO mode simulating the November 2024 election with a fixed candidate set.
 
- 
-**Value:**
+**Recommendation Language Standard**
+- Must be plain spoken (assume a high school education level), factual, and friendly.
 
-- Negative partisanship, political disenfranchisement, erosion of dialogue and mistrust of institutions are at an all time high. This party agnostic solution helps users make informed voting decisions having to decipher hyperbolic headlines, analyze complex news information, or even talk to their friends and family.
-- The Political Priorities Mapping Engine within this solution is an advanced machine learning layer that uses natural language processing and multi-dimensional sentiment analysis to convert free-text voter input into standardized policy categories. It sits on top of an integrated database ecosystem, ensuring that complex and nuanced political expressions are accurately and consistently mapped to election data from highly trusted databases (currently FEC and Google Civic).
-    - Unlike professional polling which relies on close-ended questions with predefined (often highly partisan) answer options, this approach runs on authentic voter sentiment.
-    - Entrenched partisan identities and media silos are extremely problematic. This tool is about ignoring that entirely and just providing substantive information aligned to the user's inputs.
-    - NOTE: For deployment the mapping engine will be refined and validated by professional policy experts
-- The app will also connect users to existing trusted sources for voter information (where to vote) and options about how to vote.
+## 2. Underlying Hypotheses
 
-**Target Audience: All eligible voters**
+- **Shifting Voter Engagement**: Citizens who engage with democracy based on their core values—rather than partisan outrage—will push politicians toward problem-solving policies.
+- **Targeting Disengaged Voters**: This solution is designed for disengaged voters, especially younger demographics, who prefer tech-driven, mobile-first tools over traditional political content.
 
-- While this solution is for all eligible voters, the 18-29 are the primary initial target
-    - Historically, 18–29-year-olds have the lowest voter turnout.
-    - They are digital natives who expect tech-driven solutions.
-    - They prefer seamless, mobile-first, and online experiences.
-    - They demand intuitive, integrated tools for civic engagement.
+## 3. Target Audience
 
-**Underlying Hypotheses**
+- **Primary**: All eligible voters, with a focus on 18–29-year-olds (historically low voter turnout, but highly tech-savvy).
 
-- When citizens engage with democracy based on their core values and concerns instead of hyperbolic outrage-inducing headlines, their choices and voices will push politicians to solve problems, promote more centrist policies, and promote progress.
-- This approach might not appeal to highly engaged, highly partisan citizens who like their media silos and confirmation bias. Instead it would target voters who have been disengaged (so a marketing challenge!)
+## 4. Inputs & User Interaction
 
-## Inputs:
+### 4.1. Input Fields
 
-- Users enter their zip code
-- Users describe their top 6 most salient values/concerns in their own words and in their native language
+- **Mode Selection**:
+  - Options: "Current Date" or "DEMO: November 2024 Election."
+    - Current Date: Uses live election data.
+    - DEMO: Simulates the November 2024 election with fixed candidate data.
+- **Zip Code**:
+  - 5-digit numeric field (exactly five digits).
+- **Top 6 Priorities**:
+  - Free-text entries (up to 250 characters each).
+  - Users can enter multiple concerns and reorder them via drag-and-drop.
+  - A SUBMIT button initiates processing.
 
-## Outputs:
+### 4.2. Real-Time Editing & Feedback
 
-- Priorities mapping - Political Priorities Mapping Engine evaluates the user's top concerns and maps them to policy terms.
-    - User can clarify their priorities as many times as they wish or ask for recommendations when they are satisfied that they are understood
-- *IF it's an election cycle:*
-    - The tool maps their concerns with candidates from the local to the national level, and it calls out any conflicts (where the candidate is a match in one way but not in others)
-    - The tool highlights relevant ballot measures they may wish to vote on
-- *Regardless of election cycle:*
-    - The tool provides email addresses and helps draft messages to their current elected local officials about their top 3 concerns
-    - The tool provides brief descriptions of interest groups they may wish to join (from HUD website)
-    - The tool links to relevant petitions they may wish to sign (from Change.org)
+- **Dynamic Updates**: Inputs (zip code or priorities) trigger immediate refreshes in recommendations.
+- **Conflict Detection**: NLP flags contradictory or ambiguous entries and prompts users for clarification.
+- **Test Personas**:
+  - Buttons for loading predefined personas or generating a random persona (populating zip code and priorities, and setting mode to demo).
 
-## Current Features:
+## 5. Outputs & Presentation
 
-- User input of priorities with drag-and-drop reorganization
-- Real-time form validation
-- Test personas for demonstration
-- Random persona generation with everyday language
-- Recommendation analysis based on user input
+### 5.1. Mode-Specific Recommendations
 
-## Features for MVP:
+#### A. Current Date Mode
 
-- Save results
+- **With Upcoming Election (ballots available)**:
+  - Elected Official Recommendations: From local offices to POTUS.
+  - Ballot Measure Recommendations: Based on the user's zip code.
+  - Draft Emails: Ready-to-send, editable emails for contacting elected officials.
+    - Uses logic defined in supabase/functions/analyze-priorities/index.ts.
+  - Interest Groups & Petitions: Direct links to curated HUD interest group pages and active Change.org petitions.
 
-## High Value Future Features:
+- **Without Upcoming Election**:
+  - Draft Emails, Interest Groups & Petitions: Same as above (no candidate or ballot measure recommendations).
 
-- Compare and contrast tables showing trade offs of different candidates and ballot issues
-- Share features
+#### B. DEMO: November 2024 Mode
 
-## Application Interface Components:
+- **Candidate Recommendations**:
+  - Local & Federal candidates with direct links to official pages.
+  - POTUS Options (Up to Four): Each with:
+    - Platform highlights (short bullet points).
+    - Rationale based on user priorities.
+  - Ballot Measure Recommendations:
+    - Uses the same recommendation logic as the current election cycle.
 
-### API Connection Verification
-- **API Connection Buttons:** Two prominent buttons at the top of the interface to verify connection status:
-  1. **Check Google Civic API Connection:** Verifies the application can access election data from Google Civic API
-  2. **Check FEC API Connection:** Verifies the application can access campaign finance data from the Federal Election Commission API
-  - Each button displays a clear visual indicator (green checkmark for success, red alert for failure) of connection status
-  - Toast notifications appear with detailed connection status information
+### 5.2. Summary Output Dashboard
 
-### Test Personas Section
-- **Test Persona Controls:** Located immediately above the main form
-  - Three distinct buttons for loading different personas:
-    1. **Persona 1:** Loads a predefined voter with specific priorities and ZIP code
-    2. **Persona 2:** Loads an alternative predefined voter profile
-    3. **Random Persona:** Dynamically generates a voter with random priorities and ZIP code
-  - Designed with a light background and border to visually distinguish them from the main form
-  - Clicking any test persona button automatically populates the form with that persona's data and sets mode to "demo"
+- **Header Information**:
+  - Mode: [Current Date or DEMO: November 2024]
+  - For: (Zip: [Zip Code], [Region Name])
+- **Priorities Mapping**:
+  - Header: Priorities Mapping
+  - Subheader: "We have mapped your priorities to policy terms to provide the best recommendations. Please review and clarify if needed."
+  - Two buttons: Clarify / Get Recommendations
+  - Editable mapping analysis (user can edit repeatedly).
+  - Formatting: Bullet list of short, concise, left-justified sentences describing the nuance of the user's concerns.
+- **Recommendations Section** (for Current Date with an Upcoming Election):
+  - Elected Official Recommendations (Local to POTUS).
+  - Ballot Measure Recommendations.
+  - Draft Emails, Interest Group links, and Petition links.
 
-### Debug Tool
-- **Terminology Debug Tool:** Accessible from the navigation menu
-  - Provides a specialized interface for testing the terminology mapping system
-  - Includes a text input area for entering natural language priorities
-  - Displays detailed mapping results showing:
-    - Matched categories with confidence scores
-    - Recognized standardized terms
-    - Plain English explanations
-    - Match details for transparency
-  - Used primarily by developers and content specialists to refine the mapping system
+## 6. Outputs Summary (Regardless of Election Cycle)
 
-### Email Generation Logic
-- The system evaluates elected officials based on their alignment with user priorities
-- Officials are categorized into three groups:
-  1. **Aligned officials:** Those likely to support the user's priorities
-  2. **Opposing officials:** Those likely to oppose the user's priorities
-  3. **Key decision makers:** Those with mixed or neutral stance
-- Email drafts are generated with appropriate messaging strategies for each category:
-  - **Supportive:** Thank you + reinforcement
-  - **Opposing:** Educational + persuasive
-  - **Mixed:** Acknowledge agreement + persuade on differences
+- **Priorities Mapping**:
+  - The Political Priorities Mapping Engine converts free-text input into standardized policy categories using src/config/issueTerminology.json.
+  - Users can refine their mapped priorities before receiving recommendations.
+- **Candidate & Ballot Measure Matching**:
+  - Election Cycle: Matches candidates and ballot measures to user priorities.
+- **Advocacy Email Generation**:
+  - Provides email addresses and draft messages to local elected officials regarding the user's top 3 concerns.
+- **Additional Recommendations**:
+  - Interest Groups (HUD database).
+  - Petitions (Change.org).
 
+## 7. Application Interface Components
+
+### 7.1. API Connection Verification
+
+- **API Connection Buttons**:
+  - Check Google Civic API Connection
+  - Check FEC API Connection
+  - Visual Indicators: Green checkmark (success) or red alert (failure).
+  - Toast Notifications: Display connection status details.
+
+### 7.2. Debug Tools
+
+- **Terminology Debug Tool**:
+  - Tests the terminology mapping system (via src/config/issueTerminology.json).
+  - Displays matched categories, confidence scores, and recognized standardized terms.
+
+### 7.3. Email Generation Logic
+
+- **Evaluation of Elected Officials**:
+  - Officials are categorized into three groups:
+    - Aligned Officials: Likely to support user's priorities.
+    - Opposing Officials: Likely to oppose user's priorities.
+    - Key Decision Makers: Those with a mixed/neutral stance.
+- **Email Drafts Use Defined Messaging Strategies**:
+  - Supportive: Thank-you and reinforcement.
+  - Opposing: Educational and persuasive.
+  - Mixed: Acknowledgment with persuasion.
+
+## 8. Rules & Data Integrity
+
+- **Data Authenticity**:
+  - No AI-generated election data.
+  - All election data must be sourced from FEC and Google Civic APIs.
+- **NLP & Mapping Constraints**:
+  - ChatGPT is only used for natural language processing (NLP) and structuring user input.
+  - Mapping of priorities must use src/config/issueTerminology.json.
+  - Email drafts must follow templates in supabase/functions/analyze-priorities/index.ts.
+
+## 9. Data Integration & Sources
+
+### 9.1. Primary Data Sources
+
+- **FEC API**:
+  - Candidate profiles, finance data, and official records.
+  - Mapped to user priorities.
+- **Google Civic API**:
+  - Provides ballot options & measures.
+  - Used for local, state, and national election recommendations.
+  - API keys stored securely.
+
+### 9.2. External Links & Curated Content
+
+- **Interest Groups**:
+  - Uses HUD interest group database (HUD).
+- **Petition Sites**:
+  - Change.org petitions (Change.org) mapped to user priorities.
+
+## 10. System Architecture & Technical Considerations
+
+### 10.1. Front-End
+
+- **User Interface**:
+  - Clean, intuitive, mobile-first design.
+  - Real-time dashboard updates and accessibility features.
+
+### 10.2. Back-End
+
+- **Real-Time Processing**:
+  - Zip code and priorities trigger immediate refreshes.
+- **Scalability**:
+  - Designed for up to 100 concurrent users.
