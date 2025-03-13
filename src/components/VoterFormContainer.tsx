@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { VoterForm } from '@/components/VoterForm';
 import { useToast } from '@/hooks/use-toast';
 import { VoterFormValues } from '@/schemas/voterFormSchema';
+import { LoadingProgress } from '@/components/LoadingProgress';
 
 export interface FormSubmissionResult {
   formData: VoterFormValues;
@@ -20,9 +21,17 @@ export const VoterFormContainer = ({
   onSubmit
 }: VoterFormContainerProps) => {
   return (
-    <VoterForm 
-      onSubmit={onSubmit} 
-      isLoading={isLoading} 
-    />
+    <>
+      {isLoading && (
+        <LoadingProgress 
+          message="Analyzing your priorities and generating recommendations..." 
+          isLoading={isLoading}
+        />
+      )}
+      <VoterForm 
+        onSubmit={onSubmit} 
+        isLoading={isLoading} 
+      />
+    </>
   );
 };

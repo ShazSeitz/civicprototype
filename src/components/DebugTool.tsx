@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from '@/integrations/supabase/client';
+import { LoadingProgress } from '@/components/LoadingProgress';
 
 interface DebugResult {
   category: string;
@@ -83,6 +84,13 @@ export const DebugTool = () => {
           </Button>
         </CardContent>
       </Card>
+
+      {isLoading && (
+        <LoadingProgress 
+          message="Analyzing terminology mapping..." 
+          isLoading={isLoading}
+        />
+      )}
 
       {sortedResults.length > 0 && (
         <Card>
