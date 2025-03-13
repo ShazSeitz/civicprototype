@@ -139,7 +139,7 @@ export const VoterForm = ({ onSubmit, isLoading }: VoterFormProps) => {
 
             <div className="space-y-3 priorities-section">
               <FormLabel>Your Priorities</FormLabel>
-              <p className="text-sm text-muted-foreground">Enter your top 6 concerns and values (max 250 characters each)</p>
+              <p className="text-sm text-muted-foreground">Enter you top 6 concerns and values. You can can drag and drop to reorder them.</p>
               <DndContext
                 sensors={sensors}
                 collisionDetection={closestCenter}
