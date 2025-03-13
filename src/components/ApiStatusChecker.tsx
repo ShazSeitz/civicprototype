@@ -4,7 +4,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, RefreshCw, CheckCircle } from "lucide-react";
-import { SetApiKeyDialog } from './SetApiKeyDialog';
 
 export type ApiStatus = 'unknown' | 'connected' | 'error' | 'not_configured';
 
@@ -73,13 +72,13 @@ export const ApiStatusChecker = ({
         } else if (data.apiStatuses.googleCivic === 'GOOGLE_CIVIC_API_NOT_CONFIGURED') {
           toast({
             title: "Google Civic API",
-            description: "API key not configured. Please add your API key.",
+            description: "API key not configured. Please contact the administrator.",
             variant: "destructive",
           });
         } else if (data.apiStatuses.googleCivic === 'GOOGLE_CIVIC_API_ERROR') {
           toast({
             title: "Google Civic API",
-            description: "Connection error. Please check your API key.",
+            description: "Connection error. Please contact the administrator.",
             variant: "destructive",
           });
         }
@@ -142,13 +141,13 @@ export const ApiStatusChecker = ({
         } else if (data.apiStatuses.fec === 'FEC_API_NOT_CONFIGURED') {
           toast({
             title: "FEC API",
-            description: "API key not configured. Please add your API key.",
+            description: "API key not configured. Please contact the administrator.",
             variant: "destructive",
           });
         } else if (data.apiStatuses.fec === 'FEC_API_UNAUTHORIZED') {
           toast({
             title: "FEC API",
-            description: "API key is invalid or unauthorized.",
+            description: "API key is invalid or unauthorized. Please contact the administrator.",
             variant: "destructive",
           });
         } else if (data.apiStatuses.fec === 'FEC_API_ENDPOINT_NOT_FOUND') {
@@ -166,7 +165,7 @@ export const ApiStatusChecker = ({
         } else if (data.apiStatuses.fec === 'FEC_API_ERROR') {
           toast({
             title: "FEC API",
-            description: "Connection error. Please check your API key and service status.",
+            description: "Connection error. Please contact the administrator.",
             variant: "destructive",
           });
         }
@@ -214,25 +213,6 @@ export const ApiStatusChecker = ({
           Check FEC API Connection
         </Button>
       </div>
-      
-      {(apiStatus.googleCivic === 'not_configured' || apiStatus.googleCivic === 'error' || 
-        apiStatus.fec === 'not_configured' || apiStatus.fec === 'error') && (
-        <div className="flex justify-center gap-4">
-          {(apiStatus.googleCivic === 'not_configured' || apiStatus.googleCivic === 'error') && (
-            <SetApiKeyDialog 
-              apiType="googleCivic" 
-              onApiKeySet={checkGoogleCivicApi} 
-            />
-          )}
-          
-          {(apiStatus.fec === 'not_configured' || apiStatus.fec === 'error') && (
-            <SetApiKeyDialog 
-              apiType="fec" 
-              onApiKeySet={checkFecApi} 
-            />
-          )}
-        </div>
-      )}
     </div>
   );
 };
