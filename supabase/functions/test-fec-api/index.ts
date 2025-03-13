@@ -22,7 +22,8 @@ serve(async (req) => {
     }
     
     console.log('Testing FEC API connectivity with configured API key')
-    const url = `https://api.open.fec.gov/v1/elections/?api_key=${fecApiKey}&page=1&per_page=1`
+    // Using a simpler endpoint that doesn't require cycle and office parameters
+    const url = `https://api.open.fec.gov/v1/committee/?api_key=${fecApiKey}&page=1&per_page=1`
     
     const response = await fetch(url, {
       method: 'GET',
