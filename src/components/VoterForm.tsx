@@ -92,7 +92,7 @@ export const VoterForm = ({ onSubmit, isLoading }: VoterFormProps) => {
               control={form.control}
               name="mode"
               render={({ field }) => (
-                <FormItem className="space-y-1">
+                <FormItem className="space-y-1 text-left">
                   <FormLabel>Select Mode</FormLabel>
                   <FormControl>
                     <RadioGroup
@@ -127,7 +127,7 @@ export const VoterForm = ({ onSubmit, isLoading }: VoterFormProps) => {
               control={form.control}
               name="zipCode"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="text-left">
                   <FormLabel>ZIP Code</FormLabel>
                   <FormControl>
                     <Input placeholder="00000" {...field} className="w-[80px]" />
