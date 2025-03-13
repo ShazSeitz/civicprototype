@@ -22,8 +22,10 @@ serve(async (req) => {
     }
     
     console.log('Testing FEC API connectivity with configured API key')
-    // Using a simpler endpoint that doesn't require cycle and office parameters
-    const url = `https://api.open.fec.gov/v1/committee/?api_key=${fecApiKey}&page=1&per_page=1`
+    // Use the elections endpoint with required parameters
+    const currentYear = new Date().getFullYear()
+    const cycle = currentYear % 2 === 0 ? currentYear : currentYear - 1
+    const url = `https://api.open.fec.gov/v1/elections/?api_key=${fecApiKey}&cycle=${cycle}&office=president&page=1&per_page=1`
     
     const response = await fetch(url, {
       method: 'GET',
