@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -199,6 +200,82 @@ const Index = () => {
                data.apiStatuses.fec === 'FEC_API_ERROR' ? 'error' : 'unknown'
         });
 
+        // Toast notifications for Google Civic API
+        if (data.apiStatuses.googleCivic === 'CONNECTED') {
+          toast({
+            title: "Google Civic API",
+            description: "Successfully connected to the API.",
+            variant: "default",
+          });
+        } else if (data.apiStatuses.googleCivic === 'GOOGLE_CIVIC_API_NOT_CONFIGURED') {
+          toast({
+            title: "Google Civic API",
+            description: "API key not configured. Please add your API key.",
+            variant: "destructive",
+          });
+        } else if (data.apiStatuses.googleCivic === 'GOOGLE_CIVIC_API_ERROR') {
+          toast({
+            title: "Google Civic API",
+            description: "Connection error. Please check your API key.",
+            variant: "destructive",
+          });
+        }
+        
+        // Toast notifications for FEC API
+        if (data.apiStatuses.fec === 'CONNECTED') {
+          toast({
+            title: "FEC API",
+            description: "Successfully connected to the API.",
+            variant: "default",
+          });
+        } else if (data.apiStatuses.fec === 'FEC_API_NOT_CONFIGURED') {
+          toast({
+            title: "FEC API",
+            description: "API key not configured. Please add your API key.",
+            variant: "destructive",
+          });
+        } else if (data.apiStatuses.fec === 'FEC_API_ERROR') {
+          toast({
+            title: "FEC API",
+            description: "Connection error. Please check your API key.",
+            variant: "destructive",
+          });
+        }
+      }
+    } catch (err: any) {
+      console.error('API check failed:', err);
+      toast({
+        title: "Error",
+        description: err.message || 'Failed to check API connectivity',
+        variant: "destructive",
+      });
+    }
+  };
+
+  const checkGoogleCivicApi = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('analyze-priorities', {
+        body: { checkGoogleCivicApiOnly: true }
+      });
+
+      if (error) {
+        console.error('Google Civic API check error:', error);
+        toast({
+          title: "Error",
+          description: error.message || 'Failed to check Google Civic API',
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (data && data.apiStatuses) {
+        setApiStatus(prevStatus => ({
+          ...prevStatus,
+          googleCivic: data.apiStatuses.googleCivic === 'CONNECTED' ? 'connected' : 
+                       data.apiStatuses.googleCivic === 'GOOGLE_CIVIC_API_NOT_CONFIGURED' ? 'not_configured' :
+                       data.apiStatuses.googleCivic === 'GOOGLE_CIVIC_API_ERROR' ? 'error' : 'unknown'
+        }));
+
         if (data.apiStatuses.googleCivic === 'CONNECTED') {
           toast({
             title: "Google Civic API",
@@ -220,10 +297,64 @@ const Index = () => {
         }
       }
     } catch (err: any) {
-      console.error('API check failed:', err);
+      console.error('Google Civic API check failed:', err);
       toast({
         title: "Error",
-        description: err.message || 'Failed to check API connectivity',
+        description: err.message || 'Failed to check Google Civic API',
+        variant: "destructive",
+      });
+    }
+  };
+
+  const checkFecApi = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('analyze-priorities', {
+        body: { checkFecApiOnly: true }
+      });
+
+      if (error) {
+        console.error('FEC API check error:', error);
+        toast({
+          title: "Error",
+          description: error.message || 'Failed to check FEC API',
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (data && data.apiStatuses) {
+        setApiStatus(prevStatus => ({
+          ...prevStatus,
+          fec: data.apiStatuses.fec === 'CONNECTED' ? 'connected' :
+               data.apiStatuses.fec === 'FEC_API_NOT_CONFIGURED' ? 'not_configured' :
+               data.apiStatuses.fec === 'FEC_API_ERROR' ? 'error' : 'unknown'
+        }));
+
+        if (data.apiStatuses.fec === 'CONNECTED') {
+          toast({
+            title: "FEC API",
+            description: "Successfully connected to the API.",
+            variant: "default",
+          });
+        } else if (data.apiStatuses.fec === 'FEC_API_NOT_CONFIGURED') {
+          toast({
+            title: "FEC API",
+            description: "API key not configured. Please add your API key.",
+            variant: "destructive",
+          });
+        } else if (data.apiStatuses.fec === 'FEC_API_ERROR') {
+          toast({
+            title: "FEC API",
+            description: "Connection error. Please check your API key.",
+            variant: "destructive",
+          });
+        }
+      }
+    } catch (err: any) {
+      console.error('FEC API check failed:', err);
+      toast({
+        title: "Error",
+        description: err.message || 'Failed to check FEC API',
         variant: "destructive",
       });
     }
@@ -239,20 +370,35 @@ const Index = () => {
             Voter Information Tool
           </h1>
           
-          <div className="mb-6 flex justify-center">
+          <div className="mb-6 flex justify-center gap-4">
             <Button 
               variant="outline" 
-              onClick={checkApiConnectivity}
+              onClick={checkGoogleCivicApi}
               className="flex items-center gap-2"
             >
               {apiStatus.googleCivic === 'connected' ? (
                 <CheckCircle className="h-4 w-4 text-green-500" />
-              ) : apiStatus.googleCivic === 'error' ? (
+              ) : apiStatus.googleCivic === 'error' || apiStatus.googleCivic === 'not_configured' ? (
                 <AlertCircle className="h-4 w-4 text-red-500" />
               ) : (
                 <RefreshCw className="h-4 w-4" />
               )}
               Check Google Civic API Connection
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              onClick={checkFecApi}
+              className="flex items-center gap-2"
+            >
+              {apiStatus.fec === 'connected' ? (
+                <CheckCircle className="h-4 w-4 text-green-500" />
+              ) : apiStatus.fec === 'error' || apiStatus.fec === 'not_configured' ? (
+                <AlertCircle className="h-4 w-4 text-red-500" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
+              Check FEC API Connection
             </Button>
           </div>
           
