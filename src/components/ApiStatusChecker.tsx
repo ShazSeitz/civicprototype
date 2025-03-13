@@ -102,7 +102,12 @@ export const ApiStatusChecker = ({
       });
       
       // Get the mode from VoterForm if possible
-      const mode = document.querySelector('input[name="mode"]:checked')?.value as "current" | "demo" || "current";
+      // Fix: TypeScript error by properly querying and casting the element
+      let mode: "current" | "demo" = "current";
+      const modeElement = document.querySelector('input[name="mode"]:checked') as HTMLInputElement | null;
+      if (modeElement && modeElement.value) {
+        mode = modeElement.value as "current" | "demo";
+      }
       console.log(`Using mode for FEC API check: ${mode}`);
       
       console.log('Sending FEC API check request');
