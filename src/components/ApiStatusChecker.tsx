@@ -102,9 +102,8 @@ export const ApiStatusChecker = ({
       });
       
       console.log('Sending FEC API check request');
-      const { data, error } = await supabase.functions.invoke('analyze-priorities', {
-        body: { checkFecApiOnly: true }
-      });
+      // Use the new test-fec-api function instead
+      const { data, error } = await supabase.functions.invoke('test-fec-api');
 
       console.log('FEC API check response:', data, error);
 
@@ -118,57 +117,47 @@ export const ApiStatusChecker = ({
         return;
       }
 
-      if (data && data.apiStatuses) {
-        const newStatus: { googleCivic: ApiStatus; fec: ApiStatus } = {
-          ...apiStatus,
-          fec: data.apiStatuses.fec === 'CONNECTED' ? 'connected' :
-              data.apiStatuses.fec === 'FEC_API_NOT_CONFIGURED' ? 'not_configured' :
-              data.apiStatuses.fec === 'FEC_API_ERROR' || 
-              data.apiStatuses.fec === 'FEC_API_UNAUTHORIZED' || 
-              data.apiStatuses.fec === 'FEC_API_ENDPOINT_NOT_FOUND' || 
-              data.apiStatuses.fec === 'FEC_API_RATE_LIMIT' ? 'error' : 'unknown'
-        };
-        
+      const newStatus: { googleCivic: ApiStatus; fec: ApiStatus } = {
+        ...apiStatus
+      };
+
+      if (data && data.success) {
+        newStatus.fec = 'connected';
         setApiStatus(newStatus);
         onStatusChange(newStatus);
-
-        if (data.apiStatuses.fec === 'CONNECTED') {
-          toast({
-            title: "FEC API",
-            description: "Successfully connected to the API.",
-            variant: "default",
-          });
-        } else if (data.apiStatuses.fec === 'FEC_API_NOT_CONFIGURED') {
-          toast({
-            title: "FEC API",
-            description: "API key not configured. Please contact the administrator.",
-            variant: "destructive",
-          });
-        } else if (data.apiStatuses.fec === 'FEC_API_UNAUTHORIZED') {
-          toast({
-            title: "FEC API",
-            description: "API key is invalid or unauthorized. Please contact the administrator.",
-            variant: "destructive",
-          });
-        } else if (data.apiStatuses.fec === 'FEC_API_ENDPOINT_NOT_FOUND') {
-          toast({
-            title: "FEC API",
-            description: "API endpoint not found. Please check service status.",
-            variant: "destructive",
-          });
-        } else if (data.apiStatuses.fec === 'FEC_API_RATE_LIMIT') {
-          toast({
-            title: "FEC API",
-            description: "Rate limit exceeded. Please try again later.",
-            variant: "destructive",
-          });
-        } else if (data.apiStatuses.fec === 'FEC_API_ERROR') {
-          toast({
-            title: "FEC API",
-            description: "Connection error. Please contact the administrator.",
-            variant: "destructive",
-          });
+        
+        toast({
+          title: "FEC API",
+          description: "Successfully connected to the API.",
+          variant: "default",
+        });
+      } else {
+        // Handle different error types
+        let errorMessage = 'Connection error. Please contact the administrator.';
+        let statusType: ApiStatus = 'error';
+        
+        if (data) {
+          if (data.errorType === 'FEC_API_UNAUTHORIZED') {
+            errorMessage = "API key is invalid or unauthorized. Please contact the administrator.";
+          } else if (data.errorType === 'FEC_API_ENDPOINT_NOT_FOUND') {
+            errorMessage = "API endpoint not found. Please check service status.";
+          } else if (data.errorType === 'FEC_API_RATE_LIMIT') {
+            errorMessage = "Rate limit exceeded. Please try again later.";
+          } else if (data.message && data.message.includes('not configured')) {
+            statusType = 'not_configured';
+            errorMessage = "API key not configured. Please contact the administrator.";
+          }
         }
+        
+        newStatus.fec = statusType;
+        setApiStatus(newStatus);
+        onStatusChange(newStatus);
+        
+        toast({
+          title: "FEC API",
+          description: errorMessage,
+          variant: "destructive",
+        });
       }
     } catch (err) {
       console.error('FEC API check failed:', err);
