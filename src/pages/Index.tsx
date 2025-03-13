@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -174,86 +173,14 @@ const Index = () => {
     setSubmitCount(prev => prev + 1);
   };
 
-  const checkApiConnectivity = async () => {
-    try {
-      const { data, error } = await supabase.functions.invoke('analyze-priorities', {
-        body: { checkApiOnly: true }
-      });
-
-      if (error) {
-        console.error('API check error:', error);
-        toast({
-          title: "Error",
-          description: error.message || 'Failed to check API connectivity',
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (data && data.apiStatuses) {
-        setApiStatus({
-          googleCivic: data.apiStatuses.googleCivic === 'CONNECTED' ? 'connected' : 
-                       data.apiStatuses.googleCivic === 'GOOGLE_CIVIC_API_NOT_CONFIGURED' ? 'not_configured' :
-                       data.apiStatuses.googleCivic === 'GOOGLE_CIVIC_API_ERROR' ? 'error' : 'unknown',
-          fec: data.apiStatuses.fec === 'CONNECTED' ? 'connected' :
-               data.apiStatuses.fec === 'FEC_API_NOT_CONFIGURED' ? 'not_configured' :
-               data.apiStatuses.fec === 'FEC_API_ERROR' ? 'error' : 'unknown'
-        });
-
-        // Toast notifications for Google Civic API
-        if (data.apiStatuses.googleCivic === 'CONNECTED') {
-          toast({
-            title: "Google Civic API",
-            description: "Successfully connected to the API.",
-            variant: "default",
-          });
-        } else if (data.apiStatuses.googleCivic === 'GOOGLE_CIVIC_API_NOT_CONFIGURED') {
-          toast({
-            title: "Google Civic API",
-            description: "API key not configured. Please add your API key.",
-            variant: "destructive",
-          });
-        } else if (data.apiStatuses.googleCivic === 'GOOGLE_CIVIC_API_ERROR') {
-          toast({
-            title: "Google Civic API",
-            description: "Connection error. Please check your API key.",
-            variant: "destructive",
-          });
-        }
-        
-        // Toast notifications for FEC API
-        if (data.apiStatuses.fec === 'CONNECTED') {
-          toast({
-            title: "FEC API",
-            description: "Successfully connected to the API.",
-            variant: "default",
-          });
-        } else if (data.apiStatuses.fec === 'FEC_API_NOT_CONFIGURED') {
-          toast({
-            title: "FEC API",
-            description: "API key not configured. Please add your API key.",
-            variant: "destructive",
-          });
-        } else if (data.apiStatuses.fec === 'FEC_API_ERROR') {
-          toast({
-            title: "FEC API",
-            description: "Connection error. Please check your API key.",
-            variant: "destructive",
-          });
-        }
-      }
-    } catch (err: any) {
-      console.error('API check failed:', err);
-      toast({
-        title: "Error",
-        description: err.message || 'Failed to check API connectivity',
-        variant: "destructive",
-      });
-    }
-  };
-
   const checkGoogleCivicApi = async () => {
     try {
+      toast({
+        title: "Checking",
+        description: "Checking Google Civic API connection...",
+        variant: "default",
+      });
+      
       const { data, error } = await supabase.functions.invoke('analyze-priorities', {
         body: { checkGoogleCivicApiOnly: true }
       });
@@ -296,11 +223,11 @@ const Index = () => {
           });
         }
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('Google Civic API check failed:', err);
       toast({
         title: "Error",
-        description: err.message || 'Failed to check Google Civic API',
+        description: err instanceof Error ? err.message : 'Failed to check Google Civic API',
         variant: "destructive",
       });
     }
@@ -308,6 +235,12 @@ const Index = () => {
 
   const checkFecApi = async () => {
     try {
+      toast({
+        title: "Checking",
+        description: "Checking FEC API connection...",
+        variant: "default",
+      });
+      
       const { data, error } = await supabase.functions.invoke('analyze-priorities', {
         body: { checkFecApiOnly: true }
       });
@@ -350,11 +283,11 @@ const Index = () => {
           });
         }
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('FEC API check failed:', err);
       toast({
         title: "Error",
-        description: err.message || 'Failed to check FEC API',
+        description: err instanceof Error ? err.message : 'Failed to check FEC API',
         variant: "destructive",
       });
     }

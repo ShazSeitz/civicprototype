@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 
@@ -516,12 +517,65 @@ serve(async (req) => {
   }
 
   try {
-    const body = await req.json();
-    console.log('Request body:', JSON.stringify(body));
+    let body;
+    try {
+      body = await req.json();
+      console.log('Request body:', JSON.stringify(body));
+    } catch (err) {
+      console.error('Failed to parse request body as JSON:', err);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid JSON in request body', 
+          details: err.message 
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
 
-    // If this is just an API connectivity check
+    // Handle API check requests specifically
+    if (body.checkGoogleCivicApiOnly) {
+      console.log('Performing Google Civic API connectivity check only');
+      const googleCivicStatus = await testGoogleCivicApiConnection();
+      
+      return new Response(
+        JSON.stringify({
+          apiStatuses: {
+            googleCivic: googleCivicStatus
+          }
+        }),
+        {
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+    }
+
+    if (body.checkFecApiOnly) {
+      console.log('Performing FEC API connectivity check only');
+      const fecStatus = await testFecApiConnection();
+      
+      return new Response(
+        JSON.stringify({
+          apiStatuses: {
+            fec: fecStatus
+          }
+        }),
+        {
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+    }
+
+    // If this is a general API connectivity check
     if (body.checkApiOnly) {
-      console.log('Performing API connectivity check only');
+      console.log('Performing general API connectivity check');
       
       // Test all API connections in parallel
       const [googleCivicStatus, fecStatus] = await Promise.all([
@@ -545,6 +599,7 @@ serve(async (req) => {
       );
     }
 
+    // For normal analysis requests, ensure priorities are provided
     const { priorities, mode, zipCode } = body;
     console.log('Received request:', { priorities, mode, zipCode });
 
