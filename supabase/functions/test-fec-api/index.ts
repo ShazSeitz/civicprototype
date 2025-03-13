@@ -21,10 +21,32 @@ serve(async (req) => {
       )
     }
     
-    console.log('Testing FEC API connectivity with configured API key')
+    // Parse the request to check if we're in demo mode
+    let mode = "current";
+    try {
+      const body = await req.json();
+      mode = body.mode || "current";
+      console.log(`Testing FEC API connectivity with mode: ${mode}`);
+    } catch (err) {
+      console.log("No mode specified in request, using current date");
+    }
+    
     // Use the elections endpoint with required parameters
-    const currentYear = new Date().getFullYear()
-    const cycle = currentYear % 2 === 0 ? currentYear : currentYear - 1
+    let electionDate;
+    if (mode === "demo") {
+      // For demo mode, use November 1, 2024
+      electionDate = new Date(2024, 10, 1); // Note: month is 0-indexed, so 10 = November
+      console.log('Using demo date: November 1, 2024');
+    } else {
+      // For current mode, use current date
+      electionDate = new Date();
+      console.log(`Using current date: ${electionDate.toISOString().split('T')[0]}`);
+    }
+    
+    const year = electionDate.getFullYear();
+    const cycle = year % 2 === 0 ? year : year - 1;
+    
+    console.log(`Testing FEC API connectivity with configured API key for cycle: ${cycle}`);
     const url = `https://api.open.fec.gov/v1/elections/?api_key=${fecApiKey}&cycle=${cycle}&office=president&page=1&per_page=1`
     
     const response = await fetch(url, {
@@ -69,7 +91,8 @@ serve(async (req) => {
         message: 'FEC API connection successful',
         data: {
           resultsCount: data.results ? data.results.length : 0,
-          pagination: data.pagination || {}
+          pagination: data.pagination || {},
+          cycle
         }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

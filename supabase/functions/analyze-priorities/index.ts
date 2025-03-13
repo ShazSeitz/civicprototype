@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 
@@ -47,7 +46,7 @@ async function testGoogleCivicApiConnection() {
   }
 }
 
-async function testFecApiConnection() {
+async function testFecApiConnection(mode = "current") {
   if (!fecApiKey) {
     console.warn('FEC_API_KEY is not set');
     return 'FEC_API_NOT_CONFIGURED';
@@ -55,8 +54,20 @@ async function testFecApiConnection() {
 
   try {
     // Use the elections endpoint with required parameters
-    const currentYear = new Date().getFullYear();
-    const cycle = currentYear % 2 === 0 ? currentYear : currentYear - 1;
+    let electionDate;
+    if (mode === "demo") {
+      // For demo mode, use November 1, 2024
+      electionDate = new Date(2024, 10, 1); // Note: month is 0-indexed, so 10 = November
+      console.log('Using demo date: November 1, 2024');
+    } else {
+      // For current mode, use current date
+      electionDate = new Date();
+      console.log(`Using current date: ${electionDate.toISOString().split('T')[0]}`);
+    }
+    
+    const year = electionDate.getFullYear();
+    const cycle = year % 2 === 0 ? year : year - 1;
+    
     const url = `https://api.open.fec.gov/v1/elections/?api_key=${fecApiKey}&cycle=${cycle}&office=president&page=1&per_page=1`;
     
     console.log(`Testing FEC API connectivity with URL: ${url.replace(fecApiKey, "REDACTED")}`);
@@ -229,7 +240,19 @@ async function fetchCandidatesByState(state: string, mode: "current" | "demo") {
   }
   
   try {
-    const year = 2024;
+    // Use the appropriate year based on mode
+    let electionDate;
+    if (mode === "demo") {
+      // For demo mode, use November 1, 2024
+      electionDate = new Date(2024, 10, 1);
+      console.log('Using demo date for candidates: November 1, 2024');
+    } else {
+      // For current mode, use current date
+      electionDate = new Date();
+      console.log(`Using current date for candidates: ${electionDate.toISOString().split('T')[0]}`);
+    }
+    
+    const year = electionDate.getFullYear();
     console.log(`Fetching candidates for state ${state}, year ${year} with FEC API key`);
     
     const encodedState = encodeURIComponent(state);
@@ -581,7 +604,8 @@ serve(async (req) => {
 
     if (body.checkFecApiOnly) {
       console.log('Performing FEC API connectivity check only');
-      const fecStatus = await testFecApiConnection();
+      const mode = body.mode || "current";
+      const fecStatus = await testFecApiConnection(mode);
       
       return new Response(
         JSON.stringify({
@@ -603,9 +627,10 @@ serve(async (req) => {
       console.log('Performing general API connectivity check');
       
       // Test all API connections in parallel
+      const mode = body.mode || "current";
       const [googleCivicStatus, fecStatus] = await Promise.all([
         testGoogleCivicApiConnection(),
-        testFecApiConnection()
+        testFecApiConnection(mode)
       ]);
       
       return new Response(
@@ -985,3 +1010,4 @@ serve(async (req) => {
     });
   }
 });
+

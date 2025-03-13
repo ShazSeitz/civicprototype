@@ -101,9 +101,15 @@ export const ApiStatusChecker = ({
         variant: "default",
       });
       
+      // Get the mode from VoterForm if possible
+      const mode = document.querySelector('input[name="mode"]:checked')?.value as "current" | "demo" || "current";
+      console.log(`Using mode for FEC API check: ${mode}`);
+      
       console.log('Sending FEC API check request');
-      // Use the new test-fec-api function instead
-      const { data, error } = await supabase.functions.invoke('test-fec-api');
+      // Pass the mode parameter to the test-fec-api function
+      const { data, error } = await supabase.functions.invoke('test-fec-api', {
+        body: { mode }
+      });
 
       console.log('FEC API check response:', data, error);
 
@@ -128,7 +134,7 @@ export const ApiStatusChecker = ({
         
         toast({
           title: "FEC API",
-          description: "Successfully connected to the API.",
+          description: `Successfully connected to the API. Using election cycle: ${data.data?.cycle || 'Unknown'}`,
           variant: "default",
         });
       } else {
