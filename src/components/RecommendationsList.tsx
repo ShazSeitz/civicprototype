@@ -1,8 +1,10 @@
+
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
 import { RecommendationsData } from "@/hooks/use-priorities-analysis";
 import { useState } from "react";
 
@@ -192,19 +194,19 @@ export function RecommendationsList({ recommendations, onFeedbackSubmit }: Recom
             <AccordionContent>
               <div className="grid gap-4 grid-cols-1 md:grid-cols-2 pt-2">
                 {recommendations.interestGroups.map((group, index) => (
-                  <Card key={index}>
+                  <Card key={index} className="flex flex-col">
                     <CardHeader>
                       <CardTitle className="text-base">{group.name}</CardTitle>
-                      <CardDescription>{group.relevance}</CardDescription>
+                      <CardDescription className="line-clamp-2">{group.relevance}</CardDescription>
                     </CardHeader>
-                    <CardFooter>
+                    <CardFooter className="mt-auto">
                       <a
                         href={group.url}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-sm text-blue-600 hover:underline"
                       >
-                        Visit Website
+                        Visit HUD Resource
                       </a>
                     </CardFooter>
                   </Card>

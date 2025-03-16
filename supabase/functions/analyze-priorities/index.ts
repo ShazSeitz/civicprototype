@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 
@@ -97,9 +96,7 @@ async function testFecApiConnection(mode = "current") {
       }
     }
     
-    const data = await response.json();
-    console.log('FEC API response successful:', data ? 'Data received' : 'No data');
-    
+    console.log('FEC API test successful');
     return 'CONNECTED';
   } catch (error) {
     console.error('Error testing FEC API connection:', error);
@@ -553,85 +550,25 @@ async function generateEmailDraft(representative: any, priorities: string[], iss
 async function findRelevantGroups(priorities: string[]) {
   console.log('Finding relevant groups for priorities:', priorities);
   
-  // Use OpenSecrets.org interest groups instead of congressional committees
-  const openSecretsGroups = [
+  // Use HUD public interest groups
+  const hudGroups = [
     {
-      name: "Environmental Policy",
+      name: "Housing Policy",
       groups: [
         {
-          name: "League of Conservation Voters",
-          url: "https://www.opensecrets.org/political-action-committees-pacs/league-of-conservation-voters/C00252940/summary/2020",
-          relevance: "Environmental protection, climate change, clean energy policy"
+          name: "National Low Income Housing Coalition",
+          url: "https://www.hud.gov/program_offices/gov_relations/oirpublicinterestgroups",
+          relevance: "Affordable housing, tenant rights, homelessness prevention"
         },
         {
-          name: "Sierra Club",
-          url: "https://www.opensecrets.org/orgs/sierra-club/summary?id=D000000259",
-          relevance: "Conservation, environmental protection, renewable energy, climate advocacy"
+          name: "National Housing Law Project",
+          url: "https://www.hud.gov/program_offices/gov_relations/oirpublicinterestgroups",
+          relevance: "Housing law, fair housing, tenant protections"
         },
         {
-          name: "Natural Resources Defense Council",
-          url: "https://www.opensecrets.org/orgs/natural-resources-defense-council/summary?id=D000000797",
-          relevance: "Environmental protection, clean water, climate change, wildlife conservation"
-        }
-      ]
-    },
-    {
-      name: "Healthcare",
-      groups: [
-        {
-          name: "American Medical Association",
-          url: "https://www.opensecrets.org/orgs/american-medical-assn/summary?id=D000000068",
-          relevance: "Healthcare policy, physician advocacy, medical research, healthcare access"
-        },
-        {
-          name: "Pharmaceutical Research & Manufacturers of America",
-          url: "https://www.opensecrets.org/orgs/pharmaceutical-research-manufacturers-of-america/summary?id=D000000504",
-          relevance: "Pharmaceutical research, drug pricing, healthcare innovation"
-        },
-        {
-          name: "American Hospital Association",
-          url: "https://www.opensecrets.org/orgs/american-hospital-assn/summary?id=D000000116",
-          relevance: "Hospital policy, healthcare delivery, patient care, healthcare financing"
-        }
-      ]
-    },
-    {
-      name: "Economic Policy",
-      groups: [
-        {
-          name: "Chamber of Commerce",
-          url: "https://www.opensecrets.org/orgs/us-chamber-of-commerce/summary?id=D000019798",
-          relevance: "Business advocacy, economic growth, trade, job creation, regulatory policy"
-        },
-        {
-          name: "National Association of Realtors",
-          url: "https://www.opensecrets.org/orgs/national-assn-of-realtors/summary?id=D000000062",
-          relevance: "Housing market, property rights, real estate policy, homeownership"
-        },
-        {
-          name: "American Federation of Labor and Congress of Industrial Organizations (AFL-CIO)",
-          url: "https://www.opensecrets.org/orgs/american-federation-of-labor-congress-of-industrial-or/summary?id=D000000088",
-          relevance: "Labor rights, worker protections, wages, job safety, collective bargaining"
-        }
-      ]
-    },
-    {
-      name: "Education",
-      groups: [
-        {
-          name: "National Education Association",
-          url: "https://www.opensecrets.org/orgs/national-education-assn/summary?id=D000000064",
-          relevance: "Education policy, teacher advocacy, school funding, student achievement"
-        },
-        {
-          name: "American Federation of Teachers",
-          url: "https://www.opensecrets.org/orgs/american-federation-of-teachers/summary?id=D000000083",
-          relevance: "Teacher rights, education quality, school funding, education reform"
-        },
-        {
-          name: "College Board",
-          url: "https://www.opensecrets.org/orgs/college-board/summary?id=D000022127",
-          relevance: "Higher education access, standardized testing, college readiness"
+          name: "National Association of Housing and Redevelopment Officials",
+          url: "https://www.hud.gov/program_offices/gov_relations/oirpublicinterestgroups",
+          relevance: "Public housing authorities, community development, affordable housing"
         }
       ]
     },
@@ -639,99 +576,109 @@ async function findRelevantGroups(priorities: string[]) {
       name: "Civil Rights",
       groups: [
         {
-          name: "American Civil Liberties Union",
-          url: "https://www.opensecrets.org/orgs/american-civil-liberties-union/summary?id=D000031473",
-          relevance: "Civil liberties, constitutional rights, privacy, criminal justice reform"
+          name: "National Fair Housing Alliance",
+          url: "https://www.hud.gov/program_offices/gov_relations/oirpublicinterestgroups",
+          relevance: "Fair housing, anti-discrimination, equality in housing"
         },
         {
-          name: "NAACP",
-          url: "https://www.opensecrets.org/orgs/naacp/summary?id=D000036157",
-          relevance: "Racial equality, voting rights, criminal justice reform, economic opportunity"
+          name: "Lawyers' Committee for Civil Rights Under Law",
+          url: "https://www.hud.gov/program_offices/gov_relations/oirpublicinterestgroups",
+          relevance: "Civil rights enforcement, fair housing litigation, equal opportunity"
         },
         {
-          name: "Human Rights Campaign",
-          url: "https://www.opensecrets.org/orgs/human-rights-campaign/summary?id=D000000158",
-          relevance: "LGBTQ+ rights, anti-discrimination, civil rights, equality"
+          name: "NAACP Legal Defense Fund",
+          url: "https://www.hud.gov/program_offices/gov_relations/oirpublicinterestgroups",
+          relevance: "Racial justice, fair housing, civil rights"
         }
       ]
     },
     {
-      name: "National Security",
+      name: "Community Development",
       groups: [
         {
-          name: "Lockheed Martin",
-          url: "https://www.opensecrets.org/orgs/lockheed-martin/summary?id=D000000104",
-          relevance: "Defense contracting, national security, aerospace, military technology"
+          name: "Local Initiatives Support Corporation (LISC)",
+          url: "https://www.hud.gov/program_offices/gov_relations/oirpublicinterestgroups",
+          relevance: "Community development, affordable housing, economic opportunity"
         },
         {
-          name: "Boeing Co",
-          url: "https://www.opensecrets.org/orgs/boeing-co/summary?id=D000000100",
-          relevance: "Defense, aerospace, aviation, military equipment"
+          name: "Enterprise Community Partners",
+          url: "https://www.hud.gov/program_offices/gov_relations/oirpublicinterestgroups",
+          relevance: "Affordable housing, community development, neighborhood revitalization"
         },
         {
-          name: "Northrop Grumman",
-          url: "https://www.opensecrets.org/orgs/northrop-grumman/summary?id=D000000170",
-          relevance: "Defense technology, cybersecurity, aerospace, national security"
+          name: "NeighborWorks America",
+          url: "https://www.hud.gov/program_offices/gov_relations/oirpublicinterestgroups",
+          relevance: "Affordable housing, community development, homeownership"
         }
       ]
     },
     {
-      name: "Immigration",
+      name: "Homelessness",
       groups: [
         {
-          name: "National Immigration Forum",
-          url: "https://www.opensecrets.org/orgs/national-immigration-forum/summary?id=D000036479",
-          relevance: "Immigration reform, immigrant rights, border policy"
+          name: "National Alliance to End Homelessness",
+          url: "https://www.hud.gov/program_offices/gov_relations/oirpublicinterestgroups",
+          relevance: "Homelessness prevention, affordable housing, supportive services"
         },
         {
-          name: "Federation for American Immigration Reform",
-          url: "https://www.opensecrets.org/orgs/federation-for-amer-immigration-reform/summary?id=D000033177",
-          relevance: "Immigration restriction, border security, immigration law enforcement"
+          name: "National Coalition for the Homeless",
+          url: "https://www.hud.gov/program_offices/gov_relations/oirpublicinterestgroups",
+          relevance: "Homeless rights, housing justice, advocacy"
         },
         {
-          name: "American Immigration Lawyers Association",
-          url: "https://www.opensecrets.org/orgs/american-immigration-lawyers-assn/summary?id=D000047406",
-          relevance: "Immigration law, legal immigration, immigrant rights"
+          name: "National Health Care for the Homeless Council",
+          url: "https://www.hud.gov/program_offices/gov_relations/oirpublicinterestgroups",
+          relevance: "Healthcare for homeless, supportive housing, integrated services"
         }
       ]
     },
     {
-      name: "Agriculture",
+      name: "Economic Policy",
       groups: [
         {
-          name: "American Farm Bureau",
-          url: "https://www.opensecrets.org/orgs/american-farm-bureau/summary?id=D000021832",
-          relevance: "Agricultural policy, farm subsidies, rural development, food production"
+          name: "National Community Reinvestment Coalition",
+          url: "https://www.hud.gov/program_offices/gov_relations/oirpublicinterestgroups",
+          relevance: "Community investment, fair lending, affordable housing finance"
         },
         {
-          name: "National Farmers Union",
-          url: "https://www.opensecrets.org/orgs/national-farmers-union/summary?id=D000000155",
-          relevance: "Family farming, agricultural sustainability, rural communities"
+          name: "Opportunity Finance Network",
+          url: "https://www.hud.gov/program_offices/gov_relations/oirpublicinterestgroups",
+          relevance: "Community development financial institutions, impact investing"
         },
         {
-          name: "Monsanto Co/Bayer",
-          url: "https://www.opensecrets.org/orgs/monsanto-co/summary?id=D000000211",
-          relevance: "Agricultural technology, GMO policy, crop protection, farm productivity"
+          name: "National Association of Affordable Housing Lenders",
+          url: "https://www.hud.gov/program_offices/gov_relations/oirpublicinterestgroups",
+          relevance: "Affordable housing finance, community development lending"
         }
       ]
     },
     {
-      name: "Technology",
+      name: "Veterans",
       groups: [
         {
-          name: "Internet Association",
-          url: "https://www.opensecrets.org/orgs/internet-assn/summary?id=D000067451",
-          relevance: "Internet policy, digital commerce, tech regulation, privacy"
+          name: "National Coalition for Homeless Veterans",
+          url: "https://www.hud.gov/program_offices/gov_relations/oirpublicinterestgroups",
+          relevance: "Veteran homelessness, supportive housing, veteran services"
         },
         {
-          name: "Google Inc",
-          url: "https://www.opensecrets.org/orgs/google-inc/summary?id=D000022008",
-          relevance: "Technology policy, privacy, internet regulation, intellectual property"
+          name: "Veterans Association of Real Estate Professionals",
+          url: "https://www.hud.gov/program_offices/gov_relations/oirpublicinterestgroups",
+          relevance: "Veteran homeownership, VA loans, housing assistance for veterans"
+        }
+      ]
+    },
+    {
+      name: "Rural Development",
+      groups: [
+        {
+          name: "Housing Assistance Council",
+          url: "https://www.hud.gov/program_offices/gov_relations/oirpublicinterestgroups",
+          relevance: "Rural housing, affordable housing in rural communities"
         },
         {
-          name: "Electronic Frontier Foundation",
-          url: "https://www.opensecrets.org/orgs/electronic-frontier-foundation/summary?id=D000051054",
-          relevance: "Digital rights, privacy, innovation, free speech online"
+          name: "Rural Community Assistance Partnership",
+          url: "https://www.hud.gov/program_offices/gov_relations/oirpublicinterestgroups",
+          relevance: "Rural development, community infrastructure, capacity building"
         }
       ]
     }
@@ -750,7 +697,7 @@ async function findRelevantGroups(priorities: string[]) {
         {
           role: 'system',
           content: `You are an expert in mapping voter priorities to specific policy areas. Map each priority to ONE of these standardized policy areas ONLY: 
-            Environmental Policy, Healthcare, Economic Policy, Education, Civil Rights, National Security, Immigration, Agriculture, Technology.
+            Housing Policy, Civil Rights, Community Development, Homelessness, Economic Policy, Veterans, Rural Development.
             Do not invent new categories and do not use any other categories. Return as a JSON array with top 3 primary areas only.`
         },
         {
@@ -767,7 +714,7 @@ async function findRelevantGroups(priorities: string[]) {
     if (!topicsResponse.ok) {
       console.error('Failed to map priorities to policy areas');
       // Fallback to a selection of the most broadly relevant groups
-      return openSecretsGroups
+      return hudGroups
         .slice(0, 3)
         .flatMap(category => category.groups.slice(0, 1));
     }
@@ -787,14 +734,14 @@ async function findRelevantGroups(priorities: string[]) {
         } catch (innerError) {
           console.error('Failed to parse extracted JSON:', innerError);
           // Extract policy areas by simple string matching
-          policyAreas = openSecretsGroups
+          policyAreas = hudGroups
             .filter(group => content.includes(group.name))
             .map(group => group.name)
             .slice(0, 3);
         }
       } else {
         // Simple string matching if JSON extraction fails
-        policyAreas = openSecretsGroups
+        policyAreas = hudGroups
           .filter(group => content.includes(group.name))
           .map(group => group.name)
           .slice(0, 3);
@@ -803,14 +750,14 @@ async function findRelevantGroups(priorities: string[]) {
     
     if (!Array.isArray(policyAreas) || policyAreas.length === 0) {
       console.error('No policy areas extracted from AI response');
-      return openSecretsGroups
+      return hudGroups
         .slice(0, 3)
         .flatMap(category => category.groups.slice(0, 1));
     }
     
     console.log('Mapped policy areas:', policyAreas);
     
-    // Map policy areas to OpenSecrets groups
+    // Map policy areas to HUD groups
     let relevantGroups = [];
     
     // Get up to 3 top policy areas
@@ -818,7 +765,7 @@ async function findRelevantGroups(priorities: string[]) {
     
     // Find matching groups for each top policy area
     topPolicyAreas.forEach(area => {
-      const matchingCategory = openSecretsGroups.find(
+      const matchingCategory = hudGroups.find(
         category => category.name.toLowerCase() === area.toLowerCase()
       );
       
@@ -830,7 +777,7 @@ async function findRelevantGroups(priorities: string[]) {
     
     // If we didn't find enough groups, add some from other categories
     if (relevantGroups.length < 3) {
-      const remainingCategories = openSecretsGroups.filter(
+      const remainingCategories = hudGroups.filter(
         category => !topPolicyAreas.includes(category.name)
       );
       
@@ -847,7 +794,7 @@ async function findRelevantGroups(priorities: string[]) {
   } catch (error) {
     console.error('Error in findRelevantGroups:', error);
     // Fallback to a selection of the most broadly relevant groups
-    return openSecretsGroups
+    return hudGroups
       .slice(0, 3)
       .flatMap(category => category.groups.slice(0, 1));
   }
