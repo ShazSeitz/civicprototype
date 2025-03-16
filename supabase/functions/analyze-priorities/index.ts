@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 
@@ -552,92 +553,304 @@ async function generateEmailDraft(representative: any, priorities: string[], iss
 async function findRelevantGroups(priorities: string[]) {
   console.log('Finding relevant groups for priorities:', priorities);
   
-  // Replace the HUD groups with Library of Congress committees and interest groups
-  const congressionalCommittees = [
+  // Use OpenSecrets.org interest groups instead of congressional committees
+  const openSecretsGroups = [
     {
-      name: "House Committee on Financial Services",
-      url: "https://www.congress.gov/committees/house-financial-services-committee/hsba00",
-      relevance: "Banking, economic stabilization, housing, insurance, international finance"
+      name: "Environmental Policy",
+      groups: [
+        {
+          name: "League of Conservation Voters",
+          url: "https://www.opensecrets.org/political-action-committees-pacs/league-of-conservation-voters/C00252940/summary/2020",
+          relevance: "Environmental protection, climate change, clean energy policy"
+        },
+        {
+          name: "Sierra Club",
+          url: "https://www.opensecrets.org/orgs/sierra-club/summary?id=D000000259",
+          relevance: "Conservation, environmental protection, renewable energy, climate advocacy"
+        },
+        {
+          name: "Natural Resources Defense Council",
+          url: "https://www.opensecrets.org/orgs/natural-resources-defense-council/summary?id=D000000797",
+          relevance: "Environmental protection, clean water, climate change, wildlife conservation"
+        }
+      ]
     },
     {
-      name: "Senate Committee on Health, Education, Labor and Pensions",
-      url: "https://www.congress.gov/committees/senate-health-education-labor-and-pensions-committee/sshr00",
-      relevance: "Public health, education, labor standards, aging, disabilities"
+      name: "Healthcare",
+      groups: [
+        {
+          name: "American Medical Association",
+          url: "https://www.opensecrets.org/orgs/american-medical-assn/summary?id=D000000068",
+          relevance: "Healthcare policy, physician advocacy, medical research, healthcare access"
+        },
+        {
+          name: "Pharmaceutical Research & Manufacturers of America",
+          url: "https://www.opensecrets.org/orgs/pharmaceutical-research-manufacturers-of-america/summary?id=D000000504",
+          relevance: "Pharmaceutical research, drug pricing, healthcare innovation"
+        },
+        {
+          name: "American Hospital Association",
+          url: "https://www.opensecrets.org/orgs/american-hospital-assn/summary?id=D000000116",
+          relevance: "Hospital policy, healthcare delivery, patient care, healthcare financing"
+        }
+      ]
     },
     {
-      name: "House Committee on Energy and Commerce",
-      url: "https://www.congress.gov/committees/house-energy-and-commerce-committee/hsif00",
-      relevance: "Energy policy, healthcare, environmental protection, consumer protection"
+      name: "Economic Policy",
+      groups: [
+        {
+          name: "Chamber of Commerce",
+          url: "https://www.opensecrets.org/orgs/us-chamber-of-commerce/summary?id=D000019798",
+          relevance: "Business advocacy, economic growth, trade, job creation, regulatory policy"
+        },
+        {
+          name: "National Association of Realtors",
+          url: "https://www.opensecrets.org/orgs/national-assn-of-realtors/summary?id=D000000062",
+          relevance: "Housing market, property rights, real estate policy, homeownership"
+        },
+        {
+          name: "American Federation of Labor and Congress of Industrial Organizations (AFL-CIO)",
+          url: "https://www.opensecrets.org/orgs/american-federation-of-labor-congress-of-industrial-or/summary?id=D000000088",
+          relevance: "Labor rights, worker protections, wages, job safety, collective bargaining"
+        }
+      ]
     },
     {
-      name: "Senate Committee on Environment and Public Works",
-      url: "https://www.congress.gov/committees/senate-environment-and-public-works-committee/ssev00",
-      relevance: "Environmental policy, infrastructure, wildlife conservation"
+      name: "Education",
+      groups: [
+        {
+          name: "National Education Association",
+          url: "https://www.opensecrets.org/orgs/national-education-assn/summary?id=D000000064",
+          relevance: "Education policy, teacher advocacy, school funding, student achievement"
+        },
+        {
+          name: "American Federation of Teachers",
+          url: "https://www.opensecrets.org/orgs/american-federation-of-teachers/summary?id=D000000083",
+          relevance: "Teacher rights, education quality, school funding, education reform"
+        },
+        {
+          name: "College Board",
+          url: "https://www.opensecrets.org/orgs/college-board/summary?id=D000022127",
+          relevance: "Higher education access, standardized testing, college readiness"
+        }
+      ]
     },
     {
-      name: "House Committee on Foreign Affairs",
-      url: "https://www.congress.gov/committees/house-foreign-affairs-committee/hsfa00",
-      relevance: "Foreign policy, international relations, foreign aid"
+      name: "Civil Rights",
+      groups: [
+        {
+          name: "American Civil Liberties Union",
+          url: "https://www.opensecrets.org/orgs/american-civil-liberties-union/summary?id=D000031473",
+          relevance: "Civil liberties, constitutional rights, privacy, criminal justice reform"
+        },
+        {
+          name: "NAACP",
+          url: "https://www.opensecrets.org/orgs/naacp/summary?id=D000036157",
+          relevance: "Racial equality, voting rights, criminal justice reform, economic opportunity"
+        },
+        {
+          name: "Human Rights Campaign",
+          url: "https://www.opensecrets.org/orgs/human-rights-campaign/summary?id=D000000158",
+          relevance: "LGBTQ+ rights, anti-discrimination, civil rights, equality"
+        }
+      ]
     },
     {
-      name: "Senate Committee on Armed Services",
-      url: "https://www.congress.gov/committees/senate-armed-services-committee/ssas00",
-      relevance: "Military operations, defense spending, national security"
+      name: "National Security",
+      groups: [
+        {
+          name: "Lockheed Martin",
+          url: "https://www.opensecrets.org/orgs/lockheed-martin/summary?id=D000000104",
+          relevance: "Defense contracting, national security, aerospace, military technology"
+        },
+        {
+          name: "Boeing Co",
+          url: "https://www.opensecrets.org/orgs/boeing-co/summary?id=D000000100",
+          relevance: "Defense, aerospace, aviation, military equipment"
+        },
+        {
+          name: "Northrop Grumman",
+          url: "https://www.opensecrets.org/orgs/northrop-grumman/summary?id=D000000170",
+          relevance: "Defense technology, cybersecurity, aerospace, national security"
+        }
+      ]
     },
     {
-      name: "House Committee on the Judiciary",
-      url: "https://www.congress.gov/committees/house-judiciary-committee/hsju00",
-      relevance: "Civil liberties, constitutional rights, immigration law, courts"
+      name: "Immigration",
+      groups: [
+        {
+          name: "National Immigration Forum",
+          url: "https://www.opensecrets.org/orgs/national-immigration-forum/summary?id=D000036479",
+          relevance: "Immigration reform, immigrant rights, border policy"
+        },
+        {
+          name: "Federation for American Immigration Reform",
+          url: "https://www.opensecrets.org/orgs/federation-for-amer-immigration-reform/summary?id=D000033177",
+          relevance: "Immigration restriction, border security, immigration law enforcement"
+        },
+        {
+          name: "American Immigration Lawyers Association",
+          url: "https://www.opensecrets.org/orgs/american-immigration-lawyers-assn/summary?id=D000047406",
+          relevance: "Immigration law, legal immigration, immigrant rights"
+        }
+      ]
     },
     {
-      name: "Senate Committee on Finance",
-      url: "https://www.congress.gov/committees/senate-finance-committee/ssfi00",
-      relevance: "Taxation, social security, healthcare financing, trade"
+      name: "Agriculture",
+      groups: [
+        {
+          name: "American Farm Bureau",
+          url: "https://www.opensecrets.org/orgs/american-farm-bureau/summary?id=D000021832",
+          relevance: "Agricultural policy, farm subsidies, rural development, food production"
+        },
+        {
+          name: "National Farmers Union",
+          url: "https://www.opensecrets.org/orgs/national-farmers-union/summary?id=D000000155",
+          relevance: "Family farming, agricultural sustainability, rural communities"
+        },
+        {
+          name: "Monsanto Co/Bayer",
+          url: "https://www.opensecrets.org/orgs/monsanto-co/summary?id=D000000211",
+          relevance: "Agricultural technology, GMO policy, crop protection, farm productivity"
+        }
+      ]
     },
     {
-      name: "House Committee on Ways and Means",
-      url: "https://www.congress.gov/committees/house-ways-and-means-committee/hswm00",
-      relevance: "Tax policy, trade agreements, social security, healthcare financing"
-    },
-    {
-      name: "Senate Committee on the Judiciary",
-      url: "https://www.congress.gov/committees/senate-judiciary-committee/ssju00",
-      relevance: "Federal courts, constitutional law, civil rights, immigration"
-    },
-    {
-      name: "House Committee on Agriculture",
-      url: "https://www.congress.gov/committees/house-agriculture-committee/hsag00",
-      relevance: "Agricultural policy, food safety, rural development, forestry"
-    },
-    {
-      name: "Senate Committee on Agriculture, Nutrition, and Forestry",
-      url: "https://www.congress.gov/committees/senate-agriculture-nutrition-and-forestry-committee/ssaf00",
-      relevance: "Agriculture, nutrition programs, food safety, forestry, rural development"
+      name: "Technology",
+      groups: [
+        {
+          name: "Internet Association",
+          url: "https://www.opensecrets.org/orgs/internet-assn/summary?id=D000067451",
+          relevance: "Internet policy, digital commerce, tech regulation, privacy"
+        },
+        {
+          name: "Google Inc",
+          url: "https://www.opensecrets.org/orgs/google-inc/summary?id=D000022008",
+          relevance: "Technology policy, privacy, internet regulation, intellectual property"
+        },
+        {
+          name: "Electronic Frontier Foundation",
+          url: "https://www.opensecrets.org/orgs/electronic-frontier-foundation/summary?id=D000051054",
+          relevance: "Digital rights, privacy, innovation, free speech online"
+        }
+      ]
     }
   ];
   
-  // Basic filtering logic - this would ideally be enhanced with actual priority matching
-  // We'll select up to 3 committees that might be relevant
-  if (priorities.length > 0) {
-    const lowercasePriorities = priorities.map(p => p.toLowerCase());
+  // First, convert priorities to standardized topics using OpenAI
+  const topicsResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${openAIApiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: `You are an expert in mapping voter priorities to specific policy areas. Map each priority to ONE of these standardized policy areas ONLY: 
+            Environmental Policy, Healthcare, Economic Policy, Education, Civil Rights, National Security, Immigration, Agriculture, Technology.
+            Do not invent new categories and do not use any other categories. Return as a JSON array with top 3 primary areas only.`
+        },
+        {
+          role: 'user',
+          content: `Map these voter priorities to the top 3 most relevant standardized policy areas from the given list ONLY: ${JSON.stringify(priorities)}`
+        }
+      ],
+      temperature: 0.3,
+      max_tokens: 200
+    }),
+  });
+  
+  try {
+    if (!topicsResponse.ok) {
+      console.error('Failed to map priorities to policy areas');
+      // Fallback to a selection of the most broadly relevant groups
+      return openSecretsGroups
+        .slice(0, 3)
+        .flatMap(category => category.groups.slice(0, 1));
+    }
     
-    // Attempt to filter committees based on keywords in the priorities
-    const matchedCommittees = congressionalCommittees.filter(committee => {
-      const relevanceLower = committee.relevance.toLowerCase();
-      return lowercasePriorities.some(priority => 
-        relevanceLower.includes(priority) || 
-        priority.split(' ').some(word => word.length > 4 && relevanceLower.includes(word))
+    const topicsData = await topicsResponse.json();
+    const content = topicsData.choices[0].message.content;
+    
+    let policyAreas;
+    try {
+      policyAreas = JSON.parse(content);
+    } catch (e) {
+      // If not valid JSON, try to extract JSON from the response
+      const match = content.match(/\[(.*)\]/s);
+      if (match) {
+        try {
+          policyAreas = JSON.parse(`[${match[1]}]`);
+        } catch (innerError) {
+          console.error('Failed to parse extracted JSON:', innerError);
+          // Extract policy areas by simple string matching
+          policyAreas = openSecretsGroups
+            .filter(group => content.includes(group.name))
+            .map(group => group.name)
+            .slice(0, 3);
+        }
+      } else {
+        // Simple string matching if JSON extraction fails
+        policyAreas = openSecretsGroups
+          .filter(group => content.includes(group.name))
+          .map(group => group.name)
+          .slice(0, 3);
+      }
+    }
+    
+    if (!Array.isArray(policyAreas) || policyAreas.length === 0) {
+      console.error('No policy areas extracted from AI response');
+      return openSecretsGroups
+        .slice(0, 3)
+        .flatMap(category => category.groups.slice(0, 1));
+    }
+    
+    console.log('Mapped policy areas:', policyAreas);
+    
+    // Map policy areas to OpenSecrets groups
+    let relevantGroups = [];
+    
+    // Get up to 3 top policy areas
+    const topPolicyAreas = policyAreas.slice(0, 3);
+    
+    // Find matching groups for each top policy area
+    topPolicyAreas.forEach(area => {
+      const matchingCategory = openSecretsGroups.find(
+        category => category.name.toLowerCase() === area.toLowerCase()
       );
+      
+      if (matchingCategory) {
+        // Add all groups from this category
+        relevantGroups = relevantGroups.concat(matchingCategory.groups);
+      }
     });
     
-    // If we have specific matches, return those (up to 3)
-    if (matchedCommittees.length > 0) {
-      return matchedCommittees.slice(0, 3);
+    // If we didn't find enough groups, add some from other categories
+    if (relevantGroups.length < 3) {
+      const remainingCategories = openSecretsGroups.filter(
+        category => !topPolicyAreas.includes(category.name)
+      );
+      
+      const additionalGroups = remainingCategories
+        .flatMap(category => category.groups)
+        .slice(0, 3 - relevantGroups.length);
+      
+      relevantGroups = relevantGroups.concat(additionalGroups);
     }
+    
+    // Cap at 5 groups maximum
+    return relevantGroups.slice(0, 5);
+    
+  } catch (error) {
+    console.error('Error in findRelevantGroups:', error);
+    // Fallback to a selection of the most broadly relevant groups
+    return openSecretsGroups
+      .slice(0, 3)
+      .flatMap(category => category.groups.slice(0, 1));
   }
-  
-  // Fallback: return a selection of the most broadly relevant committees
-  return congressionalCommittees.slice(0, 3);
 }
 
 serve(async (req) => {
