@@ -552,50 +552,92 @@ async function generateEmailDraft(representative: any, priorities: string[], iss
 async function findRelevantGroups(priorities: string[]) {
   console.log('Finding relevant groups for priorities:', priorities);
   
-  const verifiedHudGroups = [
+  // Replace the HUD groups with Library of Congress committees and interest groups
+  const congressionalCommittees = [
     {
-      name: "National Fair Housing Alliance",
-      url: "https://nationalfairhousing.org/",
-      relevance: "Housing discrimination and equal housing opportunity"
+      name: "House Committee on Financial Services",
+      url: "https://www.congress.gov/committees/house-financial-services-committee/hsba00",
+      relevance: "Banking, economic stabilization, housing, insurance, international finance"
     },
     {
-      name: "National Housing Law Project",
-      url: "https://www.nhlp.org/",
-      relevance: "Housing rights, subsidized housing preservation"
+      name: "Senate Committee on Health, Education, Labor and Pensions",
+      url: "https://www.congress.gov/committees/senate-health-education-labor-and-pensions-committee/sshr00",
+      relevance: "Public health, education, labor standards, aging, disabilities"
     },
     {
-      name: "National Low Income Housing Coalition",
-      url: "https://nlihc.org/",
-      relevance: "Affordable housing policy and advocacy"
+      name: "House Committee on Energy and Commerce",
+      url: "https://www.congress.gov/committees/house-energy-and-commerce-committee/hsif00",
+      relevance: "Energy policy, healthcare, environmental protection, consumer protection"
     },
     {
-      name: "Consumer Financial Protection Bureau (CFPB)",
-      url: "https://www.consumerfinance.gov/",
-      relevance: "Consumer protection for financial matters including housing"
+      name: "Senate Committee on Environment and Public Works",
+      url: "https://www.congress.gov/committees/senate-environment-and-public-works-committee/ssev00",
+      relevance: "Environmental policy, infrastructure, wildlife conservation"
     },
     {
-      name: "U.S. Interagency Council on Homelessness",
-      url: "https://www.usich.gov/",
-      relevance: "Coordination of federal response to homelessness"
+      name: "House Committee on Foreign Affairs",
+      url: "https://www.congress.gov/committees/house-foreign-affairs-committee/hsfa00",
+      relevance: "Foreign policy, international relations, foreign aid"
     },
     {
-      name: "Local Initiatives Support Corporation (LISC)",
-      url: "https://www.lisc.org/",
-      relevance: "Community development and affordable housing initiatives"
+      name: "Senate Committee on Armed Services",
+      url: "https://www.congress.gov/committees/senate-armed-services-committee/ssas00",
+      relevance: "Military operations, defense spending, national security"
     },
     {
-      name: "Enterprise Community Partners",
-      url: "https://www.enterprisecommunity.org/",
-      relevance: "Affordable housing and community development"
+      name: "House Committee on the Judiciary",
+      url: "https://www.congress.gov/committees/house-judiciary-committee/hsju00",
+      relevance: "Civil liberties, constitutional rights, immigration law, courts"
     },
     {
-      name: "National Housing Trust",
-      url: "https://www.nationalhousingtrust.org/",
-      relevance: "Affordable housing preservation"
+      name: "Senate Committee on Finance",
+      url: "https://www.congress.gov/committees/senate-finance-committee/ssfi00",
+      relevance: "Taxation, social security, healthcare financing, trade"
+    },
+    {
+      name: "House Committee on Ways and Means",
+      url: "https://www.congress.gov/committees/house-ways-and-means-committee/hswm00",
+      relevance: "Tax policy, trade agreements, social security, healthcare financing"
+    },
+    {
+      name: "Senate Committee on the Judiciary",
+      url: "https://www.congress.gov/committees/senate-judiciary-committee/ssju00",
+      relevance: "Federal courts, constitutional law, civil rights, immigration"
+    },
+    {
+      name: "House Committee on Agriculture",
+      url: "https://www.congress.gov/committees/house-agriculture-committee/hsag00",
+      relevance: "Agricultural policy, food safety, rural development, forestry"
+    },
+    {
+      name: "Senate Committee on Agriculture, Nutrition, and Forestry",
+      url: "https://www.congress.gov/committees/senate-agriculture-nutrition-and-forestry-committee/ssaf00",
+      relevance: "Agriculture, nutrition programs, food safety, forestry, rural development"
     }
   ];
   
-  return verifiedHudGroups.slice(0, 3);
+  // Basic filtering logic - this would ideally be enhanced with actual priority matching
+  // We'll select up to 3 committees that might be relevant
+  if (priorities.length > 0) {
+    const lowercasePriorities = priorities.map(p => p.toLowerCase());
+    
+    // Attempt to filter committees based on keywords in the priorities
+    const matchedCommittees = congressionalCommittees.filter(committee => {
+      const relevanceLower = committee.relevance.toLowerCase();
+      return lowercasePriorities.some(priority => 
+        relevanceLower.includes(priority) || 
+        priority.split(' ').some(word => word.length > 4 && relevanceLower.includes(word))
+      );
+    });
+    
+    // If we have specific matches, return those (up to 3)
+    if (matchedCommittees.length > 0) {
+      return matchedCommittees.slice(0, 3);
+    }
+  }
+  
+  // Fallback: return a selection of the most broadly relevant committees
+  return congressionalCommittees.slice(0, 3);
 }
 
 serve(async (req) => {
