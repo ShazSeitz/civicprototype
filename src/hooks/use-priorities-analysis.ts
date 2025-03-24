@@ -171,8 +171,39 @@ export function usePrioritiesAnalysis() {
         // Extract mapped priorities
         const mappedPriorities = data.mappedPriorities || [];
         
-        // Extract conflicting priorities if available
-        const conflictingPriorities = data.conflictingPriorities || [];
+        // Extract and enhance conflicting priorities if available
+        let conflictingPriorities = data.conflictingPriorities || [];
+        
+        // Format conflicting priorities to use actual priority text instead of numbers
+        if (conflictingPriorities.length > 0 && formData.priorities.length > 0) {
+          conflictingPriorities = conflictingPriorities.map(conflict => {
+            // Replace references like "priorities #1 and #4" with actual priority text
+            let enhancedConflict = conflict;
+            
+            // Look for patterns like "priorities #1 and #4" or "priority #2"
+            const priorityRefPattern = /(priority|priorities)\s+#(\d+)(?:\s+and\s+#(\d+))?/gi;
+            
+            enhancedConflict = enhancedConflict.replace(priorityRefPattern, (match, term, firstNum, secondNum) => {
+              const firstIndex = parseInt(firstNum) - 1;
+              
+              if (firstIndex >= 0 && firstIndex < formData.priorities.length) {
+                const firstPriority = `"${formData.priorities[firstIndex].substring(0, 30)}${formData.priorities[firstIndex].length > 30 ? '...' : ''}"`;
+                
+                if (secondNum) {
+                  const secondIndex = parseInt(secondNum) - 1;
+                  if (secondIndex >= 0 && secondIndex < formData.priorities.length) {
+                    const secondPriority = `"${formData.priorities[secondIndex].substring(0, 30)}${formData.priorities[secondIndex].length > 30 ? '...' : ''}"`;
+                    return `${term} ${firstPriority} and ${secondPriority}`;
+                  }
+                }
+                return `${term} ${firstPriority}`;
+              }
+              return match;
+            });
+            
+            return enhancedConflict;
+          });
+        }
 
         // Process and enhance the candidates data to include alignment info if not present
         const enhancedCandidates = data.candidates?.map(candidate => {
