@@ -11,6 +11,7 @@ export interface RecommendationsData {
   analysis: string;
   mappedPriorities: string[];
   conflictingPriorities?: string[];
+  nuancedMappings?: Record<string, Record<string, any>>;
   candidates: any[];
   ballotMeasures: any[];
   draftEmails: any[];

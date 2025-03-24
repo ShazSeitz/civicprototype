@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -113,42 +112,28 @@ export const DebugTool = () => {
         setMlResults([]);
       } else {
         // Convert to our debug format
-        const mlDebugResults = result.terms.map(term => {
-          // Get the term description from issueTerminology.json
-          const termInfo = fetch('/src/config/issueTerminology.json')
-            .then(res => res.json())
-            .then(data => data[term])
-            .catch(err => ({ plainEnglish: "Term description not available" }));
-            
-          return {
-            term,
-            confidence: result.confidenceScores[term] || 0.5,
-            description: termInfo?.plainEnglish || "Term description not available"
-          };
-        });
+        const resolvedResults: MLDebugResult[] = [];
         
-        // Wait for all promises to resolve
-        const resolvedResults = await Promise.all(
-          result.terms.map(async (term) => {
-            const confidence = result.confidenceScores[term] || 0.5;
-            
-            // Try to get term info from our config
-            let description = "Term description not available";
-            try {
-              const response = await fetch('/src/config/issueTerminology.json');
-              const data = await response.json();
-              description = data[term]?.plainEnglish || description;
-            } catch (error) {
-              console.error('Error fetching term data:', error);
+        for (const term of result.terms) {
+          const confidence = result.confidenceScores[term] || 0.5;
+          let description = "Term description not available";
+          
+          try {
+            const response = await fetch('/src/config/issueTerminology.json');
+            const data = await response.json();
+            if (data[term] && data[term].plainEnglish) {
+              description = data[term].plainEnglish;
             }
-            
-            return {
-              term,
-              confidence,
-              description
-            };
-          })
-        );
+          } catch (error) {
+            console.error('Error fetching term data:', error);
+          }
+          
+          resolvedResults.push({
+            term,
+            confidence,
+            description
+          });
+        }
         
         setMlResults(resolvedResults);
       }

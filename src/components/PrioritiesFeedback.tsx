@@ -10,6 +10,7 @@ interface PrioritiesFeedbackProps {
   analysis: string;
   mappedPriorities: string[];
   conflictingPriorities?: string[];
+  nuancedMappings?: Record<string, Record<string, any>>;
   onFeedbackSubmit: (feedback: string) => void;
   onContinue: () => void;
 }
@@ -18,6 +19,7 @@ export const PrioritiesFeedback = ({
   analysis,
   mappedPriorities,
   conflictingPriorities = [],
+  nuancedMappings = {},
   onFeedbackSubmit,
   onContinue
 }: PrioritiesFeedbackProps) => {

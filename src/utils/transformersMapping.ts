@@ -63,7 +63,7 @@ export const initializeModel = async (): Promise<void> => {
       classifierPipeline = await pipeline(
         'text-classification',
         'distilbert-base-uncased-finetuned-sst-2-english', // Fallback to sentiment analysis model
-        { topk: 1, device: 'webgpu' }
+        { device: 'webgpu' }
       );
       console.log('Model loaded successfully');
       resolve();
@@ -230,12 +230,13 @@ export const classifyPoliticalStatement = async (text: string): Promise<{
 
     // Extract nuanced mappings for the valid terms
     const nuancedMappings: Record<string, Record<string, any>> = {};
-    validTerms.forEach(term => {
+    
+    for (const term of validTerms) {
       const termData = issueTerminology[term as keyof typeof issueTerminology];
-      if (termData && termData.nuancedMapping) {
-        nuancedMappings[term] = termData.nuancedMapping;
+      if (termData && 'nuancedMapping' in termData) {
+        nuancedMappings[term] = termData.nuancedMapping as Record<string, any>;
       }
-    });
+    }
     
     return {
       terms: validTerms,
@@ -302,10 +303,16 @@ export const enhancedTerminologyMapping = async (
   if (sortedTerms.length > 0) {
     // Get the plain English descriptions for the top terms
     const topTerms = sortedTerms.slice(0, Math.min(3, sortedTerms.length));
-    const descriptions = topTerms.map(term => {
+    const descriptions: string[] = [];
+    
+    for (const term of topTerms) {
       const termData = issueTerminology[term as keyof typeof issueTerminology];
-      return termData ? termData.plainEnglish : `interests related to ${term}`;
-    });
+      if (termData && 'plainEnglish' in termData) {
+        descriptions.push(termData.plainEnglish as string);
+      } else {
+        descriptions.push(`interests related to ${term}`);
+      }
+    }
     
     analysis += "Your priorities most strongly relate to " + descriptions.join(", ") + ". ";
     analysis += "\n\nOur system has mapped your personal concerns to standardized policy terms that can help you compare candidates and issues. ";
