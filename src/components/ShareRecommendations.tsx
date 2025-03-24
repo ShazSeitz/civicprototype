@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { 
   Share,
@@ -15,6 +15,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 interface ShareRecommendationsProps {
   recommendationsData: any;
@@ -23,38 +25,124 @@ interface ShareRecommendationsProps {
 export const ShareRecommendations = ({ recommendationsData }: ShareRecommendationsProps) => {
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
+  const contentRef = useRef<HTMLDivElement | null>(null);
 
-  // Function to save recommendations as JSON file
-  const saveRecommendations = () => {
+  // Function to save recommendations as PDF
+  const saveRecommendations = async () => {
     try {
-      // Create a JSON string from the recommendations data
-      const jsonString = JSON.stringify(recommendationsData, null, 2);
+      const doc = new jsPDF('p', 'mm', 'a4');
       
-      // Create a blob with the JSON data
-      const blob = new Blob([jsonString], { type: 'application/json' });
+      // Add title
+      doc.setFontSize(18);
+      doc.text('Your Voter Recommendations', 20, 20);
       
-      // Create a URL for the blob
-      const url = URL.createObjectURL(blob);
+      // Add date
+      const date = new Date().toLocaleDateString();
+      doc.setFontSize(12);
+      doc.text(`Generated on: ${date}`, 20, 30);
       
-      // Create a temporary anchor element
-      const a = document.createElement('a');
-      a.href = url;
+      // Add line separator
+      doc.setLineWidth(0.5);
+      doc.line(20, 35, 190, 35);
       
-      // Set the file name
-      const date = new Date().toISOString().split('T')[0];
-      a.download = `voter-recommendations-${date}.json`;
+      // Add priorities section
+      doc.setFontSize(14);
+      doc.text('Your Priorities:', 20, 45);
       
-      // Trigger the download
-      document.body.appendChild(a);
-      a.click();
+      let yPosition = 55;
+      // Add mapped priorities
+      if (recommendationsData.mappedPriorities && recommendationsData.mappedPriorities.length > 0) {
+        doc.setFontSize(12);
+        recommendationsData.mappedPriorities.forEach((priority: string, index: number) => {
+          doc.text(`${index + 1}. ${priority}`, 25, yPosition);
+          yPosition += 8;
+        });
+      }
       
-      // Clean up
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      // Add line separator
+      yPosition += 5;
+      doc.line(20, yPosition, 190, yPosition);
+      yPosition += 10;
+      
+      // Add recommendations sections
+      doc.setFontSize(14);
+      doc.text('Candidate Recommendations:', 20, yPosition);
+      yPosition += 10;
+      
+      // Add candidate recommendations
+      if (recommendationsData.candidates && recommendationsData.candidates.length > 0) {
+        doc.setFontSize(12);
+        recommendationsData.candidates.forEach((candidate: any, index: number) => {
+          // Skip if we've reached the bottom of the page
+          if (yPosition > 270) {
+            doc.addPage();
+            yPosition = 20;
+          }
+          
+          doc.setFont(undefined, 'bold');
+          doc.text(`${candidate.name} (${candidate.party})`, 25, yPosition);
+          yPosition += 8;
+          
+          doc.setFont(undefined, 'normal');
+          if (candidate.office) {
+            doc.text(`Office: ${candidate.office}`, 30, yPosition);
+            yPosition += 6;
+          }
+          
+          if (candidate.alignment && candidate.alignment.type) {
+            const alignmentText = `Alignment: ${candidate.alignment.type.charAt(0).toUpperCase() + candidate.alignment.type.slice(1)}`;
+            doc.text(alignmentText, 30, yPosition);
+            yPosition += 10;
+          }
+        });
+      }
+      
+      // Add ballot measures if present
+      if (recommendationsData.ballotMeasures && recommendationsData.ballotMeasures.length > 0) {
+        // Check if we need a new page
+        if (yPosition > 230) {
+          doc.addPage();
+          yPosition = 20;
+        }
+        
+        yPosition += 5;
+        doc.setFontSize(14);
+        doc.text('Ballot Measure Recommendations:', 20, yPosition);
+        yPosition += 10;
+        
+        doc.setFontSize(12);
+        recommendationsData.ballotMeasures.forEach((measure: any, index: number) => {
+          if (yPosition > 270) {
+            doc.addPage();
+            yPosition = 20;
+          }
+          
+          doc.setFont(undefined, 'bold');
+          doc.text(`${measure.title}`, 25, yPosition);
+          yPosition += 8;
+          
+          doc.setFont(undefined, 'normal');
+          if (measure.recommendation) {
+            doc.text(`Recommendation: ${measure.recommendation}`, 30, yPosition);
+            yPosition += 6;
+          }
+          
+          if (measure.summary) {
+            // Split the summary to fit on the page
+            const summary = doc.splitTextToSize(measure.summary, 150);
+            doc.text(summary, 30, yPosition);
+            yPosition += (6 * summary.length) + 5;
+          }
+        });
+      }
+      
+      // Save the PDF
+      const fileName = `voter-recommendations-${date.replace(/\//g, '-')}.pdf`;
+      doc.save(fileName);
       
       toast({
         title: "Recommendations Saved",
-        description: "Your recommendations have been saved to your device.",
+        description: "Your recommendations have been saved as a PDF.",
         variant: "default",
       });
     } catch (error) {
@@ -134,7 +222,7 @@ export const ShareRecommendations = ({ recommendationsData }: ShareRecommendatio
         className="gap-1"
       >
         <Download className="h-4 w-4" />
-        <span>Save</span>
+        <span>Save as PDF</span>
       </Button>
       
       <DropdownMenu>

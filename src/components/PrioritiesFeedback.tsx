@@ -59,9 +59,9 @@ export const PrioritiesFeedback = ({
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
                 <h4 className="font-medium mb-1">Potentially Conflicting Priorities</h4>
-                <ul className="list-disc pl-5 space-y-1">
+                <ul className="list-disc pl-5 space-y-1 text-left">
                   {conflictingPriorities.map((conflict, index) => (
-                    <li key={index} className="text-sm">{conflict}</li>
+                    <li key={index} className="text-sm text-left">{conflict}</li>
                   ))}
                 </ul>
               </AlertDescription>
