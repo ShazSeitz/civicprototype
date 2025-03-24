@@ -36,7 +36,8 @@ VoterPrime is a nonpartisan primer that makes it easy for US citizens to make co
 - **Top 6 Priorities**:
   - Free-text entries (up to 250 characters each).
   - Users can enter multiple concerns and reorder them via drag-and-drop.
-  - A SUBMIT button initiates processing.
+  - "Did we get this right? - input box with SUBMIT for clarifications - initiates updated evaluation and mapping
+  - Yes - show me recommendations - initiates processing
 
 ### 4.2. Real-Time Editing & Feedback
 
@@ -46,7 +47,6 @@ VoterPrime is a nonpartisan primer that makes it easy for US citizens to make co
   - Buttons for loading predefined personas or generating a random persona (populating zip code and priorities, and setting mode to demo).
 
 ## 5. Outputs & Presentation
-- Any outputs that can not be displayed instantly should display a progress animation so that the user knows that the application is working
 
 ### 5.1. Mode-Specific Recommendations
 
@@ -65,12 +65,15 @@ VoterPrime is a nonpartisan primer that makes it easy for US citizens to make co
 #### B. DEMO: November 2024 Mode
 
 - **Candidate Recommendations**:
-  - Local & Federal candidates with direct links to official pages.
+  - Local candidates
+    - A compare/contrast table for their top two matches for each category of office
   - POTUS Options (Up to Four): Each with:
     - Platform highlights (short bullet points).
-    - Rationale based on user priorities.
+    - Rationale for top recommendation based on user priorities.
+    - A compare/contrast table
   - Ballot Measure Recommendations:
     - Uses the same recommendation logic as the current election cycle.
+    - Explain who is for/against each ballot that maps to the user's priorities
 
 ### 5.2. Summary Output Dashboard
 
@@ -82,11 +85,13 @@ VoterPrime is a nonpartisan primer that makes it easy for US citizens to make co
   - Subheader: "We have mapped your priorities to policy terms to provide the best recommendations. Please review and clarify if needed."
   - Two buttons: Clarify / Get Recommendations
   - Editable mapping analysis (user can edit repeatedly).
-  - Formatting: Bullet list of short, concise, left-justified sentences describing the nuance of the user's concerns.
+  - Formatting: Bullet list of short, concise, left-justified sentences describing the nuance of the user's concerns and how they map to policy terms. Call out of potentially conflicting priorities
 - **Recommendations Section** (for Current Date with an Upcoming Election):
   - Elected Official Recommendations (Local to POTUS).
   - Ballot Measure Recommendations.
   - Draft Emails, Interest Group links, and Petition links.
+- **User Options**:
+  - Save/Share recommendations (save to device)
 
 ## 6. Outputs Summary (Regardless of Election Cycle)
 
@@ -97,9 +102,12 @@ VoterPrime is a nonpartisan primer that makes it easy for US citizens to make co
   - Election Cycle: Matches candidates and ballot measures to user priorities.
 - **Advocacy Email Generation**:
   - Provides email addresses and draft messages to local elected officials regarding the user's top 3 concerns.
+  - Uses logic defined in supabase/functions/analyze-priorities/index.ts.
 - **Additional Recommendations**:
-  - Interest Groups (HUD database).
+  - Interest Groups via HUD website https://www.hud.gov/program_offices/gov_relations/oirpublicinterestgroups
   - Petitions (Change.org).
+- **User Options**:
+  - Save/Share recommendations (native share via device)
 
 ## 7. Application Interface Components
 
@@ -154,9 +162,9 @@ VoterPrime is a nonpartisan primer that makes it easy for US citizens to make co
 ### 9.2. External Links & Curated Content
 
 - **Interest Groups**:
-  - Uses HUD interest group database (HUD).
+  - Uses HUD interest group database (https://www.hud.gov/program_offices/gov_relations/oirpublicinterestgroups).
 - **Petition Sites**:
-  - Change.org petitions (Change.org) mapped to user priorities.
+  - Change.org petitions (https://www.change.org/search) mapped to user priorities.
 
 ## 10. System Architecture & Technical Considerations
 
@@ -172,3 +180,10 @@ VoterPrime is a nonpartisan primer that makes it easy for US citizens to make co
   - Zip code and priorities trigger immediate refreshes.
 - **Scalability**:
   - Designed for up to 100 concurrent users.
+
+## Additional MVP Output Features
+
+- **Civic Education Content**: Provides users with curated educational materials on civic topics—including guides on the political process, voting procedures, and candidate analysis—to foster a deeper understanding of democracy.
+- **Notifications**: Real-time alerts and push notifications about election updates, new recommendations, and changes to candidate or ballot measure information.
+- **Share Functionality**: Enables users to share their priorities mapping, recommendations, and civic education content via social media or email to boost civic engagement.
+- **Comprehensive List of Elected Officials & Contacts**: Offers a complete directory of elected officials from local to national levels along with contact details for extended outreach.
