@@ -22,6 +22,13 @@
     "nuance": {
       "middle_class_support": 0.8,
       "tax_burden_reduction": 0.7
+    },
+    "nuancedMapping": {
+      "supports_middle_class_relief": true,
+      "opposes_tax_increases": true,
+      "supports_working_families": true,
+      "explicitly_mentions_middle_class": false,
+      "reasoning": "The voter expresses support for tax cuts that benefit the middle class and working families."
     }
   },
   "taxCutsForWealthy": {
@@ -43,6 +50,13 @@
       "job_creation": 0.5,
       "support_for_high_income": 0.7,
       "upper_tax_relief_opposition": -0.7
+    },
+    "nuancedMapping": {
+      "supports_business_tax_cuts": true,
+      "believes_in_trickle_down": true,
+      "mentions_job_creation": false,
+      "explicitly_mentions_wealthy": false,
+      "reasoning": "The voter supports tax cuts for high earners and businesses, believing they stimulate economic growth."
     }
   },
   "taxWealthyMore": {
@@ -65,6 +79,13 @@
       "progressive_taxation": 0.9,
       "wealth_redistribution": 0.8,
       "opposition_to_progressive_tax": -0.8
+    },
+    "nuancedMapping": {
+      "supports_taxing_wealthy": true,
+      "supports_corporate_taxation": true,
+      "mentions_fair_share": false,
+      "explicitly_against_tax_cuts_for_wealthy": false,
+      "reasoning": "The voter supports higher taxes on the wealthy and corporations, believing they should pay their fair share."
     }
   },
   "economy": {
@@ -83,6 +104,13 @@
       "inflation_control": 0.7,
       "job_security": 0.7,
       "economic_stagnation": -0.7
+    },
+    "nuancedMapping": {
+      "concerned_about_inflation": true,
+      "concerned_about_jobs": true,
+      "mentions_cost_of_living": false,
+      "explicitly_mentions_economic_growth": false,
+      "reasoning": "The voter expresses concerns about the overall economy, particularly inflation and job security."
     }
   },
   "healthcare": {
@@ -99,6 +127,13 @@
       "affordable_care": 0.9,
       "comprehensive_coverage": 0.8,
       "opposition_to_expanded_healthcare": -0.8
+    },
+    "nuancedMapping": {
+      "supports_affordable_healthcare": true,
+      "mentions_insurance_costs": false,
+      "concerned_about_medical_bills": false,
+      "supports_mental_health_coverage": false,
+      "reasoning": "The voter supports affordable and comprehensive healthcare coverage."
     }
   },
   "climate": {
@@ -118,6 +153,14 @@
       "environmental_protection": 0.9,
       "climate_skepticism": -0.8,
       "climate_hoax": -0.9
+    },
+    "nuancedMapping": {
+      "acknowledges_climate_change": true,
+      "supports_climate_action": true,
+      "explicitly_mentions_global_warming": false,
+      "mentions_extreme_weather": false,
+      "climate_skeptic": false,
+      "reasoning": "The voter acknowledges climate change and supports government action to address it."
     }
   },
   "immigration": {
@@ -134,6 +177,13 @@
       "border_security": 0.7,
       "fair_immigration": 0.6,
       "anti_immigration": -0.8
+    },
+    "nuancedMapping": {
+      "supports_border_security": true,
+      "supports_immigration_reform": true,
+      "mentions_illegal_immigration": false,
+      "supports_pathway_to_citizenship": false,
+      "reasoning": "The voter supports fair immigration policies with border security."
     }
   },
   "politicalDivision": {
@@ -321,6 +371,13 @@
       "individual_freedoms": 0.9,
       "constitutional_rights": 0.8,
       "security_over_liberty": -0.7
+    },
+    "nuancedMapping": {
+      "supports_civil_rights": true,
+      "supports_constitutional_rights": true,
+      "mentions_individual_freedoms": false,
+      "concerned_about_government_overreach": false,
+      "reasoning": "The voter supports protection of basic civil liberties and individual rights."
     }
   },
   "reproductiveRights": {
@@ -478,6 +535,13 @@
       "oppose_affirmative_action_race": -0.8,
       "oppose_affirmative_action_gender": -0.8,
       "merit_based_hiring_support": 0.8
+    },
+    "nuancedMapping": {
+      "anti_discrimination": true,
+      "supports_affirmative_action": false,
+      "explicitly_against_affirmative_action": true,
+      "supports_merit_based_hiring": true,
+      "reasoning": "The voter explicitly opposes racial and gender discrimination in hiring, favoring merit-based decisions over quotas or affirmative action policies."
     }
   },
   "governmentWaste": {

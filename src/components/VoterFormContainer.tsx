@@ -63,6 +63,7 @@ export const VoterFormContainer = ({
           analysis={recommendations.analysis}
           mappedPriorities={recommendations.mappedPriorities || []}
           conflictingPriorities={recommendations.conflictingPriorities || []}
+          nuancedMappings={recommendations.nuancedMappings}
           onFeedbackSubmit={onFeedbackSubmit}
           onContinue={onContinue}
         />

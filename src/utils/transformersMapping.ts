@@ -148,6 +148,7 @@ const ruleBasedClassify = async (text: string): Promise<any> => {
 export const classifyPoliticalStatement = async (text: string): Promise<{
   terms: string[];
   confidenceScores: Record<string, number>;
+  nuancedMappings?: Record<string, Record<string, any>>;
 }> => {
   if (!classifierPipeline && !isModelLoading) {
     await initializeModel();
@@ -226,10 +227,20 @@ export const classifyPoliticalStatement = async (text: string): Promise<{
       const ruleBasedResult = await ruleBasedClassify(text);
       return await classifyPoliticalStatement(text + " " + ruleBasedResult.labels[0]);
     }
+
+    // Extract nuanced mappings for the valid terms
+    const nuancedMappings: Record<string, Record<string, any>> = {};
+    validTerms.forEach(term => {
+      const termData = issueTerminology[term as keyof typeof issueTerminology];
+      if (termData && termData.nuancedMapping) {
+        nuancedMappings[term] = termData.nuancedMapping;
+      }
+    });
     
     return {
       terms: validTerms,
-      confidenceScores: scores
+      confidenceScores: scores,
+      nuancedMappings: Object.keys(nuancedMappings).length > 0 ? nuancedMappings : undefined
     };
   } catch (error) {
     console.error('Error classifying text:', error);
@@ -247,6 +258,7 @@ export const enhancedTerminologyMapping = async (
   unmappedTerms: string[];
   analysis: string;
   modelInsights: Record<string, any>;
+  nuancedMappings?: Record<string, Record<string, any>>;
 }> => {
   // Initialize the model if it hasn't been yet
   await initializeModel();
@@ -262,6 +274,7 @@ export const enhancedTerminologyMapping = async (
   // Combine results - we'll collect all terms with their confidence scores
   const termScores: Record<string, number> = {};
   const priorityToTermsMap: Record<number, string[]> = {};
+  const allNuancedMappings: Record<string, Record<string, any>> = {};
   
   classificationResults.forEach((result, priorityIndex) => {
     priorityToTermsMap[priorityIndex] = result.terms;
@@ -270,6 +283,11 @@ export const enhancedTerminologyMapping = async (
       // Sum up confidence scores for each term across all priorities
       const score = result.confidenceScores[term] || 0.5;
       termScores[term] = (termScores[term] || 0) + score;
+      
+      // Collect nuanced mappings
+      if (result.nuancedMappings && result.nuancedMappings[term]) {
+        allNuancedMappings[term] = result.nuancedMappings[term];
+      }
     });
   });
   
@@ -308,6 +326,7 @@ export const enhancedTerminologyMapping = async (
     modelInsights: {
       priorityToTermsMap,
       confidenceScores: termScores
-    }
+    },
+    nuancedMappings: Object.keys(allNuancedMappings).length > 0 ? allNuancedMappings : undefined
   };
 };

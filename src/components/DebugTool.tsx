@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from '@/integrations/supabase/client';
 import { LoadingProgress } from '@/components/LoadingProgress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { classifyPoliticalStatement, initializeModel } from '@/utils/transformersMapping';
 
 interface DebugResult {
@@ -16,6 +17,7 @@ interface DebugResult {
   plainEnglish: string;
   score: number;
   details: string[];
+  nuancedMapping?: Record<string, any>;
 }
 
 interface MLDebugResult {
@@ -32,6 +34,7 @@ export const DebugTool = () => {
   const [mlResults, setMlResults] = useState<MLDebugResult[]>([]);
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('api');
+  const [showNuancedMapping, setShowNuancedMapping] = useState(false);
 
   // Initialize the ML model on component mount
   useEffect(() => {
@@ -208,6 +211,20 @@ export const DebugTool = () => {
             >
               {isLoading ? "Analyzing..." : "Analyze Mapping"}
             </Button>
+            
+            {activeTab === 'api' && (
+              <div className="flex items-center space-x-2">
+                <label className="text-sm font-medium">
+                  Show Nuanced Mapping:
+                </label>
+                <input 
+                  type="checkbox" 
+                  checked={showNuancedMapping} 
+                  onChange={(e) => setShowNuancedMapping(e.target.checked)}
+                  className="rounded border-gray-300"
+                />
+              </div>
+            )}
           </Tabs>
         </CardContent>
       </Card>
@@ -255,6 +272,40 @@ export const DebugTool = () => {
                       ))}
                     </ul>
                   </div>
+                  
+                  {showNuancedMapping && result.nuancedMapping && (
+                    <div className="mt-3">
+                      <p className="text-sm font-medium mb-2">Nuanced Mapping:</p>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Property</TableHead>
+                            <TableHead>Value</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {Object.entries(result.nuancedMapping).map(([key, value]) => (
+                            key !== 'reasoning' ? (
+                              <TableRow key={key}>
+                                <TableCell className="font-medium">{key.replace(/_/g, ' ')}</TableCell>
+                                <TableCell>
+                                  {typeof value === 'boolean' 
+                                    ? (value ? '✅ Yes' : '❌ No')
+                                    : value.toString()}
+                                </TableCell>
+                              </TableRow>
+                            ) : null
+                          ))}
+                        </TableBody>
+                      </Table>
+                      {result.nuancedMapping.reasoning && (
+                        <div className="mt-2 p-2 bg-gray-50 rounded-md">
+                          <p className="text-sm font-medium">Reasoning:</p>
+                          <p className="text-sm">{result.nuancedMapping.reasoning}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                   
                   {index < sortedResults.length - 1 && <Separator className="my-4" />}
                 </div>

@@ -9,6 +9,7 @@ interface TermCategory {
   nuance?: Record<string, number>;
   inclusionWords?: string[];
   exclusionWords?: string[];
+  nuancedMapping?: Record<string, any>;
 }
 
 interface TerminologyConfig {
@@ -67,6 +68,13 @@ async function fetchTerminologyConfig(): Promise<TerminologyConfig> {
         "nuance": {
           "middle_class_support": 0.8,
           "tax_burden_reduction": 0.7
+        },
+        "nuancedMapping": {
+          "supports_middle_class_relief": true,
+          "opposes_tax_increases": true,
+          "supports_working_families": true,
+          "explicitly_mentions_middle_class": false,
+          "reasoning": "The voter expresses support for tax cuts that benefit the middle class and working families."
         }
       },
       "personalLiberty": {
@@ -88,7 +96,40 @@ async function fetchTerminologyConfig(): Promise<TerminologyConfig> {
           "tax",
           "income",
           "money"
-        ]
+        ],
+        "nuancedMapping": {
+          "supports_personal_freedom": true,
+          "opposes_government_interference": true,
+          "mentions_privacy": false,
+          "economic_focus": false,
+          "reasoning": "The voter values personal autonomy and freedom from government interference in private choices."
+        }
+      },
+      "opposeRaceGenderHiring": {
+        "plainLanguage": [
+          "disgraceful to use race in hiring",
+          "disgraceful to use gender in hiring",
+          "hiring based on race",
+          "hiring based on gender",
+          "merit based hiring only",
+          "no quotas in hiring",
+          "race decide whether to hire",
+          "gender decide whether to hire"
+        ],
+        "standardTerm": "Opposition to Race and Gender-Based Hiring Policies",
+        "plainEnglish": "I believe that hiring should be based solely on merit, and it's disgraceful to use race or gender as deciding factors.",
+        "nuance": {
+          "oppose_affirmative_action_race": -0.8,
+          "oppose_affirmative_action_gender": -0.8,
+          "merit_based_hiring_support": 0.8
+        },
+        "nuancedMapping": {
+          "anti_discrimination": true,
+          "supports_affirmative_action": false,
+          "explicitly_against_affirmative_action": true,
+          "supports_merit_based_hiring": true,
+          "reasoning": "The voter explicitly opposes racial and gender discrimination in hiring, favoring merit-based decisions over quotas or affirmative action policies."
+        }
       }
     };
     
@@ -102,6 +143,7 @@ async function fetchTerminologyConfig(): Promise<TerminologyConfig> {
 function computeScoreForCategory(userInput: string, category: TermCategory, categoryKey: string): {
   score: number;
   details: string[];
+  nuancedMapping?: Record<string, any>;
 } {
   let score = 0;
   const details: string[] = [];
@@ -167,7 +209,34 @@ function computeScoreForCategory(userInput: string, category: TermCategory, cate
     }
   }
   
-  return { score, details };
+  // Update the nuanced mapping based on the input if category has nuancedMapping
+  let updatedNuancedMapping = category.nuancedMapping;
+  if (updatedNuancedMapping) {
+    // Make a deep copy to avoid modifying the original
+    updatedNuancedMapping = JSON.parse(JSON.stringify(updatedNuancedMapping));
+    
+    // Update some of the boolean values based on input content
+    // This is a simplified example - in a real implementation, you'd use more sophisticated logic
+    if (categoryKey === "opposeRaceGenderHiring") {
+      updatedNuancedMapping.anti_discrimination = inputLower.includes("discriminat");
+      updatedNuancedMapping.explicitly_against_affirmative_action = 
+        inputLower.includes("affirmative action") || 
+        inputLower.includes("quota") || 
+        (inputLower.includes("race") && inputLower.includes("hire"));
+      updatedNuancedMapping.supports_merit_based_hiring = 
+        inputLower.includes("merit") || 
+        inputLower.includes("qualified");
+      
+      // Update reasoning based on the specific input
+      if (inputLower.includes("race") && inputLower.includes("discriminat")) {
+        updatedNuancedMapping.reasoning = "The voter explicitly opposes racial discrimination but also appears to oppose race-based hiring practices, distinguishing general anti-discrimination principles from race-conscious policies.";
+      }
+    }
+    
+    // Add more category-specific logic for other categories
+  }
+  
+  return { score, details, nuancedMapping: updatedNuancedMapping };
 }
 
 function mapUserInput(userInput: string, config: TerminologyConfig) {
@@ -176,7 +245,7 @@ function mapUserInput(userInput: string, config: TerminologyConfig) {
   for (const [key, category] of Object.entries(config)) {
     if (key === 'fallback') continue; // Skip fallback category in results
     
-    const { score, details } = computeScoreForCategory(userInput, category, key);
+    const { score, details, nuancedMapping } = computeScoreForCategory(userInput, category, key);
     
     if (score !== 0 || details.length > 0) {
       results.push({
@@ -184,7 +253,8 @@ function mapUserInput(userInput: string, config: TerminologyConfig) {
         standardTerm: category.standardTerm,
         plainEnglish: category.plainEnglish,
         score,
-        details
+        details,
+        nuancedMapping
       });
     }
   }
