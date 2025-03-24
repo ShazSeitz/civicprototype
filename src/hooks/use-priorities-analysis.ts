@@ -282,6 +282,7 @@ export function usePrioritiesAnalysis() {
     refetch,
     apiStatus,
     showRecommendations,
+    feedbackPriorities, // Expose feedbackPriorities for use in the PDF
     handleSubmit,
     handleFeedback,
     handleContinue,

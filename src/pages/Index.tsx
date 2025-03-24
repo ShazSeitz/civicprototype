@@ -10,6 +10,7 @@ import { ShareRecommendations } from '@/components/ShareRecommendations';
 
 const Index = () => {
   const {
+    formData,
     recommendations,
     isLoading,
     isError,
@@ -20,7 +21,8 @@ const Index = () => {
     handleSubmit,
     handleFeedback,
     handleContinue,
-    updateApiStatus
+    updateApiStatus,
+    feedbackPriorities
   } = usePrioritiesAnalysis();
   
   const recommendationsRef = useRef<HTMLDivElement>(null);
@@ -68,7 +70,12 @@ const Index = () => {
               <div className="space-y-6">
                 <div className="flex justify-between items-center">
                   <h2 className="text-2xl font-bold">Your Recommendations</h2>
-                  <ShareRecommendations recommendationsData={recommendations} />
+                  <ShareRecommendations 
+                    recommendationsData={recommendations} 
+                    zipCode={formData?.zipCode}
+                    userPriorities={formData?.priorities}
+                    userClarifications={feedbackPriorities}
+                  />
                 </div>
                 
                 <RecommendationsList 
