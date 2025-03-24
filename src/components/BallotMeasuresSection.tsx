@@ -20,6 +20,9 @@ export const BallotMeasuresSection = ({
     <Card className="animate-fade-up mb-8">
       <CardHeader>
         <CardTitle>{title}</CardTitle>
+        <p className="text-sm text-muted-foreground">
+          These ballot measures relate to your stated priorities. We've included information on who supports and opposes each measure.
+        </p>
       </CardHeader>
       <CardContent className="space-y-6">
         {ballotMeasures.map((measure, index) => (

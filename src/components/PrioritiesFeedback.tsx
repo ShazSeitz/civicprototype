@@ -55,11 +55,11 @@ export const PrioritiesFeedback = ({
           </div>
           
           {conflictingPriorities.length > 0 && (
-            <Alert variant="destructive" className="mt-4">
+            <Alert variant="destructive" className="mt-4 text-left">
               <AlertTriangle className="h-4 w-4" />
-              <AlertDescription className="text-left">
+              <AlertDescription>
                 <h4 className="font-medium mb-1 text-left">Potentially Conflicting Priorities</h4>
-                <ul className="list-disc pl-5 space-y-1">
+                <ul className="list-disc pl-5 space-y-1 text-left">
                   {conflictingPriorities.map((conflict, index) => (
                     <li key={index} className="text-sm text-left">{conflict}</li>
                   ))}
