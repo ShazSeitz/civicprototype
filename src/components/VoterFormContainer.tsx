@@ -1,10 +1,11 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { VoterForm } from '@/components/VoterForm';
 import { PrioritiesFeedback } from '@/components/PrioritiesFeedback';
 import { LoadingProgress } from '@/components/LoadingProgress';
 import { VoterFormValues } from '@/schemas/voterFormSchema';
 import { RecommendationsData } from '@/hooks/use-priorities-analysis';
+import { initializeModel } from '@/utils/transformersMapping';
 
 interface VoterFormContainerProps {
   isLoading: boolean;
@@ -26,6 +27,20 @@ export const VoterFormContainer = ({
   // Show form if no recommendations, or priorities feedback if recommendations but not showing yet
   const showForm = !recommendations;
   const showFeedback = recommendations && !showRecommendations;
+  
+  // Initialize the ML model when the component mounts
+  useEffect(() => {
+    const loadModel = async () => {
+      try {
+        await initializeModel();
+        console.log('ML model initialized successfully');
+      } catch (error) {
+        console.error('Error initializing ML model:', error);
+      }
+    };
+    
+    loadModel();
+  }, []);
 
   return (
     <>

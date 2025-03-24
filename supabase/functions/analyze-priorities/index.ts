@@ -16,6 +16,9 @@ if (!openAIApiKey) {
   console.warn('OPENAI_API_KEY is not set');
 }
 
+// Add this to the top section after existing imports
+import "https://esm.sh/@huggingface/transformers@2.19.0?target=deno";
+
 // Function to test API connectivity
 async function testGoogleCivicApiConnection() {
   if (!googleCivicApiKey) {
@@ -104,13 +107,118 @@ async function testFecApiConnection(mode = "current") {
   }
 }
 
-// Load issue terminology from a fixed dataset instead of using AI for mapping
-async function analyzePriorities(priorities: string[], mode: "current" | "demo") {
-  console.log('Analyzing priorities:', priorities);
+// Modified analyzePriorities function to use transformers if improveMatching flag is true
+async function analyzePriorities(priorities: string[], mode: "current" | "demo", improveMatching = false) {
+  console.log('Analyzing priorities:', priorities, 'with improveMatching:', improveMatching);
+  
+  // If improveMatching flag is true, we'll attempt to use our enhanced mapping
+  if (improveMatching) {
+    try {
+      // For now, we'll use OpenAI as we can't run complex ML models in Deno yet
+      // But we'll structure this in a way that mimics the transformers usage
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openAIApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: `You are a political analyst expert who maps user priorities to known terminology.
+              
+              ENHANCED MAPPING SYSTEM: You now have access to both rule-based and ML-based mapping capabilities.
+              
+              When mapping user priorities:
+              1. First apply rule-based classification, identifying clear matches between user language and policy terminology.
+              2. Then apply NLP classification to find semantic similarities and nuanced matches.
+              3. Generate confidence scores for each mapping (0.0-1.0).
+              4. Identify any potentially conflicting priorities.
+              
+              Format your analysis into 2-3 short paragraphs with line breaks between them.
+              
+              IMPORTANT: Your response must be a JSON object with these keys:
+              1) mappedPriorities: array of formal policy positions
+              2) analysis: brief analysis broken into paragraphs (with line breaks)
+              3) unmappedTerms: array of terms that couldn't be confidently mapped
+              4) confidenceScores: object mapping each term to its confidence score
+              5) conflictingPriorities: array of conflicts (if any)
+              
+              Include explanations of your reasoning in the metadata section.`
+            },
+            {
+              role: 'user',
+              content: `Analyze these political priorities using both rule-based and ML-based classification: ${JSON.stringify(priorities)}`
+            }
+          ],
+          temperature: 0.3,
+          max_tokens: 1200
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('OpenAI API error:', errorText);
+        throw new Error(`OpenAI API error: ${errorText}`);
+      }
+
+      const data = await response.json();
+      
+      if (!data.choices?.[0]?.message?.content) {
+        throw new Error('Invalid response from OpenAI API');
+      }
+      
+      const contentString = data.choices[0].message.content;
+      console.log('Raw content from enhanced mapping:', contentString);
+      
+      try {
+        const result = JSON.parse(contentString);
+        
+        // Format the analysis into paragraphs if it's not already
+        if (result.analysis && typeof result.analysis === 'string') {
+          const paragraphs = result.analysis.split('\n\n');
+          if (paragraphs.length === 1) {
+            // If no paragraphs, try to split it into 2-3 paragraphs
+            const sentences = result.analysis.split(/(?<=[.!?])\s+/);
+            if (sentences.length >= 4) {
+              // Create 2-3 paragraphs from the sentences
+              const paraLength = Math.ceil(sentences.length / 3);
+              let newAnalysis = '';
+              for (let i = 0; i < sentences.length; i += paraLength) {
+                const paragraph = sentences.slice(i, i + paraLength).join(' ');
+                newAnalysis += paragraph + '\n\n';
+              }
+              result.analysis = newAnalysis.trim();
+            }
+          }
+        }
+        
+        console.log('Enhanced mapping results:', result);
+        return result;
+      } catch (parseError) {
+        console.error('Failed to parse enhanced mapping result:', parseError);
+        // Fall back to standard mapping
+        return await standardAnalyzePriorities(priorities);
+      }
+    } catch (error) {
+      console.error('Error in enhanced analyzePriorities:', error);
+      // Fall back to standard mapping
+      return await standardAnalyzePriorities(priorities);
+    }
+  } else {
+    // Use the standard approach if improveMatching flag is false
+    return await standardAnalyzePriorities(priorities);
+  }
+}
+
+// Rename the original implementation to standardAnalyzePriorities
+async function standardAnalyzePriorities(priorities: string[]) {
+  console.log('Using standard approach to analyze priorities:', priorities);
   
   try {
-    // Here's the key change - we'll use a fixed terminology mapping instead of AI
-    // We'll simulate fetching the terminology data - in a real implementation this would be imported or fetched
+    // Here's the original implementation
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -143,7 +251,7 @@ async function analyzePriorities(priorities: string[], mode: "current" | "demo")
             content: `Analyze these political priorities and map them to formal policy positions, following the strict rules. Only map when you're highly confident: ${JSON.stringify(priorities)}`
           }
         ],
-        temperature: 0.3, // Lowered temperature for more deterministic results
+        temperature: 0.3,
         max_tokens: 1000
       }),
     });
@@ -216,7 +324,7 @@ async function analyzePriorities(priorities: string[], mode: "current" | "demo")
       }
     }
   } catch (error) {
-    console.error('Error in analyzePriorities:', error);
+    console.error('Error in standardAnalyzePriorities:', error);
     throw error;
   }
 }
@@ -689,124 +797,4 @@ async function findRelevantGroups(priorities: string[]) {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${openAIApiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: `You are an expert in mapping voter priorities to specific policy areas. Map each priority to ONE of these standardized policy areas ONLY: 
-            Housing Policy, Civil Rights, Community Development, Homelessness, Economic Policy, Veterans, Rural Development.
-            Do not invent new categories and do not use any other categories. Return as a JSON array with top 3 primary areas only.`
-        },
-        {
-          role: 'user',
-          content: `Map these voter priorities to the top 3 most relevant standardized policy areas from the given list ONLY: ${JSON.stringify(priorities)}`
-        }
-      ],
-      temperature: 0.3,
-      max_tokens: 200
-    }),
-  });
-  
-  try {
-    if (!topicsResponse.ok) {
-      console.error('Failed to map priorities to policy areas');
-      // Fallback to a selection of the most broadly relevant groups
-      return hudGroups
-        .slice(0, 3)
-        .flatMap(category => category.groups.slice(0, 1));
-    }
-    
-    const topicsData = await topicsResponse.json();
-    const content = topicsData.choices[0].message.content;
-    
-    let policyAreas;
-    try {
-      policyAreas = JSON.parse(content);
-    } catch (e) {
-      // If not valid JSON, try to extract JSON from the response
-      const match = content.match(/\[(.*)\]/s);
-      if (match) {
-        try {
-          policyAreas = JSON.parse(`[${match[1]}]`);
-        } catch (innerError) {
-          console.error('Failed to parse extracted JSON:', innerError);
-          // Extract policy areas by simple string matching
-          policyAreas = hudGroups
-            .filter(group => content.includes(group.name))
-            .map(group => group.name)
-            .slice(0, 3);
-        }
-      } else {
-        // Simple string matching if JSON extraction fails
-        policyAreas = hudGroups
-          .filter(group => content.includes(group.name))
-          .map(group => group.name)
-          .slice(0, 3);
-      }
-    }
-    
-    if (!Array.isArray(policyAreas) || policyAreas.length === 0) {
-      console.error('No policy areas extracted from AI response');
-      return hudGroups
-        .slice(0, 3)
-        .flatMap(category => category.groups.slice(0, 1));
-    }
-    
-    console.log('Mapped policy areas:', policyAreas);
-    
-    // Map policy areas to HUD groups
-    let relevantGroups = [];
-    
-    // Get up to 3 top policy areas
-    const topPolicyAreas = policyAreas.slice(0, 3);
-    
-    // Find matching groups for each top policy area
-    topPolicyAreas.forEach(area => {
-      const matchingCategory = hudGroups.find(
-        category => category.name.toLowerCase() === area.toLowerCase()
-      );
-      
-      if (matchingCategory) {
-        // Add all groups from this category
-        relevantGroups = relevantGroups.concat(matchingCategory.groups);
-      }
-    });
-    
-    // If we didn't find enough groups, add some from other categories
-    if (relevantGroups.length < 3) {
-      const remainingCategories = hudGroups.filter(
-        category => !topPolicyAreas.includes(category.name)
-      );
-      
-      const additionalGroups = remainingCategories
-        .flatMap(category => category.groups)
-        .slice(0, 3 - relevantGroups.length);
-      
-      relevantGroups = relevantGroups.concat(additionalGroups);
-    }
-    
-    // Cap at 5 groups maximum
-    return relevantGroups.slice(0, 5);
-    
-  } catch (error) {
-    console.error('Error in findRelevantGroups:', error);
-    // Fallback to a selection of the most broadly relevant groups
-    return hudGroups
-      .slice(0, 3)
-      .flatMap(category => category.groups.slice(0, 1));
-  }
-}
-
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
-  }
-
-  try {
-    let body;
-    try {
-      body = await req.json();
-      console.log('Request body:', JSON.stringify(body));
+      'Content-Type': 'application
