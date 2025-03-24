@@ -1,25 +1,32 @@
 
 import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { VoterForm } from '@/components/VoterForm';
-import { useToast } from '@/hooks/use-toast';
-import { VoterFormValues } from '@/schemas/voterFormSchema';
+import { PrioritiesFeedback } from '@/components/PrioritiesFeedback';
 import { LoadingProgress } from '@/components/LoadingProgress';
-
-export interface FormSubmissionResult {
-  formData: VoterFormValues;
-  recommendations: any;
-}
+import { VoterFormValues } from '@/schemas/voterFormSchema';
+import { RecommendationsData } from '@/hooks/use-priorities-analysis';
 
 interface VoterFormContainerProps {
   isLoading: boolean;
+  recommendations: RecommendationsData | null;
+  showRecommendations: boolean;
   onSubmit: (values: VoterFormValues) => void;
+  onFeedbackSubmit: (feedback: string) => void;
+  onContinue: () => void;
 }
 
 export const VoterFormContainer = ({ 
   isLoading,
-  onSubmit
+  recommendations,
+  showRecommendations,
+  onSubmit,
+  onFeedbackSubmit,
+  onContinue
 }: VoterFormContainerProps) => {
+  // Show form if no recommendations, or priorities feedback if recommendations but not showing yet
+  const showForm = !recommendations;
+  const showFeedback = recommendations && !showRecommendations;
+
   return (
     <>
       {isLoading && (
@@ -28,10 +35,23 @@ export const VoterFormContainer = ({
           isLoading={isLoading}
         />
       )}
-      <VoterForm 
-        onSubmit={onSubmit} 
-        isLoading={isLoading} 
-      />
+      
+      {showForm && (
+        <VoterForm 
+          onSubmit={onSubmit} 
+          isLoading={isLoading} 
+        />
+      )}
+
+      {showFeedback && (
+        <PrioritiesFeedback 
+          analysis={recommendations.analysis}
+          mappedPriorities={recommendations.mappedPriorities || []}
+          conflictingPriorities={recommendations.conflictingPriorities || []}
+          onFeedbackSubmit={onFeedbackSubmit}
+          onContinue={onContinue}
+        />
+      )}
     </>
   );
 };

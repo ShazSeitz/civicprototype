@@ -1236,6 +1236,64 @@ serve(async (req) => {
       apiStatuses
     };
 
+    // For demo mode, enhance response data with mock features for UI demonstration
+    if (mode === "demo") {
+      // Add conflicting priorities for demonstration
+      if (!response.conflictingPriorities) {
+        response.conflictingPriorities = [
+          "Your priorities #1 and #4 may have some conflicts regarding economic policies",
+          "You want both more government services and lower taxes, which may be difficult to achieve simultaneously"
+        ];
+      }
+
+      // Enhanced candidates with mock data for comparison tables
+      if (response.candidates && response.candidates.length > 0) {
+        response.candidates = response.candidates.map(candidate => {
+          // Add mock stances for demonstration
+          return {
+            ...candidate,
+            stances: [
+              {
+                issue: "Economy",
+                stance: Math.random() > 0.5 ? "support" : "oppose",
+                description: "Supports economic growth through " + (Math.random() > 0.5 ? "tax cuts" : "increased spending")
+              },
+              {
+                issue: "Healthcare",
+                stance: Math.random() > 0.5 ? "support" : "oppose",
+                description: "Advocates for " + (Math.random() > 0.5 ? "universal healthcare" : "market-based solutions")
+              },
+              {
+                issue: "Environment",
+                stance: Math.random() > 0.5 ? "support" : "neutral",
+                description: "Believes in " + (Math.random() > 0.5 ? "strict environmental regulations" : "balanced approach")
+              }
+            ]
+          };
+        });
+      }
+
+      // Enhanced ballot measures with supporting/opposing groups
+      if (response.ballotMeasures && response.ballotMeasures.length > 0) {
+        response.ballotMeasures = response.ballotMeasures.map(measure => {
+          return {
+            ...measure,
+            supportingGroups: [
+              { name: "Citizens for Progress", type: "Community Organization" },
+              { name: "Business Alliance", type: "Industry Group" }
+            ],
+            opposingGroups: [
+              { name: "Taxpayers Association", type: "Advocacy Group" },
+              { name: "Traditional Values Coalition", type: "Civic Group" }
+            ],
+            matchedPriorities: response.mappedPriorities ? 
+              response.mappedPriorities.slice(0, 2) : 
+              ["Economic Development", "Public Safety"]
+          };
+        });
+      }
+    }
+
     console.log('Sending successful response with', draftEmails.length, 'email drafts');
     return new Response(JSON.stringify(response), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

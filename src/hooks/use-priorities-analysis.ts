@@ -9,6 +9,8 @@ import { ApiStatus } from '@/components/ApiStatusChecker';
 export interface RecommendationsData {
   mode: string;
   analysis: string;
+  mappedPriorities: string[];
+  conflictingPriorities?: string[];
   candidates: any[];
   ballotMeasures: any[];
   draftEmails: any[];
@@ -20,6 +22,7 @@ export function usePrioritiesAnalysis() {
   const [formData, setFormData] = useState<VoterFormValues | null>(null);
   const [feedbackPriorities, setFeedbackPriorities] = useState<string[]>([]);
   const [submitCount, setSubmitCount] = useState(0);
+  const [showRecommendations, setShowRecommendations] = useState(false);
   const [apiStatus, setApiStatus] = useState<{
     googleCivic: ApiStatus;
     fec: ApiStatus;
@@ -165,6 +168,12 @@ export function usePrioritiesAnalysis() {
           }
         }
 
+        // Extract mapped priorities
+        const mappedPriorities = data.mappedPriorities || [];
+        
+        // Extract conflicting priorities if available
+        const conflictingPriorities = data.conflictingPriorities || [];
+
         // Process and enhance the candidates data to include alignment info if not present
         const enhancedCandidates = data.candidates?.map(candidate => {
           if (!candidate.alignment) {
@@ -181,9 +190,17 @@ export function usePrioritiesAnalysis() {
           return candidate;
         }) || [];
 
+        // When new analysis comes in, don't automatically show recommendations
+        // until the user clicks to continue
+        if (submitCount > 0) {
+          setShowRecommendations(false);
+        }
+
         return {
           mode: data.mode,
           analysis: formattedAnalysis,
+          mappedPriorities,
+          conflictingPriorities,
           candidates: enhancedCandidates,
           ballotMeasures: data.ballotMeasures || [],
           draftEmails: data.draftEmails || [],
@@ -217,6 +234,10 @@ export function usePrioritiesAnalysis() {
     setSubmitCount(prev => prev + 1);
   };
 
+  const handleContinue = () => {
+    setShowRecommendations(true);
+  };
+
   const updateApiStatus = (newStatus: { googleCivic: ApiStatus; fec: ApiStatus }) => {
     setApiStatus(newStatus);
   };
@@ -229,8 +250,10 @@ export function usePrioritiesAnalysis() {
     error,
     refetch,
     apiStatus,
+    showRecommendations,
     handleSubmit,
     handleFeedback,
+    handleContinue,
     updateApiStatus
   };
 }

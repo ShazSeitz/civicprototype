@@ -6,6 +6,7 @@ import { VoterFormContainer } from '@/components/VoterFormContainer';
 import { RecommendationsList } from '@/components/RecommendationsList';
 import { ErrorAlert } from '@/components/ErrorAlert';
 import { usePrioritiesAnalysis } from '@/hooks/use-priorities-analysis';
+import { ShareRecommendations } from '@/components/ShareRecommendations';
 
 const Index = () => {
   const {
@@ -15,21 +16,23 @@ const Index = () => {
     error,
     refetch,
     apiStatus,
+    showRecommendations,
     handleSubmit,
     handleFeedback,
+    handleContinue,
     updateApiStatus
   } = usePrioritiesAnalysis();
   
   const recommendationsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (recommendations && recommendationsRef.current) {
+    if (recommendations && showRecommendations && recommendationsRef.current) {
       recommendationsRef.current.scrollIntoView({ 
         behavior: 'smooth',
         block: 'start'
       });
     }
-  }, [recommendations]);
+  }, [recommendations, showRecommendations]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
@@ -49,7 +52,11 @@ const Index = () => {
           
           <VoterFormContainer 
             isLoading={isLoading}
+            recommendations={recommendations}
+            showRecommendations={showRecommendations}
             onSubmit={handleSubmit}
+            onFeedbackSubmit={handleFeedback}
+            onContinue={handleContinue}
           />
           
           {isError && (
@@ -57,11 +64,18 @@ const Index = () => {
           )}
           
           <div ref={recommendationsRef}>
-            {recommendations && (
-              <RecommendationsList 
-                recommendations={recommendations} 
-                onFeedbackSubmit={handleFeedback}
-              />
+            {recommendations && showRecommendations && (
+              <div className="space-y-6">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-2xl font-bold">Your Recommendations</h2>
+                  <ShareRecommendations recommendationsData={recommendations} />
+                </div>
+                
+                <RecommendationsList 
+                  recommendations={recommendations} 
+                  onFeedbackSubmit={handleFeedback}
+                />
+              </div>
             )}
           </div>
         </div>
