@@ -51,6 +51,11 @@
   .text-right {
     text-align: right !important;
   }
+  
+  /* Exception for center-aligned text */
+  .text-center {
+    text-align: center !important;
+  }
 }
 
 .reveal {

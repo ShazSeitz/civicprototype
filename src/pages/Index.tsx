@@ -42,7 +42,7 @@ const Index = () => {
       
       <div className="container mx-auto px-4 pt-6 pb-8">
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-4xl font-bold text-left mb-4 animate-fade-up">
+          <h1 className="text-4xl font-bold text-center mb-4 animate-fade-up">
             Voter Information Tool
           </h1>
           
