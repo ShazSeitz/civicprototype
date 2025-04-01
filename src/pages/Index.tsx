@@ -95,7 +95,7 @@ const Index = () => {
                 />
               </div>
               
-              {/* Show the analysis card with mappings in a table format */}
+              {/* Priority mapping analysis card */}
               <Card className="animate-fade-up">
                 <CardHeader>
                   <CardTitle className="text-left">Analysis of Your Priorities</CardTitle>

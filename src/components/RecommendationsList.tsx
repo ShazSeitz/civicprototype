@@ -25,7 +25,7 @@ export function RecommendationsList({ recommendations, onFeedbackSubmit }: Recom
   return (
     <div className="space-y-6 animate-fade-up">
       <Card>
-        <CardFooter className="flex flex-col space-y-4 pt-6">
+        <CardContent className="pt-6 pb-4">
           <div className="w-full">
             <div className="text-sm font-medium mb-2 text-left">Add another priority</div>
             <div className="flex space-x-2">
@@ -35,11 +35,10 @@ export function RecommendationsList({ recommendations, onFeedbackSubmit }: Recom
                 onChange={(e) => setFeedback(e.target.value)}
                 className="flex-1"
               />
-              <Button onClick={handleSubmitFeedback} variant="outline">Clarify</Button>
               <Button onClick={handleSubmitFeedback}>Get Recommendations</Button>
             </div>
           </div>
-        </CardFooter>
+        </CardContent>
       </Card>
 
       {recommendations.draftEmails.length > 0 && (
