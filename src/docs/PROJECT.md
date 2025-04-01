@@ -1,4 +1,4 @@
-### Product Requirements (updated1/4/25)
+### Product Requirements (updated 1/4/25)
 
 Product Requirements
 **1. Purpose & Value Proposition**
