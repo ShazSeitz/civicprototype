@@ -1,12 +1,16 @@
 // This file provides utility functions for mapping user priorities to policy terms
 // using the Hugging Face Transformers.js library
 
-import { pipeline } from '@huggingface/transformers';
+import { pipeline, env } from '@huggingface/transformers';
 
 // Keep track of model initialization status
 let isModelInitialized = false;
 let classifier = null;
 let fallbackClassifier = null;
+
+// Configure the environment to use WASM
+env.useBrowserCache = true;
+env.allowLocalModels = false;
 
 export const initializeModel = async () => {
   if (isModelInitialized) return true;
@@ -15,10 +19,8 @@ export const initializeModel = async () => {
     console.info('Loading text classification model...');
     
     try {
-      // Try to initialize with wasm backend explicitly instead of webgpu
-      classifier = await pipeline('text-classification', 'distilbert-base-uncased-finetuned-sst-2-english', {
-        backend: 'wasm'
-      });
+      // Initialize with appropriate options (removed backend property)
+      classifier = await pipeline('text-classification', 'distilbert-base-uncased-finetuned-sst-2-english');
       isModelInitialized = true;
       return true;
     } catch (error) {
@@ -26,10 +28,8 @@ export const initializeModel = async () => {
       console.info('Falling back to zero-shot classification...');
       
       try {
-        // Try to initialize fallback model with wasm backend explicitly
-        fallbackClassifier = await pipeline('zero-shot-classification', 'facebook/bart-large-mnli', {
-          backend: 'wasm'
-        });
+        // Initialize fallback model (removed backend property)
+        fallbackClassifier = await pipeline('zero-shot-classification', 'facebook/bart-large-mnli');
         isModelInitialized = true;
         return true;
       } catch (fallbackError) {
@@ -108,4 +108,76 @@ export const mapUserPriority = async (userPriority) => {
   
   // Default if no matches
   return ['Policy Reform', 'Government Accountability'];
+};
+
+// Add the missing classifyPoliticalStatement function
+export const classifyPoliticalStatement = async (statement) => {
+  if (!statement || statement.trim() === '') {
+    return { terms: [], confidenceScores: {} };
+  }
+  
+  await initializeModel();
+  
+  try {
+    // If ML model is available, try to use it
+    if (classifier) {
+      const result = await classifier(statement);
+      const sentimentScore = result[0].score;
+      
+      // Use sentiment to identify political leaning
+      if (sentimentScore > 0.7) {
+        return {
+          terms: ['Positive Political Sentiment', 'Progressive Policy'],
+          confidenceScores: {
+            'Positive Political Sentiment': sentimentScore,
+            'Progressive Policy': sentimentScore * 0.8
+          }
+        };
+      } else if (sentimentScore < 0.3) {
+        return {
+          terms: ['Negative Political Sentiment', 'Conservative Policy'],
+          confidenceScores: {
+            'Negative Political Sentiment': 1 - sentimentScore,
+            'Conservative Policy': (1 - sentimentScore) * 0.8
+          }
+        };
+      }
+    }
+    
+    // If zero-shot classifier is available
+    if (fallbackClassifier) {
+      const candidateLabels = [
+        'Tax Policy', 'Healthcare Policy', 'Education Policy', 'Environmental Policy',
+        'National Security', 'Immigration Policy', 'Economic Policy', 'Foreign Policy',
+        'Social Policy', 'Civil Rights', 'Gun Rights', 'Veterans Affairs'
+      ];
+      
+      const result = await fallbackClassifier(statement, candidateLabels);
+      
+      // Return the top 3 classifications
+      const terms = result.labels.slice(0, 3);
+      const confidenceScores = {};
+      
+      terms.forEach((term, index) => {
+        confidenceScores[term] = result.scores[index];
+      });
+      
+      return { terms, confidenceScores };
+    }
+  } catch (error) {
+    console.error('Error classifying statement with ML:', error);
+  }
+  
+  // Fall back to keyword-based approach
+  const policyTerms = await mapUserPriority(statement);
+  const confidenceScores = {};
+  
+  policyTerms.forEach(term => {
+    confidenceScores[term] = 0.7; // Default confidence score
+  });
+  
+  return {
+    terms: policyTerms,
+    confidenceScores
+  };
 };

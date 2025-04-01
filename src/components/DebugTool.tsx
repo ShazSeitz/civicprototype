@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,7 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { LoadingProgress } from '@/components/LoadingProgress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { classifyPoliticalStatement, initializeModel } from '@/utils/transformersMapping';
+import { mapUserPriority, initializeModel, classifyPoliticalStatement } from '@/utils/transformersMapping';
 
 interface DebugResult {
   category: string;
@@ -25,7 +26,7 @@ interface MLDebugResult {
   description: string;
 }
 
-export const DebugTool = () => {
+const DebugTool = () => {
   const [userInput, setUserInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isModelLoading, setIsModelLoading] = useState(true);
@@ -55,6 +56,17 @@ export const DebugTool = () => {
     
     loadModel();
   }, [toast]);
+
+  // Scroll to results when they're shown
+  useEffect(() => {
+    if ((results.length > 0 && activeTab === 'api') || 
+        (mlResults.length > 0 && activeTab === 'ml')) {
+      const resultsElement = document.getElementById('debug-results');
+      if (resultsElement) {
+        resultsElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  }, [results, mlResults, activeTab]);
 
   const handleApiSubmit = async () => {
     if (!userInput.trim()) {
@@ -221,118 +233,120 @@ export const DebugTool = () => {
         />
       )}
 
-      {activeTab === 'api' && sortedResults.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>API Mapping Results</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-6">
-              {sortedResults.map((result, index) => (
-                <div key={index} className="space-y-2">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-medium text-lg">{result.category}</h3>
-                      <p className="text-sm text-gray-500">Score: {result.score.toFixed(2)}</p>
-                    </div>
-                    {index === 0 && (
-                      <div className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-medium">
-                        Best Match
+      <div id="debug-results">
+        {activeTab === 'api' && sortedResults.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>API Mapping Results</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                {sortedResults.map((result, index) => (
+                  <div key={index} className="space-y-2">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-medium text-lg">{result.category}</h3>
+                        <p className="text-sm text-gray-500">Score: {result.score.toFixed(2)}</p>
                       </div>
-                    )}
-                  </div>
-                  
-                  <div className="bg-gray-50 p-3 rounded-md">
-                    <p className="font-medium">Standard Term: {result.standardTerm}</p>
-                    <p className="mt-1 text-sm">{result.plainEnglish}</p>
-                  </div>
-                  
-                  <div>
-                    <p className="text-sm font-medium mb-1">Match Details:</p>
-                    <ul className="text-xs space-y-1">
-                      {result.details.map((detail, i) => (
-                        <li key={i} className="bg-gray-100 p-1.5 rounded">
-                          {detail}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  
-                  {showNuancedMapping && result.nuancedMapping && (
-                    <div className="mt-3">
-                      <p className="text-sm font-medium mb-2">Nuanced Mapping:</p>
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Property</TableHead>
-                            <TableHead>Value</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {Object.entries(result.nuancedMapping).map(([key, value]) => (
-                            key !== 'reasoning' ? (
-                              <TableRow key={key}>
-                                <TableCell className="font-medium">{key.replace(/_/g, ' ')}</TableCell>
-                                <TableCell>
-                                  {typeof value === 'boolean' 
-                                    ? (value ? '✅ Yes' : '❌ No')
-                                    : value.toString()}
-                                </TableCell>
-                              </TableRow>
-                            ) : null
-                          ))}
-                        </TableBody>
-                      </Table>
-                      {result.nuancedMapping.reasoning && (
-                        <div className="mt-2 p-2 bg-gray-50 rounded-md">
-                          <p className="text-sm font-medium">Reasoning:</p>
-                          <p className="text-sm">{result.nuancedMapping.reasoning}</p>
+                      {index === 0 && (
+                        <div className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-medium">
+                          Best Match
                         </div>
                       )}
                     </div>
-                  )}
-                  
-                  {index < sortedResults.length - 1 && <Separator className="my-4" />}
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {activeTab === 'ml' && sortedMlResults.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>ML-Based Mapping Results</CardTitle>
-            <CardDescription>Results using the Transformers.js model</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-6">
-              {sortedMlResults.map((result, index) => (
-                <div key={index} className="space-y-2">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-medium text-lg">{result.term}</h3>
-                      <p className="text-sm text-gray-500">Confidence: {(result.confidence * 100).toFixed(1)}%</p>
+                    
+                    <div className="bg-gray-50 p-3 rounded-md">
+                      <p className="font-medium">Standard Term: {result.standardTerm}</p>
+                      <p className="mt-1 text-sm">{result.plainEnglish}</p>
                     </div>
-                    {index === 0 && (
-                      <div className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-medium">
-                        Best Match
+                    
+                    <div>
+                      <p className="text-sm font-medium mb-1">Match Details:</p>
+                      <ul className="text-xs space-y-1">
+                        {result.details.map((detail, i) => (
+                          <li key={i} className="bg-gray-100 p-1.5 rounded">
+                            {detail}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    
+                    {showNuancedMapping && result.nuancedMapping && (
+                      <div className="mt-3">
+                        <p className="text-sm font-medium mb-2">Nuanced Mapping:</p>
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Property</TableHead>
+                              <TableHead>Value</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {Object.entries(result.nuancedMapping).map(([key, value]) => (
+                              key !== 'reasoning' ? (
+                                <TableRow key={key}>
+                                  <TableCell className="font-medium">{key.replace(/_/g, ' ')}</TableCell>
+                                  <TableCell>
+                                    {typeof value === 'boolean' 
+                                      ? (value ? '✅ Yes' : '❌ No')
+                                      : value.toString()}
+                                  </TableCell>
+                                </TableRow>
+                              ) : null
+                            ))}
+                          </TableBody>
+                        </Table>
+                        {result.nuancedMapping.reasoning && (
+                          <div className="mt-2 p-2 bg-gray-50 rounded-md">
+                            <p className="text-sm font-medium">Reasoning:</p>
+                            <p className="text-sm">{result.nuancedMapping.reasoning}</p>
+                          </div>
+                        )}
                       </div>
                     )}
+                    
+                    {index < sortedResults.length - 1 && <Separator className="my-4" />}
                   </div>
-                  
-                  <div className="bg-gray-50 p-3 rounded-md">
-                    <p className="mt-1 text-sm">{result.description}</p>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {activeTab === 'ml' && sortedMlResults.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>ML-Based Mapping Results</CardTitle>
+              <CardDescription>Results using the Transformers.js model</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                {sortedMlResults.map((result, index) => (
+                  <div key={index} className="space-y-2">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-medium text-lg">{result.term}</h3>
+                        <p className="text-sm text-gray-500">Confidence: {(result.confidence * 100).toFixed(1)}%</p>
+                      </div>
+                      {index === 0 && (
+                        <div className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-medium">
+                          Best Match
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="bg-gray-50 p-3 rounded-md">
+                      <p className="mt-1 text-sm">{result.description}</p>
+                    </div>
+                    
+                    {index < sortedMlResults.length - 1 && <Separator className="my-4" />}
                   </div>
-                  
-                  {index < sortedMlResults.length - 1 && <Separator className="my-4" />}
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   );
 };

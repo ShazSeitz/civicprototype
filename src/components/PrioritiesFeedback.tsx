@@ -33,12 +33,19 @@ export const PrioritiesFeedback = ({
     }
   };
 
+  // Format priority term for better display
+  const formatPriorityTerm = (term: string) => {
+    return term.replace(/([A-Z])/g, ' $1')
+      .replace(/^./, (str) => str.toUpperCase())
+      .trim();
+  };
+
   return (
     <Card className="mb-8 animate-fade-up">
       <CardHeader>
-        <CardTitle>Priorities Mapping</CardTitle>
+        <CardTitle>Priorities Analysis</CardTitle>
         <CardDescription>
-          We have mapped your priorities to policy terms to provide the best recommendations. Please review and clarify if needed.
+          We've analyzed your priorities to provide the best recommendations. Please review and clarify if needed.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -48,10 +55,9 @@ export const PrioritiesFeedback = ({
           </div>
           
           <div className="mt-4">
-            <h4 className="font-medium mb-2">Mapped Priorities</h4>
             <ul className="list-disc pl-5 space-y-1">
               {mappedPriorities.map((priority, index) => (
-                <li key={index} className="text-sm">{priority}</li>
+                <li key={index} className="text-sm">{formatPriorityTerm(priority)}</li>
               ))}
             </ul>
           </div>

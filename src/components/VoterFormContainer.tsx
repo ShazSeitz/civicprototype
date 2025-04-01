@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { VoterForm } from '@/components/VoterForm';
 import { PrioritiesFeedback } from '@/components/PrioritiesFeedback';
 import { LoadingProgress } from '@/components/LoadingProgress';
@@ -30,6 +30,8 @@ export const VoterFormContainer = ({
 }: VoterFormContainerProps) => {
   // Only show feedback if recommendations exist but are not showing yet
   const showFeedback = recommendations && !showRecommendations;
+  const feedbackRef = useRef<HTMLDivElement>(null);
+  const recommendationsRef = useRef<HTMLDivElement>(null);
   
   // Initialize the ML model when the component mounts
   useEffect(() => {
@@ -44,6 +46,20 @@ export const VoterFormContainer = ({
     
     loadModel();
   }, []);
+
+  // Auto-scroll to feedback when it appears
+  useEffect(() => {
+    if (showFeedback && feedbackRef.current) {
+      feedbackRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [showFeedback]);
+
+  // Auto-scroll to recommendations when they appear
+  useEffect(() => {
+    if (showRecommendations && recommendationsRef.current) {
+      recommendationsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [showRecommendations]);
 
   return (
     <>
@@ -61,18 +77,20 @@ export const VoterFormContainer = ({
       />
 
       {showFeedback && (
-        <PrioritiesFeedback 
-          analysis={recommendations.analysis}
-          mappedPriorities={recommendations.mappedPriorities || []}
-          conflictingPriorities={recommendations.conflictingPriorities || []}
-          nuancedMappings={recommendations.nuancedMappings}
-          onFeedbackSubmit={onFeedbackSubmit}
-          onContinue={onContinue}
-        />
+        <div ref={feedbackRef}>
+          <PrioritiesFeedback 
+            analysis={recommendations.analysis}
+            mappedPriorities={recommendations.mappedPriorities || []}
+            conflictingPriorities={recommendations.conflictingPriorities || []}
+            nuancedMappings={recommendations.nuancedMappings}
+            onFeedbackSubmit={onFeedbackSubmit}
+            onContinue={onContinue}
+          />
+        </div>
       )}
 
       {recommendations && showRecommendations && (
-        <>
+        <div ref={recommendationsRef}>
           {recommendations.candidates && recommendations.candidates.length > 0 && (
             <CandidateSection candidates={recommendations.candidates} />
           )}
@@ -80,7 +98,7 @@ export const VoterFormContainer = ({
           {recommendations.ballotMeasures && recommendations.ballotMeasures.length > 0 && (
             <BallotMeasuresSection ballotMeasures={recommendations.ballotMeasures} />
           )}
-        </>
+        </div>
       )}
     </>
   );
