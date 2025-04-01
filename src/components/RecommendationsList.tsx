@@ -22,6 +22,13 @@ export function RecommendationsList({ recommendations, onFeedbackSubmit }: Recom
     }
   };
 
+  // Handle key press (Enter) in the input field
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && feedback.trim()) {
+      handleSubmitFeedback();
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-up">
       <Card>
@@ -33,15 +40,21 @@ export function RecommendationsList({ recommendations, onFeedbackSubmit }: Recom
                 placeholder="Add another priority..."
                 value={feedback}
                 onChange={(e) => setFeedback(e.target.value)}
+                onKeyPress={handleKeyPress}
                 className="flex-1"
               />
-              <Button onClick={handleSubmitFeedback}>Get Recommendations</Button>
+              <Button 
+                onClick={handleSubmitFeedback}
+                disabled={!feedback.trim()}
+              >
+                Get Recommendations
+              </Button>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {recommendations.draftEmails.length > 0 && (
+      {recommendations.draftEmails && recommendations.draftEmails.length > 0 && (
         <Accordion type="single" collapsible className="w-full">
           <AccordionItem value="emails">
             <AccordionTrigger className="text-lg font-semibold text-left">
@@ -88,7 +101,7 @@ export function RecommendationsList({ recommendations, onFeedbackSubmit }: Recom
         </Accordion>
       )}
 
-      {recommendations.interestGroups.length > 0 && (
+      {recommendations.interestGroups && recommendations.interestGroups.length > 0 && (
         <Accordion type="single" collapsible className="w-full">
           <AccordionItem value="groups">
             <AccordionTrigger className="text-lg font-semibold text-left">
@@ -120,7 +133,7 @@ export function RecommendationsList({ recommendations, onFeedbackSubmit }: Recom
         </Accordion>
       )}
 
-      {recommendations.petitions.length > 0 && (
+      {recommendations.petitions && recommendations.petitions.length > 0 && (
         <Accordion type="single" collapsible className="w-full">
           <AccordionItem value="petitions">
             <AccordionTrigger className="text-lg font-semibold text-left">

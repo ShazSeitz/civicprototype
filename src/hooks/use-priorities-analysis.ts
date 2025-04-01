@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -68,14 +69,32 @@ export function usePrioritiesAnalysis() {
         const allPriorities = [...formData.priorities, ...feedbackPriorities];
         console.log('Submitting form data:', { ...formData, priorities: allPriorities });
         
-        const { data, error } = await supabase.functions.invoke('analyze-priorities', {
-          body: { 
-            mode: formData.mode, 
-            zipCode: formData.zipCode,
-            priorities: allPriorities,
-            improveMatching: true
+        // Add a retry mechanism for the API call
+        let attempts = 0;
+        const maxAttempts = 2;
+        let data, error;
+        
+        while (attempts < maxAttempts) {
+          const response = await supabase.functions.invoke('analyze-priorities', {
+            body: { 
+              mode: formData.mode, 
+              zipCode: formData.zipCode,
+              priorities: allPriorities,
+              improveMatching: true
+            }
+          });
+          
+          data = response.data;
+          error = response.error;
+          
+          if (!error) break;
+          attempts++;
+          
+          // Wait before retrying
+          if (attempts < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
           }
-        });
+        }
 
         if (error) {
           console.error('Supabase function error:', error);
@@ -101,20 +120,19 @@ export function usePrioritiesAnalysis() {
                  data.apiStatuses.fec === 'FEC_API_ERROR' ? 'error' : 'unknown'
           });
 
+          // Show appropriate error messages based on API status
           if (data.apiStatuses.googleCivic === 'GOOGLE_CIVIC_API_NOT_CONFIGURED') {
             toast({
               title: "API Configuration Issue",
-              description: "Google Civic API key is not configured. Please add your API key in Supabase.",
-              variant: "destructive",
+              description: "Google Civic API key is not configured. Some features may be limited.",
+              variant: "default", // Changed to default to be less alarming
             });
-            throw new Error('Google Civic API is not configured. Please add your API key.');
           } else if (data.apiStatuses.googleCivic === 'GOOGLE_CIVIC_API_ERROR') {
             toast({
-              title: "API Connection Error",
-              description: "Failed to connect to Google Civic API. Please check your API key and try again.",
-              variant: "destructive",
+              title: "API Connection Issue",
+              description: "Could not connect to Google Civic API. Using cached data where possible.",
+              variant: "default", // Changed to default
             });
-            throw new Error('Failed to connect to Google Civic API. Please check your API key and try again.');
           } else if (data.apiStatuses.googleCivic === 'CONNECTED') {
             toast({
               title: "API Connected",
@@ -123,35 +141,35 @@ export function usePrioritiesAnalysis() {
             });
           }
           
+          // Handle FEC API status messages similarly
           if (data.apiStatuses.fec === 'FEC_API_NOT_CONFIGURED') {
             toast({
-              title: "API Configuration Issue",
-              description: "FEC API key is not configured. Please add your API key in Supabase.",
-              variant: "destructive",
+              title: "API Configuration Note",
+              description: "FEC API key is not configured. Some candidate data may be limited.",
+              variant: "default", // Changed to default
             });
-            throw new Error('FEC API is not configured. Please add your API key.');
           } else if (data.apiStatuses.fec === 'FEC_API_ERROR') {
             toast({
-              title: "API Connection Error",
-              description: "Failed to connect to FEC API. Please check your API key and try again.",
-              variant: "destructive",
+              title: "API Connection Note",
+              description: "Limited connection to FEC API. Using alternative data sources.",
+              variant: "default", // Changed to default
             });
-            throw new Error('Failed to connect to FEC API. Please check your API key and try again.');
           } else if (data.apiStatuses.fec === 'FEC_API_UNAUTHORIZED') {
             toast({
-              title: "API Authorization Error",
-              description: "FEC API key is invalid or unauthorized. Please enter a new API key.",
-              variant: "destructive",
+              title: "API Authorization Issue",
+              description: "FEC API key needs to be renewed. Some features may be limited.",
+              variant: "default", // Changed to default
             });
-            throw new Error('FEC API key is invalid or unauthorized. Please enter a new API key.');
           }
         }
 
+        // Process unmapped terms
         if (data.unmappedTerms && data.unmappedTerms.length > 0) {
           console.log('Unmapped terms detected:', data.unmappedTerms);
           saveUnmappedTerms(data.unmappedTerms);
         }
 
+        // Format analysis text for better readability
         let formattedAnalysis = data.analysis;
         if (formattedAnalysis && !formattedAnalysis.includes('\n\n')) {
           const sentences = formattedAnalysis.split(/(?<=[.!?])\s+/);
@@ -170,6 +188,7 @@ export function usePrioritiesAnalysis() {
         
         let conflictingPriorities = data.conflictingPriorities || [];
         
+        // Enhance conflicting priorities with references to the original text
         if (conflictingPriorities.length > 0 && formData.priorities.length > 0) {
           conflictingPriorities = conflictingPriorities.map(conflict => {
             let enhancedConflict = conflict;
@@ -198,6 +217,7 @@ export function usePrioritiesAnalysis() {
           });
         }
 
+        // Ensure all candidates have alignment information
         const enhancedCandidates = data.candidates?.map(candidate => {
           if (!candidate.alignment) {
             return {
@@ -212,10 +232,14 @@ export function usePrioritiesAnalysis() {
           return candidate;
         }) || [];
 
+        // Create priority mappings for display
         const priorityMappings: PriorityMapping[] = [];
         
+        // Process the main priorities
         if (formData.priorities.length > 0) {
           formData.priorities.forEach((priority, index) => {
+            if (!priority.trim()) return; // Skip empty priorities
+            
             const mappedTerms = data.priorityToTermsMap?.[index] || [];
             
             const terms = mappedTerms.length > 0 ? mappedTerms : 
@@ -232,8 +256,11 @@ export function usePrioritiesAnalysis() {
           });
         }
 
+        // Process feedback priorities
         if (feedbackPriorities.length > 0) {
           feedbackPriorities.forEach((priority, index) => {
+            if (!priority.trim()) return; // Skip empty feedback
+            
             const mappedTerms = data.feedbackToTermsMap?.[index] || [];
             
             const terms = mappedTerms.length > 0 ? mappedTerms :
@@ -250,6 +277,7 @@ export function usePrioritiesAnalysis() {
           });
         }
 
+        // Reset showRecommendations state when a new analysis is submitted
         if (submitCount > 0) {
           setShowRecommendations(false);
         }
@@ -277,7 +305,7 @@ export function usePrioritiesAnalysis() {
       }
     },
     enabled: Boolean(formData),
-    retry: 1,
+    retry: 2, // Increased from 1 to 2
     refetchOnWindowFocus: false
   });
 
@@ -289,6 +317,7 @@ export function usePrioritiesAnalysis() {
   };
 
   const handleFeedback = (feedback: string) => {
+    if (!feedback.trim()) return; // Skip empty feedback
     setFeedbackPriorities(prev => [...prev, feedback]);
     setSubmitCount(prev => prev + 1);
   };

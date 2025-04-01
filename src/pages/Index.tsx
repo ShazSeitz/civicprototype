@@ -29,12 +29,16 @@ const Index = () => {
   
   const priorityMappingsRef = useRef<HTMLDivElement>(null);
 
+  // Enhanced scroll behavior - scroll when recommendations are available
   useEffect(() => {
     if (recommendations && showRecommendations && priorityMappingsRef.current) {
-      priorityMappingsRef.current.scrollIntoView({ 
-        behavior: 'smooth',
-        block: 'start'
-      });
+      // Use a small timeout to ensure the DOM has updated before scrolling
+      setTimeout(() => {
+        priorityMappingsRef.current?.scrollIntoView({ 
+          behavior: 'smooth',
+          block: 'start'
+        });
+      }, 100);
     }
   }, [recommendations, showRecommendations]);
 
