@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,11 +5,17 @@ import { useToast } from '@/hooks/use-toast';
 import { VoterFormValues } from '@/schemas/voterFormSchema';
 import { ApiStatus } from '@/components/ApiStatusChecker';
 
+export interface PriorityMapping {
+  userConcern: string;
+  mappedTerms: string[];
+}
+
 export interface RecommendationsData {
   mode: string;
   analysis: string;
   mappedPriorities: string[];
   conflictingPriorities?: string[];
+  priorityMappings?: PriorityMapping[];
   nuancedMappings?: Record<string, Record<string, any>>;
   candidates: any[];
   ballotMeasures: any[];
@@ -63,13 +68,12 @@ export function usePrioritiesAnalysis() {
         const allPriorities = [...formData.priorities, ...feedbackPriorities];
         console.log('Submitting form data:', { ...formData, priorities: allPriorities });
         
-        // Include a roleFilter parameter to ensure appropriate matching of officials to issues
         const { data, error } = await supabase.functions.invoke('analyze-priorities', {
           body: { 
             mode: formData.mode, 
             zipCode: formData.zipCode,
             priorities: allPriorities,
-            improveMatching: true // Signal to the function to use improved matching logic
+            improveMatching: true
           }
         });
 
@@ -87,7 +91,6 @@ export function usePrioritiesAnalysis() {
           throw new Error('No data returned from analysis');
         }
 
-        // Handle API status checks
         if (data.apiStatuses) {
           setApiStatus({
             googleCivic: data.apiStatuses.googleCivic === 'CONNECTED' ? 'connected' : 
@@ -98,7 +101,6 @@ export function usePrioritiesAnalysis() {
                  data.apiStatuses.fec === 'FEC_API_ERROR' ? 'error' : 'unknown'
           });
 
-          // Handle API configuration issues
           if (data.apiStatuses.googleCivic === 'GOOGLE_CIVIC_API_NOT_CONFIGURED') {
             toast({
               title: "API Configuration Issue",
@@ -121,7 +123,6 @@ export function usePrioritiesAnalysis() {
             });
           }
           
-          // Handle FEC API status
           if (data.apiStatuses.fec === 'FEC_API_NOT_CONFIGURED') {
             toast({
               title: "API Configuration Issue",
@@ -146,19 +147,15 @@ export function usePrioritiesAnalysis() {
           }
         }
 
-        // Process unmapped terms
         if (data.unmappedTerms && data.unmappedTerms.length > 0) {
           console.log('Unmapped terms detected:', data.unmappedTerms);
           saveUnmappedTerms(data.unmappedTerms);
         }
 
-        // Format analysis into paragraphs if it's not already
         let formattedAnalysis = data.analysis;
         if (formattedAnalysis && !formattedAnalysis.includes('\n\n')) {
-          // Ensure analysis is formatted into readable paragraphs
           const sentences = formattedAnalysis.split(/(?<=[.!?])\s+/);
           if (sentences.length >= 4) {
-            // Create 2-3 paragraphs from the sentences
             const paraLength = Math.ceil(sentences.length / 3);
             let newAnalysis = '';
             for (let i = 0; i < sentences.length; i += paraLength) {
@@ -169,19 +166,14 @@ export function usePrioritiesAnalysis() {
           }
         }
 
-        // Extract mapped priorities
         const mappedPriorities = data.mappedPriorities || [];
         
-        // Extract and enhance conflicting priorities if available
         let conflictingPriorities = data.conflictingPriorities || [];
         
-        // Format conflicting priorities to use actual priority text instead of numbers
         if (conflictingPriorities.length > 0 && formData.priorities.length > 0) {
           conflictingPriorities = conflictingPriorities.map(conflict => {
-            // Replace references like "priorities #1 and #4" with actual priority text
             let enhancedConflict = conflict;
             
-            // Look for patterns like "priorities #1 and #4" or "priority #2"
             const priorityRefPattern = /(priority|priorities)\s+#(\d+)(?:\s+and\s+#(\d+))?/gi;
             
             enhancedConflict = enhancedConflict.replace(priorityRefPattern, (match, term, firstNum, secondNum) => {
@@ -206,10 +198,8 @@ export function usePrioritiesAnalysis() {
           });
         }
 
-        // Process and enhance the candidates data to include alignment info if not present
         const enhancedCandidates = data.candidates?.map(candidate => {
           if (!candidate.alignment) {
-            // If the server didn't provide alignment data, add placeholder
             return {
               ...candidate,
               alignment: {
@@ -222,8 +212,44 @@ export function usePrioritiesAnalysis() {
           return candidate;
         }) || [];
 
-        // When new analysis comes in, don't automatically show recommendations
-        // until the user clicks to continue
+        const priorityMappings: PriorityMapping[] = [];
+        
+        if (formData.priorities.length > 0) {
+          formData.priorities.forEach((priority, index) => {
+            const mappedTerms = data.priorityToTermsMap?.[index] || [];
+            
+            const terms = mappedTerms.length > 0 ? mappedTerms : 
+                         data.mappedPriorities?.slice(0, 2) || [];
+            
+            priorityMappings.push({
+              userConcern: priority,
+              mappedTerms: terms.map((term: string) => {
+                return term.replace(/([A-Z])/g, ' $1')
+                          .replace(/^./, (str) => str.toUpperCase())
+                          .trim();
+              })
+            });
+          });
+        }
+
+        if (feedbackPriorities.length > 0) {
+          feedbackPriorities.forEach((priority, index) => {
+            const mappedTerms = data.feedbackToTermsMap?.[index] || [];
+            
+            const terms = mappedTerms.length > 0 ? mappedTerms :
+                        data.mappedPriorities?.slice(0, 2) || [];
+            
+            priorityMappings.push({
+              userConcern: priority,
+              mappedTerms: terms.map((term: string) => {
+                return term.replace(/([A-Z])/g, ' $1')
+                          .replace(/^./, (str) => str.toUpperCase())
+                          .trim();
+              })
+            });
+          });
+        }
+
         if (submitCount > 0) {
           setShowRecommendations(false);
         }
@@ -233,6 +259,7 @@ export function usePrioritiesAnalysis() {
           analysis: formattedAnalysis,
           mappedPriorities,
           conflictingPriorities,
+          priorityMappings,
           candidates: enhancedCandidates,
           ballotMeasures: data.ballotMeasures || [],
           draftEmails: data.draftEmails || [],
@@ -283,7 +310,7 @@ export function usePrioritiesAnalysis() {
     refetch,
     apiStatus,
     showRecommendations,
-    feedbackPriorities, // Expose feedbackPriorities for use in the PDF
+    feedbackPriorities,
     handleSubmit,
     handleFeedback,
     handleContinue,

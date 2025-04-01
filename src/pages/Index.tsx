@@ -42,7 +42,7 @@ const Index = () => {
       
       <div className="container mx-auto px-4 pt-6 pb-8">
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-4xl font-bold text-center mb-4 animate-fade-up">
+          <h1 className="text-4xl font-bold text-left mb-4 animate-fade-up">
             Voter Information Tool
           </h1>
           
@@ -69,7 +69,7 @@ const Index = () => {
             {recommendations && showRecommendations && (
               <div className="space-y-6">
                 <div className="flex justify-between items-center">
-                  <h2 className="text-2xl font-bold">Your Recommendations</h2>
+                  <h2 className="text-2xl font-bold text-left">Your Recommendations</h2>
                   <ShareRecommendations 
                     recommendationsData={recommendations} 
                     zipCode={formData?.zipCode}

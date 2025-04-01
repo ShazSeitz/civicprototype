@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Progress } from "@/components/ui/progress";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { RecommendationsData } from "@/hooks/use-priorities-analysis";
 import { useState } from "react";
 
@@ -42,19 +42,38 @@ export function RecommendationsList({ recommendations, onFeedbackSubmit }: Recom
     <div className="space-y-6 mt-8 animate-fade-up">
       <Card>
         <CardHeader>
-          <CardTitle>Analysis of Your Priorities</CardTitle>
-          <CardDescription>
-            Based on your input, here's what I understand about your priorities
+          <CardTitle className="text-left">Analysis of Your Priorities</CardTitle>
+          <CardDescription className="text-left">
+            We have mapped your priorities to policy terms to provide the best recommendations. Please review and clarify if needed.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="prose prose-sm text-left">
+          {/* Display priorities mapping in a table format */}
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-1/2 font-bold">User Concern</TableHead>
+                <TableHead className="w-1/2 font-bold">Mapped Policy Term(s)</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {recommendations.priorityMappings && recommendations.priorityMappings.map((mapping, index) => (
+                <TableRow key={index} className="border">
+                  <TableCell className="text-left align-top">{mapping.userConcern}</TableCell>
+                  <TableCell className="text-left">{mapping.mappedTerms.join(', ')}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          
+          {/* Display the prose analysis after the table */}
+          <div className="prose prose-sm text-left mt-6">
             {renderAnalysis(recommendations.analysis)}
           </div>
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
           <div className="w-full">
-            <div className="text-sm font-medium mb-2">Add another priority</div>
+            <div className="text-sm font-medium mb-2 text-left">Add another priority</div>
             <div className="flex space-x-2">
               <Input
                 placeholder="Add another priority..."
@@ -72,7 +91,7 @@ export function RecommendationsList({ recommendations, onFeedbackSubmit }: Recom
       {recommendations.candidates.length > 0 && (
         <Accordion type="single" collapsible className="w-full">
           <AccordionItem value="candidates">
-            <AccordionTrigger className="text-lg font-semibold">
+            <AccordionTrigger className="text-lg font-semibold text-left">
               Candidates ({recommendations.candidates.length})
             </AccordionTrigger>
             <AccordionContent>
@@ -80,8 +99,8 @@ export function RecommendationsList({ recommendations, onFeedbackSubmit }: Recom
                 {recommendations.candidates.map((candidate, index) => (
                   <Card key={index}>
                     <CardHeader>
-                      <CardTitle className="text-base">{candidate.name}</CardTitle>
-                      <CardDescription>
+                      <CardTitle className="text-base text-left">{candidate.name}</CardTitle>
+                      <CardDescription className="text-left">
                         {candidate.office} • {candidate.party}
                       </CardDescription>
                     </CardHeader>
@@ -106,7 +125,7 @@ export function RecommendationsList({ recommendations, onFeedbackSubmit }: Recom
                             )}
                           </div>
                           {candidate.alignment.supportedPriorities?.length > 0 && (
-                            <div>
+                            <div className="text-left">
                               <p className="text-sm font-medium text-green-700 dark:text-green-400">Aligned with your priorities:</p>
                               <ul className="list-disc list-inside text-sm pl-2">
                                 {candidate.alignment.supportedPriorities.map((priority, i) => (
@@ -116,7 +135,7 @@ export function RecommendationsList({ recommendations, onFeedbackSubmit }: Recom
                             </div>
                           )}
                           {candidate.alignment.conflictingPriorities?.length > 0 && (
-                            <div>
+                            <div className="text-left">
                               <p className="text-sm font-medium text-red-700 dark:text-red-400">Potential conflicts:</p>
                               <ul className="list-disc list-inside text-sm pl-2">
                                 {candidate.alignment.conflictingPriorities.map((priority, i) => (
@@ -127,7 +146,7 @@ export function RecommendationsList({ recommendations, onFeedbackSubmit }: Recom
                           )}
                         </div>
                       ) : (
-                        <p className="text-sm text-muted-foreground">Insufficient information available on this candidate's positions.</p>
+                        <p className="text-sm text-muted-foreground text-left">Insufficient information available on this candidate's positions.</p>
                       )}
                     </CardContent>
                   </Card>
@@ -141,7 +160,7 @@ export function RecommendationsList({ recommendations, onFeedbackSubmit }: Recom
       {recommendations.draftEmails.length > 0 && (
         <Accordion type="single" collapsible className="w-full">
           <AccordionItem value="emails">
-            <AccordionTrigger className="text-lg font-semibold">
+            <AccordionTrigger className="text-lg font-semibold text-left">
               Email Templates ({recommendations.draftEmails.length})
             </AccordionTrigger>
             <AccordionContent>
@@ -149,10 +168,10 @@ export function RecommendationsList({ recommendations, onFeedbackSubmit }: Recom
                 {recommendations.draftEmails.map((email, index) => (
                   <Card key={index}>
                     <CardHeader>
-                      <CardTitle className="text-base">
+                      <CardTitle className="text-base text-left">
                         To: {email.to} ({email.office})
                       </CardTitle>
-                      <CardDescription>{email.subject}</CardDescription>
+                      <CardDescription className="text-left">{email.subject}</CardDescription>
                       <div className="flex flex-wrap gap-2 mt-1">
                         {email.alignmentType === 'aligned' && (
                           <Badge className="bg-green-500">Aligned</Badge>
@@ -175,7 +194,7 @@ export function RecommendationsList({ recommendations, onFeedbackSubmit }: Recom
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-sm whitespace-pre-line">{email.body}</div>
+                      <div className="text-sm whitespace-pre-line text-left">{email.body}</div>
                     </CardContent>
                   </Card>
                 ))}
@@ -188,7 +207,7 @@ export function RecommendationsList({ recommendations, onFeedbackSubmit }: Recom
       {recommendations.interestGroups.length > 0 && (
         <Accordion type="single" collapsible className="w-full">
           <AccordionItem value="groups">
-            <AccordionTrigger className="text-lg font-semibold">
+            <AccordionTrigger className="text-lg font-semibold text-left">
               Interest Groups ({recommendations.interestGroups.length})
             </AccordionTrigger>
             <AccordionContent>
@@ -196,15 +215,15 @@ export function RecommendationsList({ recommendations, onFeedbackSubmit }: Recom
                 {recommendations.interestGroups.map((group, index) => (
                   <Card key={index} className="flex flex-col">
                     <CardHeader>
-                      <CardTitle className="text-base">{group.name}</CardTitle>
-                      <CardDescription className="line-clamp-2">{group.relevance}</CardDescription>
+                      <CardTitle className="text-base text-left">{group.name}</CardTitle>
+                      <CardDescription className="line-clamp-2 text-left">{group.relevance}</CardDescription>
                     </CardHeader>
                     <CardFooter className="mt-auto">
                       <a
                         href={group.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-sm text-blue-600 hover:underline"
+                        className="text-sm text-blue-600 hover:underline text-left"
                       >
                         Visit HUD Resource
                       </a>
@@ -220,7 +239,7 @@ export function RecommendationsList({ recommendations, onFeedbackSubmit }: Recom
       {recommendations.petitions.length > 0 && (
         <Accordion type="single" collapsible className="w-full">
           <AccordionItem value="petitions">
-            <AccordionTrigger className="text-lg font-semibold">
+            <AccordionTrigger className="text-lg font-semibold text-left">
               Petitions ({recommendations.petitions.length})
             </AccordionTrigger>
             <AccordionContent>
@@ -228,15 +247,15 @@ export function RecommendationsList({ recommendations, onFeedbackSubmit }: Recom
                 {recommendations.petitions.map((petition, index) => (
                   <Card key={index}>
                     <CardHeader>
-                      <CardTitle className="text-base">{petition.title}</CardTitle>
-                      <CardDescription>{petition.description}</CardDescription>
+                      <CardTitle className="text-base text-left">{petition.title}</CardTitle>
+                      <CardDescription className="text-left">{petition.description}</CardDescription>
                     </CardHeader>
                     <CardFooter>
                       <a
                         href={petition.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-sm text-blue-600 hover:underline"
+                        className="text-sm text-blue-600 hover:underline text-left"
                       >
                         View Petition
                       </a>

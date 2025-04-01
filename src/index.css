@@ -1,3 +1,4 @@
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 @tailwind base;
@@ -39,6 +40,16 @@
   }
   html {
     scroll-behavior: smooth;
+  }
+  
+  /* Global rule to prevent center-aligned text */
+  h1, h2, h3, h4, h5, h6, p, li, td, th, div {
+    text-align: left !important;
+  }
+  
+  /* Exception for specific elements that might need different alignment */
+  .text-right {
+    text-align: right !important;
   }
 }
 
