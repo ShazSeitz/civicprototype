@@ -27,11 +27,11 @@ const Index = () => {
     feedbackPriorities
   } = usePrioritiesAnalysis();
   
-  const recommendationsRef = useRef<HTMLDivElement>(null);
+  const priorityMappingsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (recommendations && showRecommendations && recommendationsRef.current) {
-      recommendationsRef.current.scrollIntoView({ 
+    if (recommendations && showRecommendations && priorityMappingsRef.current) {
+      priorityMappingsRef.current.scrollIntoView({ 
         behavior: 'smooth',
         block: 'start'
       });
@@ -83,60 +83,58 @@ const Index = () => {
             <ErrorAlert error={error} onRetry={refetch} />
           )}
           
-          <div ref={recommendationsRef}>
-            {recommendations && showRecommendations && (
-              <div className="space-y-6">
-                <div className="flex justify-between items-center">
-                  <h2 className="text-2xl font-bold text-left">Your Recommendations</h2>
-                  <ShareRecommendations 
-                    recommendationsData={recommendations} 
-                    zipCode={formData?.zipCode}
-                    userPriorities={formData?.priorities}
-                    userClarifications={feedbackPriorities}
-                  />
-                </div>
-                
-                {/* Show the analysis card with mappings in a table format */}
-                <Card className="animate-fade-up">
-                  <CardHeader>
-                    <CardTitle className="text-left">Analysis of Your Priorities</CardTitle>
-                    <CardDescription className="text-left">
-                      We have mapped your priorities to policy terms to provide the best recommendations. Please review and clarify if needed.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {/* Display priorities mapping in a table format */}
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-1/2 font-bold">User Concern</TableHead>
-                          <TableHead className="w-1/2 font-bold">Mapped Policy Term(s)</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {recommendations.priorityMappings && recommendations.priorityMappings.map((mapping, index) => (
-                          <TableRow key={index} className="border">
-                            <TableCell className="text-left align-top font-medium">{mapping.userConcern}</TableCell>
-                            <TableCell className="text-left">{mapping.mappedTerms.join(', ')}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                    
-                    {/* Display the prose analysis after the table */}
-                    <div className="prose prose-sm text-left mt-6">
-                      {renderAnalysis(recommendations.analysis)}
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <RecommendationsList 
-                  recommendations={recommendations} 
-                  onFeedbackSubmit={handleFeedback}
+          {recommendations && showRecommendations && (
+            <div ref={priorityMappingsRef} className="space-y-6 mt-8">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-left">Your Recommendations</h2>
+                <ShareRecommendations 
+                  recommendationsData={recommendations} 
+                  zipCode={formData?.zipCode}
+                  userPriorities={formData?.priorities}
+                  userClarifications={feedbackPriorities}
                 />
               </div>
-            )}
-          </div>
+              
+              {/* Show the analysis card with mappings in a table format */}
+              <Card className="animate-fade-up">
+                <CardHeader>
+                  <CardTitle className="text-left">Analysis of Your Priorities</CardTitle>
+                  <CardDescription className="text-left">
+                    We have mapped your priorities to policy terms to provide the best recommendations.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {/* Display priorities mapping in a table format */}
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-1/2 font-bold">Your Priorities</TableHead>
+                        <TableHead className="w-1/2 font-bold">Policy Terms</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {recommendations.priorityMappings && recommendations.priorityMappings.map((mapping, index) => (
+                        <TableRow key={index} className="border">
+                          <TableCell className="text-left align-top font-medium">{mapping.userConcern}</TableCell>
+                          <TableCell className="text-left">{mapping.mappedTerms.join(', ')}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                  
+                  {/* Display the prose analysis after the table */}
+                  <div className="prose prose-sm text-left mt-6">
+                    {renderAnalysis(recommendations.analysis)}
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <RecommendationsList 
+                recommendations={recommendations} 
+                onFeedbackSubmit={handleFeedback}
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>

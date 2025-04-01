@@ -23,7 +23,7 @@ export function RecommendationsList({ recommendations, onFeedbackSubmit }: Recom
   };
 
   return (
-    <div className="space-y-6 mt-8 animate-fade-up">
+    <div className="space-y-6 animate-fade-up">
       <Card>
         <CardFooter className="flex flex-col space-y-4 pt-6">
           <div className="w-full">
