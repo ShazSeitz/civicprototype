@@ -3,6 +3,8 @@ import { useState, useEffect } from 'react';
 import { VoterForm } from '@/components/VoterForm';
 import { PrioritiesFeedback } from '@/components/PrioritiesFeedback';
 import { LoadingProgress } from '@/components/LoadingProgress';
+import { CandidateSection } from '@/components/CandidateSection';
+import { BallotMeasuresSection } from '@/components/BallotMeasuresSection';
 import { VoterFormValues } from '@/schemas/voterFormSchema';
 import { RecommendationsData } from '@/hooks/use-priorities-analysis';
 import { initializeModel } from '@/utils/transformersMapping';
@@ -67,6 +69,18 @@ export const VoterFormContainer = ({
           onFeedbackSubmit={onFeedbackSubmit}
           onContinue={onContinue}
         />
+      )}
+
+      {recommendations && showRecommendations && (
+        <>
+          {recommendations.candidates && recommendations.candidates.length > 0 && (
+            <CandidateSection candidates={recommendations.candidates} />
+          )}
+          
+          {recommendations.ballotMeasures && recommendations.ballotMeasures.length > 0 && (
+            <BallotMeasuresSection ballotMeasures={recommendations.ballotMeasures} />
+          )}
+        </>
       )}
     </>
   );
