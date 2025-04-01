@@ -59,7 +59,7 @@ export function RecommendationsList({ recommendations, onFeedbackSubmit }: Recom
             <TableBody>
               {recommendations.priorityMappings && recommendations.priorityMappings.map((mapping, index) => (
                 <TableRow key={index} className="border">
-                  <TableCell className="text-left align-top">{mapping.userConcern}</TableCell>
+                  <TableCell className="text-left align-top font-medium">{mapping.userConcern}</TableCell>
                   <TableCell className="text-left">{mapping.mappedTerms.join(', ')}</TableCell>
                 </TableRow>
               ))}
