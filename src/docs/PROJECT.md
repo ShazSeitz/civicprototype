@@ -1,3 +1,4 @@
+
 ### Product Requirements (updated 1/4/25)
 
 Product Requirements
@@ -30,7 +31,7 @@ VoterPrime is a nonpartisan primer that makes it easy for US citizens to make co
 **4. Inputs & User Interaction4.1. Input Fields**
 
 - **Mode Selection:**
-    - **Options:** “Current Date” or “DEMO: November 2024 Election.”
+    - **Options:** "Current Date" or "DEMO: November 2024 Election."
         - *Current Date:* Uses live election data.
         - *DEMO:* Simulates the November 2024 election with fixed candidate data.
 - **Zip Code:**
@@ -38,7 +39,7 @@ VoterPrime is a nonpartisan primer that makes it easy for US citizens to make co
 - **Top 6 Priorities:**
     - Free-text entries (up to 250 characters each).
     - Users can enter multiple concerns and reorder them via drag-and-drop.
-    - “Did we get this right? - input box with SUBMIT for clarifications - initiates updated evaluation and mapping
+    - "Did we get this right? - input box with SUBMIT for clarifications - initiates updated evaluation and mapping
     - Yes - show me recommendations - initiates processing
     **4.2. Real-Time Editing & Feedback**
 - **Dynamic Updates:** Inputs (zip code or priorities) trigger **immediate refreshes** in recommendations.
@@ -52,11 +53,11 @@ VoterPrime is a nonpartisan primer that makes it easy for US citizens to make co
 
 - **With Upcoming Election (ballots available):**
     - **Elected Official Recommendations:** From local offices to POTUS.
-    - **Ballot Measure Recommendations:** Based on the user’s zip code. Each measure should include a brief summary and a link to its page on Ballotpedia.
+    - **Ballot Measure Recommendations:** Based on the user's zip code. Each measure should include a brief summary and a link to its page on Ballotpedia.
     - **Draft Emails:** Ready-to-send, editable emails for contacting elected officials.
         - **Uses logic defined in** `supabase/functions/analyze-priorities/index.ts`.
     - **Interest Groups & Petitions:** Direct links to curated **HUD interest group** pages and active [**Change.org](http://change.org/) petitions**.
-    - **All candidates running for office within the user’s voting district should be included, regardless of position or title. This may include—but is not limited to—State Representative, State Senator, Governor, Mayor, City Council, School Board, Judges, County Commissioners, District Attorneys, and any other elected offices listed on the user's ballot.**
+    - **All candidates running for office within the user's voting district should be included, regardless of position or title. This may include—but is not limited to—State Representative, State Senator, Governor, Mayor, City Council, School Board, Judges, County Commissioners, District Attorneys, and any other elected offices listed on the user's ballot.**
 - **Without Upcoming Election:**
     - **Draft Emails, Interest Groups & Petitions:** Same as above (no candidate or ballot measure recommendations).
     **B. DEMO: November 2024 Mode**
@@ -74,7 +75,7 @@ VoterPrime is a nonpartisan primer that makes it easy for US citizens to make co
         - A compare/contrast table including all candidates, including ❌ non-matches
     - **Ballot Measure Recommendations:**
         - Uses the same recommendation logic as the current election cycle.
-        - Explain who is for/against each ballot that maps to the user’s priorities
+        - Explain who is for/against each ballot that maps to the user's priorities
         - Include a link to each ballot measure on Ballotpedia
         **5.2. Summary Output Dashboard**
 - **Header Information:**
@@ -85,7 +86,7 @@ VoterPrime is a nonpartisan primer that makes it easy for US citizens to make co
     - **Subheader:** "We have mapped your priorities to policy terms to provide the best recommendations. Please review and clarify if needed."
     - Two buttons: **Clarify / Get Recommendations**
     - Editable mapping analysis (user can edit repeatedly).
-    - **Formatting:** Bullet list of short, concise, left-justified sentences describing the nuance of the user’s concerns and how they map to policy terms. Call out of potentially conflicting priorities
+    - **Formatting:** Bullet list of short, concise, left-justified sentences describing the nuance of the user's concerns and how they map to policy terms. Call out of potentially conflicting priorities
 - **Recommendations Section (for Current Date with an Upcoming Election):**
     - **Elected Official Recommendations (Local to POTUS).**
     - **Ballot Measure Recommendations.**
@@ -104,7 +105,7 @@ VoterPrime is a nonpartisan primer that makes it easy for US citizens to make co
 - **Candidate & Ballot Measure Matching:**
     - **Election Cycle:** Matches candidates and ballot measures to user priorities.
 - **Advocacy Email Generation:**
-    - Provides **email addresses** and **draft messages** to local elected officials regarding the user’s top 3 concerns.
+    - Provides **email addresses** and **draft messages** to local elected officials regarding the user's top 3 concerns.
     - **Uses logic defined in** `supabase/functions/analyze-priorities/index.ts`.
 - **Additional Recommendations:**
     - **Interest Groups via HUD website** https://www.hud.gov/program_offices/gov_relations/oirpublicinterestgroups
@@ -138,8 +139,8 @@ VoterPrime is a nonpartisan primer that makes it easy for US citizens to make co
     **7.3. Email Generation Logic**
 - **Evaluation of Elected Officials:**
     - Officials are categorized into three groups:
-        1. **Aligned Officials:** Likely to support user’s priorities.
-        2. **Opposing Officials:** Likely to oppose user’s priorities.
+        1. **Aligned Officials:** Likely to support user's priorities.
+        2. **Opposing Officials:** Likely to oppose user's priorities.
         3. **Key Decision Makers:** Those with a mixed/neutral stance.
 - **Email Drafts Use Defined Messaging Strategies:**
     - **Supportive:** Thank-you and reinforcement.
@@ -189,14 +190,15 @@ VoterPrime is a nonpartisan primer that makes it easy for US citizens to make co
 
 ### Result Mockups
 
-[VoterPrime_ResultMockUpCurrentElection_v01.pdf](attachment:03d9f9a6-4383-453d-bd20-5b668593e01b:VoterPrime_ResultMockUpCurrentElection_v01.pdf)
+The following PDFs serve as canonical visual formatting examples for the application:
 
-[VoterPrime_ResultMockUp_DEMO_nov2024mode_v01.pdf](attachment:63a74eca-b32c-4237-a72b-5d1205472b44:VoterPrime_ResultMockUp_DEMO_nov2024mode_v01.pdf)
-
-[VoterPrime_ResultMockUpCurrent_noElection_v01.pdf](attachment:36124ce2-e8bb-4468-9344-1cd46eade05e:VoterPrime_ResultMockUpCurrent_noElection_v01.pdf)
+- [VoterPrime_ResultMockUpCurrentElection_v01.pdf](../docs/VoterPrime_ResultMockUpCurrentElection_v01.pdf)
+- [VoterPrime_ResultMockUp_DEMO_nov2024mode_v01.pdf](../docs/VoterPrime_ResultMockUp_DEMO_nov2024mode_v01.pdf)
+- [VoterPrime_ResultMockUpCurrent_noElection_v01.pdf](../docs/VoterPrime_ResultMockUpCurrent_noElection_v01.pdf)
 
 **ADDITIONAL MVP Output Features:**
 
 - **Notifications:** Real-time alerts and push notifications about election updates, new recommendations, and changes to candidate or ballot measure information.
 - **Share Functionality:** Enables users to share their priorities mapping, recommendations, and civic education content via social media or email to boost civic engagement.
 - **Comprehensive List of Elected Officials & Contacts:** Offers a complete directory of elected officials from local to national levels along with contact details for extended outreach.
+
