@@ -24,13 +24,15 @@ import {
 import { SortablePriority } from "./SortablePriority";
 import { TestPersonaControls } from "./TestPersonaControls";
 import { formSchema, VoterFormValues } from "@/schemas/voterFormSchema";
+import { useEffect } from "react";
 
 interface VoterFormProps {
   onSubmit: (values: VoterFormValues) => void;
   isLoading: boolean;
+  initialValues?: VoterFormValues | null;
 }
 
-export const VoterForm = ({ onSubmit, isLoading }: VoterFormProps) => {
+export const VoterForm = ({ onSubmit, isLoading, initialValues }: VoterFormProps) => {
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -40,12 +42,19 @@ export const VoterForm = ({ onSubmit, isLoading }: VoterFormProps) => {
 
   const form = useForm<VoterFormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
+    defaultValues: initialValues || {
       mode: "current",
       zipCode: "",
       priorities: ["", "", "", "", "", ""],
     },
   });
+
+  // Update form values when initialValues changes
+  useEffect(() => {
+    if (initialValues) {
+      form.reset(initialValues);
+    }
+  }, [initialValues, form]);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -171,7 +180,7 @@ export const VoterForm = ({ onSubmit, isLoading }: VoterFormProps) => {
             </div>
 
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Analyzing..." : "SUBMIT"}
+              {isLoading ? "Analyzing..." : "UPDATE"}
             </Button>
           </form>
         </Form>

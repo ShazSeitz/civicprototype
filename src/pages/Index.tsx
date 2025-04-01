@@ -56,6 +56,7 @@ const Index = () => {
             isLoading={isLoading}
             recommendations={recommendations}
             showRecommendations={showRecommendations}
+            formValues={formData}
             onSubmit={handleSubmit}
             onFeedbackSubmit={handleFeedback}
             onContinue={handleContinue}

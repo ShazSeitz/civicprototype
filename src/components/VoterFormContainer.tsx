@@ -11,6 +11,7 @@ interface VoterFormContainerProps {
   isLoading: boolean;
   recommendations: RecommendationsData | null;
   showRecommendations: boolean;
+  formValues: VoterFormValues | null;
   onSubmit: (values: VoterFormValues) => void;
   onFeedbackSubmit: (feedback: string) => void;
   onContinue: () => void;
@@ -20,12 +21,12 @@ export const VoterFormContainer = ({
   isLoading,
   recommendations,
   showRecommendations,
+  formValues,
   onSubmit,
   onFeedbackSubmit,
   onContinue
 }: VoterFormContainerProps) => {
-  // Show form if no recommendations, or priorities feedback if recommendations but not showing yet
-  const showForm = !recommendations;
+  // Only show feedback if recommendations exist but are not showing yet
   const showFeedback = recommendations && !showRecommendations;
   
   // Initialize the ML model when the component mounts
@@ -51,12 +52,11 @@ export const VoterFormContainer = ({
         />
       )}
       
-      {showForm && (
-        <VoterForm 
-          onSubmit={onSubmit} 
-          isLoading={isLoading} 
-        />
-      )}
+      <VoterForm 
+        onSubmit={onSubmit} 
+        isLoading={isLoading}
+        initialValues={formValues}
+      />
 
       {showFeedback && (
         <PrioritiesFeedback 
