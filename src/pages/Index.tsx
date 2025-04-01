@@ -128,7 +128,7 @@ const Index = () => {
                       {renderAnalysis(recommendations.analysis)}
                     </div>
                   </CardContent>
-                </CardContent>
+                </Card>
                 
                 <RecommendationsList 
                   recommendations={recommendations} 
