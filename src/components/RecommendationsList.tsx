@@ -30,8 +30,8 @@ export function RecommendationsList({ recommendations, onFeedbackSubmit }: Recom
   };
 
   return (
-    <div className="space-y-6 animate-fade-up">
-      <Card>
+    <div className="space-y-8 animate-fade-up">
+      <Card className="bg-card border-muted">
         <CardContent className="pt-6 pb-4">
           <div className="w-full">
             <div className="text-sm font-medium mb-2 text-left">Add another priority</div>
@@ -56,20 +56,20 @@ export function RecommendationsList({ recommendations, onFeedbackSubmit }: Recom
 
       {recommendations.draftEmails && recommendations.draftEmails.length > 0 && (
         <Accordion type="single" collapsible className="w-full">
-          <AccordionItem value="emails">
-            <AccordionTrigger className="text-lg font-semibold text-left">
+          <AccordionItem value="emails" className="border-b-0">
+            <AccordionTrigger className="text-xl font-semibold text-left py-4 px-3 bg-muted/30 rounded-t-lg hover:bg-muted/50 hover:no-underline">
               Email Templates ({recommendations.draftEmails.length})
             </AccordionTrigger>
-            <AccordionContent>
-              <div className="space-y-4 pt-2">
+            <AccordionContent className="bg-card border border-t-0 border-muted rounded-b-lg">
+              <div className="space-y-4 pt-4 px-4 pb-6">
                 {recommendations.draftEmails.map((email, index) => (
-                  <Card key={index}>
-                    <CardHeader>
+                  <Card key={index} className="border-muted/60">
+                    <CardHeader className="pb-2">
                       <CardTitle className="text-base text-left">
                         To: {email.to} ({email.office})
                       </CardTitle>
                       <CardDescription className="text-left">{email.subject}</CardDescription>
-                      <div className="flex flex-wrap gap-2 mt-1">
+                      <div className="flex flex-wrap gap-2 mt-2">
                         {email.alignmentType === 'aligned' && (
                           <Badge className="bg-green-500">Aligned</Badge>
                         )}
@@ -91,7 +91,7 @@ export function RecommendationsList({ recommendations, onFeedbackSubmit }: Recom
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-sm whitespace-pre-line text-left">{email.body}</div>
+                      <div className="text-sm whitespace-pre-line text-left border-l-4 border-muted-foreground/20 pl-4 py-2">{email.body}</div>
                     </CardContent>
                   </Card>
                 ))}
@@ -103,26 +103,26 @@ export function RecommendationsList({ recommendations, onFeedbackSubmit }: Recom
 
       {recommendations.interestGroups && recommendations.interestGroups.length > 0 && (
         <Accordion type="single" collapsible className="w-full">
-          <AccordionItem value="groups">
-            <AccordionTrigger className="text-lg font-semibold text-left">
+          <AccordionItem value="groups" className="border-b-0">
+            <AccordionTrigger className="text-xl font-semibold text-left py-4 px-3 bg-muted/30 rounded-t-lg hover:bg-muted/50 hover:no-underline">
               Interest Groups ({recommendations.interestGroups.length})
             </AccordionTrigger>
-            <AccordionContent>
-              <div className="grid gap-4 grid-cols-1 md:grid-cols-2 pt-2">
+            <AccordionContent className="bg-card border border-t-0 border-muted rounded-b-lg">
+              <div className="grid gap-4 grid-cols-1 md:grid-cols-2 pt-4 px-4 pb-6">
                 {recommendations.interestGroups.map((group, index) => (
-                  <Card key={index} className="flex flex-col">
-                    <CardHeader>
+                  <Card key={index} className="flex flex-col border-muted/60">
+                    <CardHeader className="pb-3">
                       <CardTitle className="text-base text-left">{group.name}</CardTitle>
                       <CardDescription className="line-clamp-2 text-left">{group.relevance}</CardDescription>
                     </CardHeader>
-                    <CardFooter className="mt-auto">
+                    <CardFooter className="mt-auto pt-0">
                       <a
                         href={group.url}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-sm text-blue-600 hover:underline text-left"
                       >
-                        Visit HUD Resource
+                        Visit Organization
                       </a>
                     </CardFooter>
                   </Card>
@@ -135,19 +135,19 @@ export function RecommendationsList({ recommendations, onFeedbackSubmit }: Recom
 
       {recommendations.petitions && recommendations.petitions.length > 0 && (
         <Accordion type="single" collapsible className="w-full">
-          <AccordionItem value="petitions">
-            <AccordionTrigger className="text-lg font-semibold text-left">
+          <AccordionItem value="petitions" className="border-b-0">
+            <AccordionTrigger className="text-xl font-semibold text-left py-4 px-3 bg-muted/30 rounded-t-lg hover:bg-muted/50 hover:no-underline">
               Petitions ({recommendations.petitions.length})
             </AccordionTrigger>
-            <AccordionContent>
-              <div className="grid gap-4 grid-cols-1 md:grid-cols-2 pt-2">
+            <AccordionContent className="bg-card border border-t-0 border-muted rounded-b-lg">
+              <div className="grid gap-4 grid-cols-1 md:grid-cols-2 pt-4 px-4 pb-6">
                 {recommendations.petitions.map((petition, index) => (
-                  <Card key={index}>
-                    <CardHeader>
+                  <Card key={index} className="border-muted/60">
+                    <CardHeader className="pb-3">
                       <CardTitle className="text-base text-left">{petition.title}</CardTitle>
                       <CardDescription className="text-left">{petition.description}</CardDescription>
                     </CardHeader>
-                    <CardFooter>
+                    <CardFooter className="pt-0">
                       <a
                         href={petition.url}
                         target="_blank"

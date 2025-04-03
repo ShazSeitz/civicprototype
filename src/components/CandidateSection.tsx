@@ -1,6 +1,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CandidateComparisonTable } from "@/components/CandidateComparisonTable";
+import { Badge } from "@/components/ui/badge";
 
 // Group candidates by office type with special handling for Presidential candidates
 const groupCandidatesByOffice = (candidates: any[]) => {
@@ -29,13 +30,13 @@ const groupCandidatesByOffice = (candidates: any[]) => {
   // Convert to array format for rendering
   const result = Object.entries(groups).map(([office, candidates]) => ({
     office,
-    candidates: candidates.slice(0, 2) // Limit to top 2 candidates per office for comparison
+    candidates: candidates.slice(0, 4) // Show up to 4 candidates per office for comparison
   }));
   
   // Add presidential candidates as a separate entry if they exist
   if (presidentialCandidates.length > 0) {
     result.unshift({
-      office: 'Presidential Candidates (POTUS)',
+      office: 'Presidential Election',
       candidates: presidentialCandidates.slice(0, 4) // Show up to 4 presidential candidates
     });
   }
@@ -48,7 +49,7 @@ interface CandidateSectionProps {
   title?: string;
 }
 
-export const CandidateSection = ({ candidates, title = "Candidates" }: CandidateSectionProps) => {
+export const CandidateSection = ({ candidates, title = "Election & Candidate Information" }: CandidateSectionProps) => {
   // No candidates to display
   if (!candidates || candidates.length === 0) {
     return null;
@@ -58,21 +59,27 @@ export const CandidateSection = ({ candidates, title = "Candidates" }: Candidate
   
   return (
     <Card className="animate-fade-up mb-8">
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-2xl">{title}</CardTitle>
+        <p className="text-muted-foreground text-sm mt-1">
+          Based on your priorities, we've analyzed these candidates' positions and their alignment with your concerns.
+        </p>
       </CardHeader>
-      <CardContent className="space-y-8">
+      <CardContent className="space-y-10 pt-3">
         {groupedCandidates.map(({ office, candidates }) => (
-          <div key={office} className="space-y-4">
-            <h3 className="text-xl font-semibold">{office}</h3>
+          <div key={office} className="space-y-6">
+            <h3 className="text-xl font-semibold border-b pb-2">{office}</h3>
             
             {/* Special rendering for presidential candidates with platform highlights */}
             {office.toLowerCase().includes('president') && candidates.length > 0 && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 {candidates.map(candidate => (
-                  <Card key={candidate.name} className="bg-white/50 border">
+                  <Card key={candidate.name} className="border-muted/60 overflow-hidden">
+                    <div className={`h-2 w-full ${candidate.party?.toLowerCase().includes('republican') ? 'bg-red-500' : 
+                                             candidate.party?.toLowerCase().includes('democrat') ? 'bg-blue-500' : 
+                                             'bg-purple-500'}`}></div>
                     <CardContent className="pt-6">
-                      <h4 className="text-lg font-medium mb-2">{candidate.name}</h4>
+                      <h4 className="text-lg font-medium mb-1">{candidate.name}</h4>
                       <span className="text-sm text-muted-foreground block mb-3">{candidate.party}</span>
                       
                       <div className="mb-4">
@@ -90,6 +97,19 @@ export const CandidateSection = ({ candidates, title = "Candidates" }: Candidate
                       {candidate.alignment && (
                         <div>
                           <h5 className="text-sm font-medium mb-1">Alignment with Your Priorities</h5>
+                          <div className="mb-2">
+                            <Badge 
+                              variant={
+                                candidate.alignment.type === 'aligned' ? 'default' : 
+                                candidate.alignment.type === 'opposing' ? 'destructive' : 
+                                'outline'
+                              }
+                            >
+                              {candidate.alignment.type === 'aligned' ? 'Strong Match' :
+                               candidate.alignment.type === 'opposing' ? 'Weak Match' :
+                               'Partial Match'}
+                            </Badge>
+                          </div>
                           <div className="text-sm">
                             {candidate.alignment.supportedPriorities.length > 0 && (
                               <p className="mb-1"><span className="font-medium">Supports:</span> {candidate.alignment.supportedPriorities.join(', ')}</p>
@@ -106,10 +126,10 @@ export const CandidateSection = ({ candidates, title = "Candidates" }: Candidate
               </div>
             )}
             
-            {/* Comparison table for all candidates, including presidential */}
+            {/* Comparison table for all candidates */}
             <CandidateComparisonTable 
               candidates={candidates}
-              title={`Compare: ${office}`}
+              title={`Compare Candidates: ${office}`}
             />
           </div>
         ))}

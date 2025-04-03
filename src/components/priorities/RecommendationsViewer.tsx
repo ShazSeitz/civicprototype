@@ -25,7 +25,7 @@ export const RecommendationsViewer = ({ recommendations, show }: Recommendations
   if (!show) return null;
   
   return (
-    <div ref={recommendationsRef}>
+    <div ref={recommendationsRef} className="space-y-8">
       {recommendations.candidates && recommendations.candidates.length > 0 && (
         <CandidateSection candidates={recommendations.candidates} />
       )}
