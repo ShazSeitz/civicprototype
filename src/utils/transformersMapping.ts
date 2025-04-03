@@ -4,6 +4,8 @@
 // We're removing the Transformers.js dependencies due to loading issues
 // and implementing a more reliable rule-based approach
 
+import issueTerminology from '@/config/issueTerminology.json';
+
 // Keep track of model initialization status
 let isModelInitialized = false;
 
@@ -26,10 +28,50 @@ export const mapUserPriority = async (userPriority) => {
     return [];
   }
   
-  // Rule-based approach
+  // Normalize the user input
   const normalizedInput = userPriority.toLowerCase();
   
-  // Basic keyword mapping
+  // Check exact matches in issueTerminology
+  const matches = [];
+  
+  // First, look for direct matches in plainLanguage arrays
+  for (const [termKey, termData] of Object.entries(issueTerminology)) {
+    // Skip 'fallback' and 'issues' entries
+    if (termKey === 'fallback' || termKey === 'issues') continue;
+    
+    const termInfo = termData as any;
+    
+    // Check for direct matches in plainLanguage array
+    if (termInfo.plainLanguage && Array.isArray(termInfo.plainLanguage)) {
+      for (const phrase of termInfo.plainLanguage) {
+        if (normalizedInput.includes(phrase.toLowerCase())) {
+          matches.push(termInfo.standardTerm);
+          break;
+        }
+      }
+    }
+    
+    // Check for inclusion words if defined
+    if (termInfo.inclusionWords && Array.isArray(termInfo.inclusionWords)) {
+      let allWordsIncluded = true;
+      for (const word of termInfo.inclusionWords) {
+        if (!normalizedInput.includes(word.toLowerCase())) {
+          allWordsIncluded = false;
+          break;
+        }
+      }
+      if (allWordsIncluded && !matches.includes(termInfo.standardTerm)) {
+        matches.push(termInfo.standardTerm);
+      }
+    }
+  }
+  
+  // If we found matches, return them
+  if (matches.length > 0) {
+    return matches.slice(0, 3); // Return up to 3 matches
+  }
+  
+  // Fallback to keyword mapping if no direct matches
   const keywordMap = {
     'veteran': ['Veterans Affairs', 'Veterans Benefits'],
     'military': ['Veterans Affairs', 'Defense Policy'],
@@ -60,24 +102,32 @@ export const mapUserPriority = async (userPriority) => {
     'election': ['Election Integrity', 'Voting Rights', 'Electoral Reform'],
     'vote': ['Voting Rights', 'Election Security', 'Democratic Reform'],
     'corruption': ['Government Ethics', 'Anti-Corruption', 'Transparency'],
-    'term limit': ['Term Limits', 'Political Reform', 'Government Accountability']
+    'term limit': ['Term Limits', 'Political Reform', 'Government Accountability'],
+    'transportation': ['Public Transportation', 'Infrastructure Development', 'Transit Policy'],
+    'jan 6th': ['Law Enforcement', 'Criminal Justice', 'Democratic Institutions'],
+    'rioters': ['Law Enforcement', 'Criminal Justice', 'Rule of Law'],
+    'ai': ['Technology Policy', 'AI Regulation', 'Innovation'],
+    'artificial intelligence': ['Technology Policy', 'AI Regulation', 'Innovation'],
+    'hoax': ['Climate Skepticism', 'Environmental Policy'],
+    'disgraceful': ['Merit-Based Hiring', 'Opposition to Race and Gender-Based Hiring Policies'],
+    'income tax': ['Tax Policy', 'Income Tax Reform', 'Fiscal Policy']
   };
   
   // Find matching keywords
-  const matches = [];
+  const keywordMatches = [];
   for (const [keyword, mappedTerms] of Object.entries(keywordMap)) {
     if (normalizedInput.includes(keyword)) {
       mappedTerms.forEach(term => {
-        if (!matches.includes(term)) {
-          matches.push(term);
+        if (!keywordMatches.includes(term)) {
+          keywordMatches.push(term);
         }
       });
     }
   }
   
-  // If we found matches, return them
-  if (matches.length > 0) {
-    return matches.slice(0, 3); // Return up to 3 matches
+  // If we found keyword matches, return them
+  if (keywordMatches.length > 0) {
+    return keywordMatches.slice(0, 3); // Return up to 3 matches
   }
   
   // Default if no matches
@@ -94,72 +144,19 @@ export const classifyPoliticalStatement = async (statement) => {
   await initializeModel();
   
   try {
-    // Use rule-based approach directly
-    const normalizedInput = statement.toLowerCase();
+    // Map the statement to policy terms
+    const mappedTerms = await mapUserPriority(statement);
     
-    // Map for common political themes
-    const politicalThemes = {
-      'tax': ['Tax Policy', 'Fiscal Policy'],
-      'spend': ['Government Spending', 'Fiscal Responsibility'],
-      'health': ['Healthcare', 'Public Health'],
-      'medic': ['Healthcare Policy', 'Medicare', 'Medicaid'],
-      'education': ['Education Policy', 'School Reform'],
-      'school': ['Education Policy', 'School Choice'],
-      'environment': ['Environmental Protection', 'Climate Policy'],
-      'climate': ['Climate Change', 'Environmental Policy'],
-      'job': ['Employment', 'Economic Policy'],
-      'economy': ['Economic Policy', 'Fiscal Policy'],
-      'immigr': ['Immigration Reform', 'Border Security'],
-      'border': ['Border Security', 'Immigration Policy'],
-      'gun': ['Gun Rights', 'Second Amendment', 'Gun Control'],
-      'right': ['Civil Rights', 'Constitutional Rights'],
-      'freedom': ['Civil Liberties', 'Personal Freedom'],
-      'security': ['National Security', 'Public Safety'],
-      'military': ['Defense Policy', 'Veterans Affairs'],
-      'foreign': ['Foreign Policy', 'International Relations'],
-      'abortion': ['Reproductive Rights', 'Healthcare Policy'],
-      'vote': ['Voting Rights', 'Election Security', 'Democratic Reform']
-    };
-    
-    // Find matching political themes
-    const terms = [];
+    // Create confidence scores
     const confidenceScores = {};
-    
-    for (const [keyword, relatedTerms] of Object.entries(politicalThemes)) {
-      if (normalizedInput.includes(keyword)) {
-        relatedTerms.forEach(term => {
-          if (!terms.includes(term)) {
-            terms.push(term);
-            // Assign higher confidence for more specific matches
-            const matchLength = keyword.length;
-            const baseConfidence = 0.7;
-            const lengthBonus = matchLength / 20; // Longer matches get higher confidence
-            const confidence = Math.min(0.95, baseConfidence + lengthBonus);
-            confidenceScores[term] = confidence;
-          }
-        });
-      }
-    }
-    
-    // If we found themes, return them (up to 3)
-    if (terms.length > 0) {
-      return { 
-        terms: terms.slice(0, 3), 
-        confidenceScores 
-      };
-    }
-    
-    // Fall back to more generic mapping as last resort
-    const policyTerms = await mapUserPriority(statement);
-    const fallbackScores = {};
-    
-    policyTerms.forEach(term => {
-      fallbackScores[term] = 0.7; // Default confidence score
+    mappedTerms.forEach((term, index) => {
+      // Assign decreasing confidence scores based on position
+      confidenceScores[term] = 0.9 - (index * 0.1);
     });
     
     return {
-      terms: policyTerms,
-      confidenceScores: fallbackScores
+      terms: mappedTerms,
+      confidenceScores
     };
   } catch (error) {
     console.error('Error classifying statement:', error);

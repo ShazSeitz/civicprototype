@@ -17,14 +17,21 @@ export const RecommendationsHeader = ({
   userClarifications
 }: RecommendationsHeaderProps) => {
   return (
-    <div className="flex justify-between items-center">
-      <h2 className="text-2xl font-bold text-left">Your Recommendations</h2>
-      <ShareRecommendations
-        recommendationsData={recommendationsData}
-        zipCode={zipCode}
-        userPriorities={userPriorities}
-        userClarifications={userClarifications}
-      />
+    <div className="space-y-2">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold text-left">Your Recommendations</h2>
+        <ShareRecommendations
+          recommendationsData={recommendationsData}
+          zipCode={zipCode}
+          userPriorities={userPriorities}
+          userClarifications={userClarifications}
+        />
+      </div>
+      
+      {/* Add subtitle based on PDF designs */}
+      <p className="text-muted-foreground text-sm">
+        Based on your priorities, here are the elected officials, candidates, and civic actions that most closely match your concerns.
+      </p>
     </div>
   );
 };
