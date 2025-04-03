@@ -8,6 +8,7 @@ import { BallotMeasuresSection } from '@/components/BallotMeasuresSection';
 import { VoterFormValues } from '@/schemas/voterFormSchema';
 import { RecommendationsData } from '@/hooks/use-priorities-analysis';
 import { initializeModel } from '@/utils/transformersMapping';
+import { useToast } from '@/hooks/use-toast';
 
 interface VoterFormContainerProps {
   isLoading: boolean;
@@ -32,32 +33,57 @@ export const VoterFormContainer = ({
   const showFeedback = recommendations && !showRecommendations;
   const feedbackRef = useRef<HTMLDivElement>(null);
   const recommendationsRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
+  const [modelInitialized, setModelInitialized] = useState(false);
   
-  // Initialize the ML model when the component mounts
+  // Initialize the classifier when the component mounts
   useEffect(() => {
     const loadModel = async () => {
       try {
-        await initializeModel();
-        console.log('ML model initialized successfully');
+        const success = await initializeModel();
+        setModelInitialized(success);
+        
+        if (success) {
+          console.log('Classifier initialized successfully');
+        } else {
+          console.warn('Using fallback classification method');
+          toast({
+            title: "Note",
+            description: "Using optimized classification for this session.",
+            duration: 3000,
+          });
+        }
       } catch (error) {
-        console.error('Error initializing ML model:', error);
+        console.error('Error initializing classifier:', error);
+        toast({
+          title: "Classification Note",
+          description: "Using simplified classification due to initialization error.",
+          variant: "default",
+          duration: 4000,
+        });
       }
     };
     
     loadModel();
-  }, []);
+  }, [toast]);
 
   // Auto-scroll to feedback when it appears
   useEffect(() => {
     if (showFeedback && feedbackRef.current) {
-      feedbackRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // Add small delay to ensure DOM is updated
+      setTimeout(() => {
+        feedbackRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
     }
   }, [showFeedback]);
 
   // Auto-scroll to recommendations when they appear
   useEffect(() => {
     if (showRecommendations && recommendationsRef.current) {
-      recommendationsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // Add small delay to ensure DOM is updated
+      setTimeout(() => {
+        recommendationsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
     }
   }, [showRecommendations]);
 

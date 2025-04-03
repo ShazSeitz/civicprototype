@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, CheckCircle, HelpCircle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 interface PrioritiesFeedbackProps {
   analysis: string;
@@ -24,12 +25,16 @@ export const PrioritiesFeedback = ({
   onContinue
 }: PrioritiesFeedbackProps) => {
   const [feedback, setFeedback] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (feedback.trim()) {
+      setIsSubmitting(true);
       onFeedbackSubmit(feedback);
       setFeedback('');
+      // Reset submitting state after a delay to show loading state
+      setTimeout(() => setIsSubmitting(false), 500);
     }
   };
 
@@ -43,23 +48,35 @@ export const PrioritiesFeedback = ({
   return (
     <Card className="mb-8 animate-fade-up">
       <CardHeader>
-        <CardTitle>Priorities Analysis</CardTitle>
+        <div className="flex items-center gap-2">
+          <CardTitle>Priorities Analysis</CardTitle>
+          <Badge variant="outline" className="ml-2">
+            <CheckCircle className="h-3 w-3 mr-1" />
+            AI Generated
+          </Badge>
+        </div>
         <CardDescription>
-          We've analyzed your priorities to provide the best recommendations. Please review and clarify if needed.
+          We've analyzed your priorities to provide personalized recommendations. Please review and clarify if needed.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-4">
-          <div className="text-sm leading-relaxed whitespace-pre-line">
+          <div className="text-sm leading-relaxed whitespace-pre-line text-left">
             {analysis}
           </div>
           
           <div className="mt-4">
-            <ul className="list-disc pl-5 space-y-1">
+            <h4 className="font-medium mb-2 text-left flex items-center gap-2">
+              <CheckCircle className="h-4 w-4 text-green-500" />
+              Identified Priority Terms
+            </h4>
+            <div className="flex flex-wrap gap-2">
               {mappedPriorities.map((priority, index) => (
-                <li key={index} className="text-sm">{formatPriorityTerm(priority)}</li>
+                <Badge key={index} variant="secondary" className="text-sm">
+                  {formatPriorityTerm(priority)}
+                </Badge>
               ))}
-            </ul>
+            </div>
           </div>
           
           {conflictingPriorities.length > 0 && (
@@ -79,15 +96,25 @@ export const PrioritiesFeedback = ({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <h4 className="font-medium mb-2">Did we get this right?</h4>
+            <h4 className="font-medium mb-2 text-left flex items-center gap-2">
+              <HelpCircle className="h-4 w-4 text-blue-500" />
+              Did we get this right?
+            </h4>
             <div className="flex gap-2">
               <Input
-                placeholder="Add clarification or correction..."
+                placeholder="Add clarification or additional context..."
                 value={feedback}
                 onChange={(e) => setFeedback(e.target.value)}
                 className="flex-1"
+                disabled={isSubmitting}
               />
-              <Button type="submit" variant="outline">Clarify</Button>
+              <Button 
+                type="submit" 
+                variant="outline"
+                disabled={!feedback.trim() || isSubmitting}
+              >
+                {isSubmitting ? "Sending..." : "Clarify"}
+              </Button>
             </div>
           </div>
           

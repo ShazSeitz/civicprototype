@@ -1,58 +1,32 @@
 // This file provides utility functions for mapping user priorities to policy terms
-// using the Hugging Face Transformers.js library
+// using a simplified rule-based approach
 
-import { pipeline, env } from '@huggingface/transformers';
+// We're removing the Transformers.js dependencies due to loading issues
+// and implementing a more reliable rule-based approach
 
 // Keep track of model initialization status
 let isModelInitialized = false;
-let classifier = null;
-let fallbackClassifier = null;
-
-// Configure the environment to use WASM
-env.useBrowserCache = true;
-env.allowLocalModels = false;
 
 export const initializeModel = async () => {
   if (isModelInitialized) return true;
   
   try {
-    console.info('Loading text classification model...');
-    
-    try {
-      // Initialize with appropriate options (removed backend property)
-      classifier = await pipeline('text-classification', 'distilbert-base-uncased-finetuned-sst-2-english');
-      isModelInitialized = true;
-      return true;
-    } catch (error) {
-      console.error('Error loading model:', error);
-      console.info('Falling back to zero-shot classification...');
-      
-      try {
-        // Initialize fallback model (removed backend property)
-        fallbackClassifier = await pipeline('zero-shot-classification', 'facebook/bart-large-mnli');
-        isModelInitialized = true;
-        return true;
-      } catch (fallbackError) {
-        console.error('Error loading fallback model:', fallbackError);
-        console.info('Using rule-based classifier due to model loading failures');
-        // We'll use rule-based classification as last resort
-        return false;
-      }
-    }
+    console.info('Initializing rule-based classifier...');
+    isModelInitialized = true;
+    return true;
   } catch (e) {
-    console.error('Failed to initialize any ML models:', e);
+    console.error('Failed to initialize classifier:', e);
     return false;
   }
 };
 
-// Map user priorities to formal policy terms using ML if available
-// or fallback to rule-based approach
+// Map user priorities to formal policy terms using rule-based approach
 export const mapUserPriority = async (userPriority) => {
   if (!userPriority || userPriority.trim() === '') {
     return [];
   }
   
-  // Rule-based approach as fallback
+  // Rule-based approach
   const normalizedInput = userPriority.toLowerCase();
   
   // Basic keyword mapping
@@ -110,74 +84,92 @@ export const mapUserPriority = async (userPriority) => {
   return ['Policy Reform', 'Government Accountability'];
 };
 
-// Add the missing classifyPoliticalStatement function
+// Add the classifyPoliticalStatement function with rule-based approach
 export const classifyPoliticalStatement = async (statement) => {
   if (!statement || statement.trim() === '') {
     return { terms: [], confidenceScores: {} };
   }
   
+  // Initialize the model to maintain API compatibility
   await initializeModel();
   
   try {
-    // If ML model is available, try to use it
-    if (classifier) {
-      const result = await classifier(statement);
-      const sentimentScore = result[0].score;
-      
-      // Use sentiment to identify political leaning
-      if (sentimentScore > 0.7) {
-        return {
-          terms: ['Positive Political Sentiment', 'Progressive Policy'],
-          confidenceScores: {
-            'Positive Political Sentiment': sentimentScore,
-            'Progressive Policy': sentimentScore * 0.8
+    // Use rule-based approach directly
+    const normalizedInput = statement.toLowerCase();
+    
+    // Map for common political themes
+    const politicalThemes = {
+      'tax': ['Tax Policy', 'Fiscal Policy'],
+      'spend': ['Government Spending', 'Fiscal Responsibility'],
+      'health': ['Healthcare', 'Public Health'],
+      'medic': ['Healthcare Policy', 'Medicare', 'Medicaid'],
+      'education': ['Education Policy', 'School Reform'],
+      'school': ['Education Policy', 'School Choice'],
+      'environment': ['Environmental Protection', 'Climate Policy'],
+      'climate': ['Climate Change', 'Environmental Policy'],
+      'job': ['Employment', 'Economic Policy'],
+      'economy': ['Economic Policy', 'Fiscal Policy'],
+      'immigr': ['Immigration Reform', 'Border Security'],
+      'border': ['Border Security', 'Immigration Policy'],
+      'gun': ['Gun Rights', 'Second Amendment', 'Gun Control'],
+      'right': ['Civil Rights', 'Constitutional Rights'],
+      'freedom': ['Civil Liberties', 'Personal Freedom'],
+      'security': ['National Security', 'Public Safety'],
+      'military': ['Defense Policy', 'Veterans Affairs'],
+      'foreign': ['Foreign Policy', 'International Relations'],
+      'abortion': ['Reproductive Rights', 'Healthcare Policy'],
+      'vote': ['Voting Rights', 'Election Security', 'Democratic Reform']
+    };
+    
+    // Find matching political themes
+    const terms = [];
+    const confidenceScores = {};
+    
+    for (const [keyword, relatedTerms] of Object.entries(politicalThemes)) {
+      if (normalizedInput.includes(keyword)) {
+        relatedTerms.forEach(term => {
+          if (!terms.includes(term)) {
+            terms.push(term);
+            // Assign higher confidence for more specific matches
+            const matchLength = keyword.length;
+            const baseConfidence = 0.7;
+            const lengthBonus = matchLength / 20; // Longer matches get higher confidence
+            const confidence = Math.min(0.95, baseConfidence + lengthBonus);
+            confidenceScores[term] = confidence;
           }
-        };
-      } else if (sentimentScore < 0.3) {
-        return {
-          terms: ['Negative Political Sentiment', 'Conservative Policy'],
-          confidenceScores: {
-            'Negative Political Sentiment': 1 - sentimentScore,
-            'Conservative Policy': (1 - sentimentScore) * 0.8
-          }
-        };
+        });
       }
     }
     
-    // If zero-shot classifier is available
-    if (fallbackClassifier) {
-      const candidateLabels = [
-        'Tax Policy', 'Healthcare Policy', 'Education Policy', 'Environmental Policy',
-        'National Security', 'Immigration Policy', 'Economic Policy', 'Foreign Policy',
-        'Social Policy', 'Civil Rights', 'Gun Rights', 'Veterans Affairs'
-      ];
-      
-      const result = await fallbackClassifier(statement, candidateLabels);
-      
-      // Return the top 3 classifications
-      const terms = result.labels.slice(0, 3);
-      const confidenceScores = {};
-      
-      terms.forEach((term, index) => {
-        confidenceScores[term] = result.scores[index];
-      });
-      
-      return { terms, confidenceScores };
+    // If we found themes, return them (up to 3)
+    if (terms.length > 0) {
+      return { 
+        terms: terms.slice(0, 3), 
+        confidenceScores 
+      };
     }
+    
+    // Fall back to more generic mapping as last resort
+    const policyTerms = await mapUserPriority(statement);
+    const fallbackScores = {};
+    
+    policyTerms.forEach(term => {
+      fallbackScores[term] = 0.7; // Default confidence score
+    });
+    
+    return {
+      terms: policyTerms,
+      confidenceScores: fallbackScores
+    };
   } catch (error) {
-    console.error('Error classifying statement with ML:', error);
+    console.error('Error classifying statement:', error);
+    // Provide basic default response on error
+    return {
+      terms: ['Policy Reform', 'Government Accountability'],
+      confidenceScores: {
+        'Policy Reform': 0.6,
+        'Government Accountability': 0.6
+      }
+    };
   }
-  
-  // Fall back to keyword-based approach
-  const policyTerms = await mapUserPriority(statement);
-  const confidenceScores = {};
-  
-  policyTerms.forEach(term => {
-    confidenceScores[term] = 0.7; // Default confidence score
-  });
-  
-  return {
-    terms: policyTerms,
-    confidenceScores
-  };
 };
