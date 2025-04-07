@@ -1,36 +1,44 @@
-
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle, XCircle } from "lucide-react";
+import { Mode } from "@/contexts/ModeContext";
 
 interface SupportGroup {
   name: string;
-  type: string;
+  description?: string;
 }
 
 interface BallotMeasureProps {
   title: string;
   description: string;
-  recommendation: "support" | "oppose" | "neutral";
-  matchedPriorities: string[];
+  recommendation: {
+    stance: 'support' | 'oppose' | 'neutral';
+    reason: string;
+  };
+  priorityMatches: Array<{
+    userPriority: string;
+    mappedTerms: string[];
+  }>;
   supportingGroups: SupportGroup[];
   opposingGroups: SupportGroup[];
+  mode: Mode;
 }
 
 export const BallotMeasureCard = ({
   title,
   description,
   recommendation,
-  matchedPriorities,
+  priorityMatches,
   supportingGroups,
-  opposingGroups
+  opposingGroups,
+  mode
 }: BallotMeasureProps) => {
   return (
     <Card className="mb-6 border-muted/60 overflow-hidden">
       {/* Recommendation indicator */}
       <div className={`h-2 w-full ${
-        recommendation === "support" ? "bg-green-500" : 
-        recommendation === "oppose" ? "bg-red-500" : 
+        recommendation.stance === "support" ? "bg-green-500" : 
+        recommendation.stance === "oppose" ? "bg-red-500" : 
         "bg-yellow-500"
       }`}></div>
       
@@ -42,25 +50,35 @@ export const BallotMeasureCard = ({
           </div>
           <Badge 
             variant={
-              recommendation === "support" ? "default" : 
-              recommendation === "oppose" ? "destructive" : 
+              recommendation.stance === "support" ? "default" : 
+              recommendation.stance === "oppose" ? "destructive" : 
               "outline"
             }
             className="ml-2 mt-1"
           >
-            {recommendation === "support" ? "Recommended" : 
-             recommendation === "oppose" ? "Not Recommended" : 
+            {recommendation.stance === "support" ? "Recommended" : 
+             recommendation.stance === "oppose" ? "Not Recommended" : 
              "No Recommendation"}
           </Badge>
         </div>
+        <div className="mt-2 text-sm text-muted-foreground">
+          {recommendation.reason}
+        </div>
       </CardHeader>
       <CardContent className="space-y-4 pt-0">
-        {matchedPriorities.length > 0 && (
+        {priorityMatches.length > 0 && (
           <div>
             <h4 className="text-sm font-medium mb-1">Related to your priorities:</h4>
-            <div className="flex flex-wrap gap-1.5">
-              {matchedPriorities.map((priority, index) => (
-                <Badge key={index} variant="outline" className="bg-muted/30">{priority}</Badge>
+            <div className="space-y-2">
+              {priorityMatches.map((match, index) => (
+                <div key={index} className="flex items-start gap-2">
+                  <Badge variant="outline" className="text-xs">
+                    {match.userPriority}
+                  </Badge>
+                  <span className="text-xs text-muted-foreground">
+                    {match.mappedTerms.join(', ')}
+                  </span>
+                </div>
               ))}
             </div>
           </div>
@@ -77,7 +95,9 @@ export const BallotMeasureCard = ({
                 {supportingGroups.map((group, index) => (
                   <li key={index} className="text-sm">
                     <span className="font-medium">{group.name}</span>
-                    <span className="text-xs text-muted-foreground ml-1.5">({group.type})</span>
+                    {group.description && (
+                      <p className="text-xs text-muted-foreground mt-0.5">{group.description}</p>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -96,7 +116,9 @@ export const BallotMeasureCard = ({
                 {opposingGroups.map((group, index) => (
                   <li key={index} className="text-sm">
                     <span className="font-medium">{group.name}</span>
-                    <span className="text-xs text-muted-foreground ml-1.5">({group.type})</span>
+                    {group.description && (
+                      <p className="text-xs text-muted-foreground mt-0.5">{group.description}</p>
+                    )}
                   </li>
                 ))}
               </ul>

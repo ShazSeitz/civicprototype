@@ -1,61 +1,76 @@
-
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { PriorityMapping } from '@/hooks/priorities-analysis/types';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
 interface AnalysisCardProps {
-  analysis: string;
-  priorityMappings: PriorityMapping[] | undefined;
+  analysis: {
+    summary: string;
+    priorities: string[];
+    conflicts: string[];
+  };
+  priorityMappings: {
+    userPriority: string;
+    mappedTerms: string[];
+  }[];
 }
 
-export const AnalysisCard = ({ analysis, priorityMappings }: AnalysisCardProps) => {
-  // Function to render paragraphed analysis
-  const renderAnalysis = (text: string) => {
-    // Split by double newlines for paragraphs
-    const paragraphs = text?.split('\n\n') || [];
-    
-    if (paragraphs.length > 1) {
-      return paragraphs.map((paragraph, index) => (
-        <p key={index} className="mb-4 text-left">{paragraph}</p>
-      ));
-    }
-    
-    // If no double newlines, render as a single paragraph
-    return <p className="text-left">{text}</p>;
-  };
-
+export function AnalysisCard({ analysis, priorityMappings }: AnalysisCardProps) {
   return (
-    <Card className="animate-fade-up">
-      <CardHeader>
-        <CardTitle className="text-left">Analysis of Your Priorities</CardTitle>
-        <CardDescription className="text-left">
-          We have mapped your priorities to policy terms to provide the best recommendations.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        {/* Display priorities mapping in a table format */}
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-1/2 font-bold">Your Priorities</TableHead>
-              <TableHead className="w-1/2 font-bold">Policy Terms</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {priorityMappings && priorityMappings.map((mapping, index) => (
-              <TableRow key={index} className="border">
-                <TableCell className="text-left align-top font-medium">{mapping.userConcern}</TableCell>
-                <TableCell className="text-left">{mapping.mappedTerms.join(', ')}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-        
-        {/* Display the prose analysis after the table */}
-        <div className="prose prose-sm text-left mt-6">
-          {renderAnalysis(analysis)}
+    <Card>
+      <CardContent className="pt-6 space-y-4">
+        <div>
+          <h3 className="font-medium mb-2">Priority Analysis</h3>
+          <p className="text-sm text-gray-600">{analysis.summary}</p>
         </div>
+
+        <div>
+          <h4 className="text-sm font-medium mb-2">Your Priorities</h4>
+          <div className="flex flex-wrap gap-2">
+            {analysis.priorities.map((priority, index) => (
+              <Badge key={index} variant="secondary">
+                {priority}
+              </Badge>
+            ))}
+          </div>
+        </div>
+
+        {priorityMappings.length > 0 && (
+          <div>
+            <h4 className="text-sm font-medium mb-2">Mapped Terms</h4>
+            <div className="space-y-2">
+              {priorityMappings.map((mapping, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <Badge variant="outline">
+                    {mapping.userPriority}
+                  </Badge>
+                  {mapping.mappedTerms.length > 0 && (
+                    <>
+                      <span className="text-gray-400">→</span>
+                      <div className="flex flex-wrap gap-1">
+                        {mapping.mappedTerms.map((term, i) => (
+                          <Badge key={i} variant="secondary" className="text-xs">
+                            {term}
+                          </Badge>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {analysis.conflicts.length > 0 && (
+          <div>
+            <h4 className="text-sm font-medium mb-2">Potential Conflicts</h4>
+            <ul className="list-disc list-inside text-sm text-gray-600">
+              {analysis.conflicts.map((conflict, index) => (
+                <li key={index}>{conflict}</li>
+              ))}
+            </ul>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
-};
+}

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,23 +5,29 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle, CheckCircle, HelpCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Mode } from "@/contexts/ModeContext";
+import { PriorityMapping } from "@/types/api";
 
 interface PrioritiesFeedbackProps {
   analysis: string;
-  mappedPriorities: string[];
-  conflictingPriorities?: string[];
-  nuancedMappings?: Record<string, Record<string, any>>;
+  mappedPriorities: PriorityMapping[];
+  conflictingPriorities: Array<{
+    priority1: string;
+    priority2: string;
+    reason: string;
+  }>;
   onFeedbackSubmit: (feedback: string) => void;
   onContinue: () => void;
+  mode: Mode;
 }
 
 export const PrioritiesFeedback = ({
   analysis,
   mappedPriorities,
-  conflictingPriorities = [],
-  nuancedMappings = {},
+  conflictingPriorities,
   onFeedbackSubmit,
-  onContinue
+  onContinue,
+  mode
 }: PrioritiesFeedbackProps) => {
   const [feedback, setFeedback] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -51,8 +56,7 @@ export const PrioritiesFeedback = ({
         <div className="flex items-center gap-2">
           <CardTitle>Priorities Analysis</CardTitle>
           <Badge variant="outline" className="ml-2">
-            <CheckCircle className="h-3 w-3 mr-1" />
-            AI Generated
+            {mode === 'demo' ? 'DEMO' : 'LIVE'} Analysis
           </Badge>
         </div>
         <CardDescription>
@@ -73,7 +77,12 @@ export const PrioritiesFeedback = ({
             <div className="flex flex-wrap gap-2">
               {mappedPriorities.map((priority, index) => (
                 <Badge key={index} variant="secondary" className="text-sm">
-                  {formatPriorityTerm(priority)}
+                  {formatPriorityTerm(priority.userPriority)}
+                  {priority.mappedTerms.length > 0 && (
+                    <span className="text-gray-500 ml-1">
+                      → {priority.mappedTerms.join(', ')}
+                    </span>
+                  )}
                 </Badge>
               ))}
             </div>
@@ -86,7 +95,9 @@ export const PrioritiesFeedback = ({
                 <h4 className="font-medium mb-1 text-left">Potentially Conflicting Priorities</h4>
                 <ul className="list-disc pl-5 space-y-1 text-left">
                   {conflictingPriorities.map((conflict, index) => (
-                    <li key={index} className="text-sm text-left">{conflict}</li>
+                    <li key={index} className="text-sm text-left">
+                      {conflict.priority1} conflicts with {conflict.priority2}: {conflict.reason}
+                    </li>
                   ))}
                 </ul>
               </AlertDescription>
@@ -100,31 +111,25 @@ export const PrioritiesFeedback = ({
               <HelpCircle className="h-4 w-4 text-blue-500" />
               Did we get this right?
             </h4>
-            <div className="flex gap-2">
-              <Input
-                placeholder="Add clarification or additional context..."
-                value={feedback}
-                onChange={(e) => setFeedback(e.target.value)}
-                className="flex-1"
-                disabled={isSubmitting}
-              />
-              <Button 
-                type="submit" 
-                variant="outline"
-                disabled={!feedback.trim() || isSubmitting}
-              >
-                {isSubmitting ? "Sending..." : "Clarify"}
-              </Button>
-            </div>
+            <Input
+              placeholder="Share your feedback (optional)"
+              value={feedback}
+              onChange={(e) => setFeedback(e.target.value)}
+              disabled={isSubmitting}
+            />
           </div>
-          
-          <Button 
-            onClick={onContinue} 
-            type="button" 
-            className="w-full"
-          >
-            Yes, show me recommendations
-          </Button>
+          <div className="flex justify-between gap-4">
+            <Button 
+              type="submit" 
+              variant="secondary"
+              disabled={!feedback.trim() || isSubmitting}
+            >
+              {isSubmitting ? "Submitting..." : "Submit Feedback"}
+            </Button>
+            <Button onClick={onContinue}>
+              Continue to Recommendations
+            </Button>
+          </div>
         </form>
       </CardContent>
     </Card>

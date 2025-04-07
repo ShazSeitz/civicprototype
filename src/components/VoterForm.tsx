@@ -1,192 +1,93 @@
-
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Card, CardContent } from "@/components/ui/card";
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-} from '@dnd-kit/core';
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
-import { SortablePriority } from "./SortablePriority";
-import { TestPersonaControls } from "./TestPersonaControls";
-import { formSchema, VoterFormValues } from "@/schemas/voterFormSchema";
-import { useEffect } from "react";
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { VoterFormSchema, VoterFormValues } from '@/schemas/voterFormSchema';
+import { useMode } from '@/contexts/ModeContext';
+import { GripVertical } from 'lucide-react';
 
 interface VoterFormProps {
   onSubmit: (values: VoterFormValues) => void;
   isLoading: boolean;
-  initialValues?: VoterFormValues | null;
+  initialValues?: Partial<VoterFormValues>;
 }
 
-export const VoterForm = ({ onSubmit, isLoading, initialValues }: VoterFormProps) => {
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
-
+export function VoterForm({ onSubmit, isLoading, initialValues }: VoterFormProps) {
+  const { mode } = useMode();
   const form = useForm<VoterFormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: initialValues || {
-      mode: "current",
-      zipCode: "",
-      priorities: ["", "", "", "", "", ""],
-    },
-  });
-
-  // Update form values when initialValues changes
-  useEffect(() => {
-    if (initialValues) {
-      form.reset(initialValues);
-    }
-  }, [initialValues, form]);
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    
-    if (over && active.id !== over.id) {
-      const oldIndex = parseInt(active.id.toString());
-      const newIndex = parseInt(over.id.toString());
-      
-      const currentPriorities = form.getValues("priorities");
-      const newPriorities = arrayMove(currentPriorities, oldIndex, newIndex);
-      form.setValue("priorities", newPriorities);
-    }
-  };
-
-  const loadPersonaData = (personaData: { zipCode: string; priorities: string[] }) => {
-    form.reset({
-      mode: 'demo',
-      zipCode: personaData.zipCode,
-      priorities: personaData.priorities,
-    });
-  };
-
-  // Handle form submission with validation
-  const handleSubmit = form.handleSubmit(onSubmit, (errors) => {
-    console.log("Form validation errors:", errors);
-    if (errors.priorities) {
-      // Scroll to the priorities section
-      document.querySelector('.priorities-section')?.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start'
-      });
+    resolver: zodResolver(VoterFormSchema),
+    defaultValues: {
+      zipCode: initialValues?.zipCode || '',
+      priorities: initialValues?.priorities || Array(6).fill('')
     }
   });
 
   return (
-    <Card className="mb-8 animate-fade-up">
-      <CardContent className="pt-6">
-        {/* Test Persona Controls */}
-        <TestPersonaControls onSelectPersona={loadPersonaData} />
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        {/* ZIP Code Field */}
+        <FormField
+          control={form.control}
+          name="zipCode"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>ZIP Code</FormLabel>
+              <FormControl>
+                <Input placeholder="00000" {...field} maxLength={5} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-        <Form {...form}>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="mode"
-              render={({ field }) => (
-                <FormItem className="space-y-1 text-left">
-                  <FormLabel>Select Mode</FormLabel>
-                  <FormControl>
-                    <RadioGroup
-                      onValueChange={field.onChange}
-                      value={field.value}
-                      className="flex gap-4"
+        {/* Priorities Section */}
+        <div className="space-y-4">
+          <div>
+            <h3 className="font-medium mb-2">Your Priorities</h3>
+            <p className="text-sm text-gray-500 mb-4">
+              Enter your top 6 concerns and values. You can drag and drop to reorder them.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            {form.watch('priorities').map((_, index) => (
+              <FormField
+                key={index}
+                control={form.control}
+                name={`priorities.${index}`}
+                render={({ field }) => (
+                  <FormItem className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="cursor-move"
                     >
-                      <FormItem className="flex items-center space-x-2 space-y-0">
-                        <FormControl>
-                          <RadioGroupItem value="current" />
-                        </FormControl>
-                        <FormLabel className="font-normal">
-                          Current Date
-                        </FormLabel>
-                      </FormItem>
-                      <FormItem className="flex items-center space-x-2 space-y-0">
-                        <FormControl>
-                          <RadioGroupItem value="demo" />
-                        </FormControl>
-                        <FormLabel className="font-normal">
-                          DEMO: November 2024 Election
-                        </FormLabel>
-                      </FormItem>
-                    </RadioGroup>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                      <GripVertical className="h-4 w-4 text-gray-400" />
+                    </Button>
+                    <FormControl>
+                      <Input 
+                        placeholder={`Priority ${index + 1}`}
+                        {...field}
+                        className="flex-1"
+                        maxLength={250}
+                      />
+                    </FormControl>
+                    <div className="w-12 text-xs text-gray-400 text-right">
+                      250
+                    </div>
+                  </FormItem>
+                )}
+              />
+            ))}
+          </div>
+        </div>
 
-            <FormField
-              control={form.control}
-              name="zipCode"
-              render={({ field }) => (
-                <FormItem className="text-left">
-                  <FormLabel>ZIP Code</FormLabel>
-                  <FormControl>
-                    <Input placeholder="00000" {...field} className="w-[80px]" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="space-y-3 priorities-section">
-              <FormLabel>Your Priorities</FormLabel>
-              <p className="text-sm text-muted-foreground">Enter your top 6 concerns and values. You can drag and drop to reorder them.</p>
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleDragEnd}
-              >
-                <SortableContext
-                  items={[0, 1, 2, 3, 4, 5].map(String)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  {[0, 1, 2, 3, 4, 5].map((index) => (
-                    <FormField
-                      key={index}
-                      control={form.control}
-                      name={`priorities.${index}`}
-                      render={({ field }) => (
-                        <SortablePriority
-                          key={index}
-                          id={index.toString()}
-                          index={index}
-                          field={field}
-                          characterCount={field.value.length}
-                          maxLength={250}
-                        />
-                      )}
-                    />
-                  ))}
-                </SortableContext>
-              </DndContext>
-            </div>
-
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Analyzing..." : "SUBMIT"}
-            </Button>
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
+        <Button type="submit" disabled={isLoading}>
+          {isLoading ? 'Analyzing...' : 'Get Recommendations'}
+        </Button>
+      </form>
+    </Form>
   );
-};
-
-export default VoterForm;
+}

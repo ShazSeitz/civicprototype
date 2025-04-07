@@ -1,7 +1,5 @@
-
 import { Button } from "@/components/ui/button";
-import { testPersonas } from "@/data/testPersonas";
-import { generatePersona3 } from "@/utils/personaGenerator";
+import { personas, getRandomPriorities, getRandomZipCode } from "@/data/testPersonas";
 import { VoterFormValues } from "@/schemas/voterFormSchema";
 
 interface TestPersonaControlsProps {
@@ -9,13 +7,12 @@ interface TestPersonaControlsProps {
 }
 
 export const TestPersonaControls = ({ onSelectPersona }: TestPersonaControlsProps) => {
-  const loadPersona = (persona: 'persona1' | 'persona2' | 'persona3') => {
-    // For persona3, we generate random data on each call
-    const selectedPersona = persona === 'persona3' 
-      ? generatePersona3() 
-      : testPersonas[persona];
+  const loadPersona = (personaIndex: number) => {
+    const persona = personaIndex === -1 
+      ? { zipCode: getRandomZipCode(), priorities: getRandomPriorities() }
+      : personas[personaIndex];
       
-    onSelectPersona(selectedPersona);
+    onSelectPersona(persona);
   };
 
   return (
@@ -26,7 +23,7 @@ export const TestPersonaControls = ({ onSelectPersona }: TestPersonaControlsProp
       <Button
         type="button"
         variant="outline"
-        onClick={() => loadPersona('persona1')}
+        onClick={() => loadPersona(0)}
         className="h-8 px-3"
       >
         Persona 1
@@ -34,7 +31,7 @@ export const TestPersonaControls = ({ onSelectPersona }: TestPersonaControlsProp
       <Button
         type="button"
         variant="outline"
-        onClick={() => loadPersona('persona2')}
+        onClick={() => loadPersona(1)}
         className="h-8 px-3"
       >
         Persona 2
@@ -42,7 +39,7 @@ export const TestPersonaControls = ({ onSelectPersona }: TestPersonaControlsProp
       <Button
         type="button"
         variant="outline"
-        onClick={() => loadPersona('persona3')}
+        onClick={() => loadPersona(-1)}
         className="h-8 px-3"
       >
         Random Persona

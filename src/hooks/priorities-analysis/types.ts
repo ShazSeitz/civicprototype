@@ -1,24 +1,11 @@
-
 import { VoterFormValues } from '@/schemas/voterFormSchema';
-import { ApiStatus } from '@/components/ApiStatusChecker';
+import { ApiStatus, RecommendationsData } from '@/types/api';
+
+export type { RecommendationsData };
 
 export interface PriorityMapping {
-  userConcern: string;
+  userPriority: string;
   mappedTerms: string[];
-}
-
-export interface RecommendationsData {
-  mode: string;
-  analysis: string;
-  mappedPriorities: string[];
-  conflictingPriorities?: string[];
-  priorityMappings?: PriorityMapping[];
-  nuancedMappings?: Record<string, Record<string, any>>;
-  candidates: any[];
-  ballotMeasures: any[];
-  draftEmails: any[];
-  interestGroups: any[];
-  petitions: any[];
 }
 
 export interface PrioritiesAnalysisState {

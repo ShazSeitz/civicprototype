@@ -1,7 +1,8 @@
+import { VoterFormValues } from "@/schemas/voterFormSchema";
 
 // Test personas data for demonstrations
-export const testPersonas = {
-  persona1: {
+export const personas = [
+  {
     zipCode: "94925",
     priorities: [
       "Funding for headstart and after school programs (important for single mom)",
@@ -12,7 +13,7 @@ export const testPersonas = {
       "Protection of national parks and wildlife sanctuaries"
     ]
   },
-  persona2: {
+  {
     zipCode: "15301",
     priorities: [
       "I am tired of paying so much income tax! I work hard for my money and want some to pass on to my children.",
@@ -23,6 +24,12 @@ export const testPersonas = {
       "I'm afraid AI could lead to scary Sci-fy like stuff, but it's too hard for me to understand."
     ]
   }
+];
+
+// Legacy format support
+export const testPersonas = {
+  persona1: personas[0],
+  persona2: personas[1]
 };
 
 // Pool of potential priorities for random generation with everyday language
@@ -53,3 +60,17 @@ export const priorityPool = [
   "Women should be able to make their own healthcare decisions without government interference",
   "My religious values are under attack in today's culture"
 ];
+
+// Helper functions for random generation
+export const getRandomZipCode = () => {
+  const zipDigits = [];
+  for (let i = 0; i < 5; i++) {
+    zipDigits.push(Math.floor(Math.random() * 10));
+  }
+  return zipDigits.join('');
+};
+
+export const getRandomPriorities = () => {
+  const shuffled = [...priorityPool].sort(() => 0.5 - Math.random());
+  return shuffled.slice(0, 6);
+};

@@ -1,12 +1,12 @@
-
 import { ShareRecommendations } from '@/components/ShareRecommendations';
-import { RecommendationsData } from '@/hooks/priorities-analysis/types';
+import { RecommendationsData } from '@/types/api';
 import { VoterFormValues } from '@/schemas/voterFormSchema';
+import { useMode } from '@/contexts/ModeContext';
 
-interface RecommendationsHeaderProps {
+export interface RecommendationsHeaderProps {
   recommendationsData: RecommendationsData;
-  zipCode?: string;
-  userPriorities?: string[];
+  zipCode: string;
+  userPriorities: string[];
   userClarifications: string[];
 }
 
@@ -14,8 +14,11 @@ export const RecommendationsHeader = ({
   recommendationsData,
   zipCode,
   userPriorities,
-  userClarifications
+  userClarifications,
 }: RecommendationsHeaderProps) => {
+  const { mode } = useMode();
+  const isDemo = mode === 'demo';
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -29,9 +32,16 @@ export const RecommendationsHeader = ({
       </div>
       
       <div className="text-left space-y-2">
-        <p className="text-muted-foreground text-base">
-          Based on your priorities, here are the elected officials, candidates, and civic actions that most closely match your concerns.
-        </p>
+        {isDemo ? (
+          <p className="text-muted-foreground text-base">
+            Here are your personalized recommendations for the November 2024 election
+            in ZIP code {zipCode}.
+          </p>
+        ) : (
+          <p className="text-muted-foreground text-base">
+            Based on your priorities, here are the elected officials, candidates, and civic actions that most closely match your concerns.
+          </p>
+        )}
         <p className="text-sm text-muted-foreground">
           For ZIP Code: <span className="font-medium">{zipCode}</span> • Generated on {new Date().toLocaleDateString()}
         </p>

@@ -1,45 +1,56 @@
-
-import { useRef, useEffect } from 'react';
-import { PrioritiesFeedback } from '@/components/PrioritiesFeedback';
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { RecommendationsData } from '@/hooks/priorities-analysis/types';
+import { Mode } from '@/contexts/ModeContext';
 
 interface FeedbackSectionProps {
-  recommendations: RecommendationsData;
-  show: boolean;
+  recommendations: RecommendationsData | null;
   onFeedbackSubmit: (feedback: string) => void;
   onContinue: () => void;
+  mode: Mode;
 }
 
-export const FeedbackSection = ({ 
-  recommendations, 
-  show,
+export const FeedbackSection = ({
+  recommendations,
   onFeedbackSubmit,
-  onContinue
+  onContinue,
+  mode
 }: FeedbackSectionProps) => {
-  const feedbackRef = useRef<HTMLDivElement>(null);
-  
-  // Auto-scroll to feedback when it appears
-  useEffect(() => {
-    if (show && feedbackRef.current) {
-      // Add small delay to ensure DOM is updated
-      setTimeout(() => {
-        feedbackRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 100);
-    }
-  }, [show]);
-  
-  if (!show) return null;
-  
+  const [feedback, setFeedback] = useState('');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onFeedbackSubmit(feedback);
+    setFeedback('');
+  };
+
+  if (!recommendations) return null;
+
   return (
-    <div ref={feedbackRef}>
-      <PrioritiesFeedback 
-        analysis={recommendations.analysis}
-        mappedPriorities={recommendations.mappedPriorities || []}
-        conflictingPriorities={recommendations.conflictingPriorities || []}
-        nuancedMappings={recommendations.nuancedMappings}
-        onFeedbackSubmit={onFeedbackSubmit}
-        onContinue={onContinue}
-      />
+    <div className="space-y-4">
+      <h3 className="text-lg font-semibold">Feedback</h3>
+      <p className="text-sm text-gray-600">
+        How well do these recommendations match your priorities? Your feedback helps us improve our matching system.
+      </p>
+      
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <Textarea
+          placeholder="Share your thoughts on the recommendations..."
+          value={feedback}
+          onChange={(e) => setFeedback(e.target.value)}
+          className="min-h-[100px]"
+        />
+        
+        <div className="flex justify-end gap-4">
+          <Button type="button" variant="outline" onClick={onContinue}>
+            Skip
+          </Button>
+          <Button type="submit" disabled={!feedback.trim()}>
+            Submit Feedback
+          </Button>
+        </div>
+      </form>
     </div>
   );
 };

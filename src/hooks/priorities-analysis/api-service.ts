@@ -1,175 +1,100 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { VoterFormValues } from '@/schemas/voterFormSchema';
-import { RecommendationsData } from './types';
-import { useToast } from '@/hooks/use-toast';
-import { formatAnalysisText, enhanceConflictingPriorities, createPriorityMappings } from './format-util';
-import { createUnmappedTermsHandler } from './unmapped-terms-util';
+import { RecommendationsData, ApiResponse } from '@/types/api';
 
-export const createApiService = (toast: ReturnType<typeof useToast>) => {
-  const saveUnmappedTerms = createUnmappedTermsHandler(toast);
-  
+export function createApiService(toast: any) {
   const analyzePriorities = async (
     formData: VoterFormValues,
     feedbackPriorities: string[]
-  ): Promise<RecommendationsData> => {
+  ): Promise<ApiResponse<RecommendationsData>> => {
     try {
       const allPriorities = [...formData.priorities, ...feedbackPriorities];
       console.log('Submitting form data:', { ...formData, priorities: allPriorities });
-      
-      // Add a retry mechanism for the API call
-      let attempts = 0;
-      const maxAttempts = 2;
-      let data, error;
-      
-      while (attempts < maxAttempts) {
-        const response = await supabase.functions.invoke('analyze-priorities', {
-          body: { 
-            mode: formData.mode, 
-            zipCode: formData.zipCode,
-            priorities: allPriorities,
-            improveMatching: true
-          }
-        });
-        
-        data = response.data;
-        error = response.error;
-        
-        if (!error) break;
-        attempts++;
-        
-        // Wait before retrying
-        if (attempts < maxAttempts) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
+
+      const { data, error } = await supabase.functions.invoke('analyze-priorities', {
+        body: {
+          zipCode: formData.zipCode,
+          priorities: allPriorities
         }
-      }
+      });
 
       if (error) {
-        console.error('Supabase function error:', error);
-        toast.toast({
-          title: "Error",
+        console.error('Error from analyze-priorities:', error);
+        toast({
+          title: 'Error',
           description: error.message || 'Failed to analyze content',
           variant: "destructive",
         });
-        throw new Error(error.message || 'Failed to analyze content');
+        return {
+          ok: false,
+          error: error.message || 'Failed to analyze content',
+        };
       }
 
       if (!data) {
-        throw new Error('No data returned from analysis');
+        throw new Error('No data received from analyze-priorities');
       }
 
-      handleApiStatuses(data.apiStatuses, toast);
+      console.log('Raw response from analyze-priorities:', data);
 
-      // Process unmapped terms
-      if (data.unmappedTerms && data.unmappedTerms.length > 0) {
-        console.log('Unmapped terms detected:', data.unmappedTerms);
-        saveUnmappedTerms(data.unmappedTerms);
-      }
+      const mappedPriorities = allPriorities.map(priority => ({
+        userPriority: priority,
+        mappedTerms: data.mappings?.[priority] || []
+      }));
 
-      // Format analysis text for better readability
-      const formattedAnalysis = formatAnalysisText(data.analysis);
+      const priorityMappings = allPriorities.map(priority => ({
+        userPriority: priority,
+        mappedTerms: data.mappings?.[priority] || []
+      }));
 
-      const mappedPriorities = data.mappedPriorities || [];
-      
-      // Enhance conflicting priorities with references to the original text
-      const conflictingPriorities = enhanceConflictingPriorities(
-        data.conflictingPriorities || [],
-        formData.priorities
-      );
+      const enhancedCandidates = (data.candidates || []).map(candidate => ({
+        ...candidate,
+        priorityMatches: mappedPriorities.filter(priority => 
+          candidate.stances.some(stance => 
+            stance.topics.some(topic => 
+              priority.mappedTerms.includes(topic)
+            )
+          )
+        )
+      }));
 
-      // Ensure all candidates have alignment information
-      const enhancedCandidates = data.candidates?.map(candidate => {
-        if (!candidate.alignment) {
-          return {
-            ...candidate,
-            alignment: {
-              type: 'unknown',
-              supportedPriorities: [],
-              conflictingPriorities: []
-            }
-          };
-        }
-        return candidate;
-      }) || [];
-
-      // Create priority mappings for display
-      const priorityMappings = createPriorityMappings(
-        formData.priorities,
-        feedbackPriorities,
-        data.priorityToTermsMap,
-        data.feedbackToTermsMap,
-        data.mappedPriorities
-      );
+      const conflictingPriorities = (data.conflictingPriorities || []).map(conflict => ({
+        priority1: conflict.priority1,
+        priority2: conflict.priority2,
+        reason: conflict.reason || 'These priorities may have opposing goals'
+      }));
 
       return {
-        mode: data.mode,
-        analysis: formattedAnalysis,
-        mappedPriorities,
-        conflictingPriorities,
-        priorityMappings,
-        candidates: enhancedCandidates,
-        ballotMeasures: data.ballotMeasures || [],
-        draftEmails: data.draftEmails || [],
-        interestGroups: data.interestGroups || [],
-        petitions: data.petitions || []
+        ok: true,
+        data: {
+          analysis: data.analysis || '',
+          priorityMappings,
+          recommendations: data.recommendations || [],
+          mode: data.mode,
+          mappedPriorities,
+          conflictingPriorities,
+          candidates: enhancedCandidates,
+          ballotMeasures: data.ballotMeasures || [],
+          draftEmails: data.draftEmails || [],
+          interestGroups: data.interestGroups || [],
+          petitions: data.petitions || []
+        }
       };
     } catch (err: any) {
       console.error('Error in analyze-priorities:', err);
-      toast.toast({
-        title: "Error",
+      toast({
+        title: 'Error',
         description: err.message || 'An error occurred while analyzing priorities',
         variant: "destructive",
       });
-      throw err;
+      return {
+        ok: false,
+        error: err.message || 'An error occurred while analyzing priorities',
+      };
     }
   };
 
-  return { analyzePriorities };
-};
-
-// Handle API status notifications
-function handleApiStatuses(apiStatuses: any, toast: ReturnType<typeof useToast>) {
-  if (!apiStatuses) return;
-  
-  // Show appropriate error messages based on API status
-  if (apiStatuses.googleCivic === 'GOOGLE_CIVIC_API_NOT_CONFIGURED') {
-    toast.toast({
-      title: "API Configuration Issue",
-      description: "Google Civic API key is not configured. Some features may be limited.",
-      variant: "default",
-    });
-  } else if (apiStatuses.googleCivic === 'GOOGLE_CIVIC_API_ERROR') {
-    toast.toast({
-      title: "API Connection Issue",
-      description: "Could not connect to Google Civic API. Using cached data where possible.",
-      variant: "default",
-    });
-  } else if (apiStatuses.googleCivic === 'CONNECTED') {
-    toast.toast({
-      title: "API Connected",
-      description: "Successfully connected to Google Civic API.",
-      variant: "default",
-    });
-  }
-  
-  // Handle FEC API status messages similarly
-  if (apiStatuses.fec === 'FEC_API_NOT_CONFIGURED') {
-    toast.toast({
-      title: "API Configuration Note",
-      description: "FEC API key is not configured. Some candidate data may be limited.",
-      variant: "default",
-    });
-  } else if (apiStatuses.fec === 'FEC_API_ERROR') {
-    toast.toast({
-      title: "API Connection Note",
-      description: "Limited connection to FEC API. Using alternative data sources.",
-      variant: "default",
-    });
-  } else if (apiStatuses.fec === 'FEC_API_UNAUTHORIZED') {
-    toast.toast({
-      title: "API Authorization Issue",
-      description: "FEC API key needs to be renewed. Some features may be limited.",
-      variant: "default",
-    });
-  }
+  return {
+    analyzePriorities,
+  };
 }

@@ -1,19 +1,24 @@
-
 import { useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 import { VoterForm } from '@/components/VoterForm';
-import { LoadingProgress } from '@/components/LoadingProgress';
-import { ModelInitializer } from '@/components/priorities/ModelInitializer';
 import { FeedbackSection } from '@/components/priorities/FeedbackSection';
 import { RecommendationsViewer } from '@/components/priorities/RecommendationsViewer';
-import { VoterFormValues } from '@/schemas/voterFormSchema';
-import { RecommendationsData } from '@/hooks/priorities-analysis/types';
+import { RecommendationsData } from '@/types/api';
+import { Mode, useMode } from '@/contexts/ModeContext';
+import { Button } from '@/components/ui/button';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
+import { TestPersonaControls } from '@/components/TestPersonaControls';
 
 interface VoterFormContainerProps {
   isLoading: boolean;
   recommendations: RecommendationsData | null;
   showRecommendations: boolean;
-  formValues: VoterFormValues | null;
-  onSubmit: (values: VoterFormValues) => void;
+  formValues: {
+    zipCode?: string;
+    priorities?: string[];
+  };
+  onSubmit: (values: { zipCode: string; priorities: string[] }) => void;
   onFeedbackSubmit: (feedback: string) => void;
   onContinue: () => void;
 }
@@ -25,48 +30,82 @@ export const VoterFormContainer = ({
   formValues,
   onSubmit,
   onFeedbackSubmit,
-  onContinue
+  onContinue,
 }: VoterFormContainerProps) => {
-  // Only show feedback if recommendations exist but are not showing yet
+  const { mode, setMode } = useMode();
+  const [selectedValues, setSelectedValues] = useState(formValues);
   const showFeedback = recommendations && !showRecommendations;
-  const [modelInitialized, setModelInitialized] = useState(false);
-  
-  const handleModelInitialized = (success: boolean) => {
-    setModelInitialized(success);
+
+  const handlePersonaSelect = (persona: { zipCode: string; priorities: string[] }) => {
+    setSelectedValues(persona);
+  };
+
+  const handleModeChange = (value: Mode) => {
+    setMode(value);
+  };
+
+  const handleSubmit = (values: { zipCode: string; priorities: string[] }) => {
+    onSubmit(values);
   };
 
   return (
-    <>
-      <ModelInitializer onInitialized={handleModelInitialized} />
-      
-      {isLoading && (
-        <LoadingProgress 
-          message="Analyzing your priorities and generating recommendations..." 
-          isLoading={isLoading}
-        />
-      )}
-      
-      <VoterForm 
-        onSubmit={onSubmit} 
-        isLoading={isLoading}
-        initialValues={formValues}
-      />
+    <div className="space-y-6">
+      {/* Mode Selection */}
+      <Card>
+        <CardContent className="pt-6">
+          <RadioGroup
+            value={mode}
+            onValueChange={handleModeChange}
+            className="flex flex-col space-y-1"
+          >
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="current" id="current" />
+              <Label htmlFor="current">Current Date</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="demo" id="demo" />
+              <Label htmlFor="demo">DEMO: November 2024 Election</Label>
+            </div>
+          </RadioGroup>
+        </CardContent>
+      </Card>
 
-      {recommendations && (
-        <>
-          <FeedbackSection 
-            recommendations={recommendations}
-            show={!!showFeedback}
-            onFeedbackSubmit={onFeedbackSubmit}
-            onContinue={onContinue}
+      {/* Test Personas */}
+      <TestPersonaControls onSelectPersona={handlePersonaSelect} />
+
+      {/* Voter Form */}
+      <Card>
+        <CardContent className="pt-6">
+          <VoterForm
+            onSubmit={handleSubmit}
+            isLoading={isLoading}
+            initialValues={selectedValues}
           />
-          
-          <RecommendationsViewer 
-            recommendations={recommendations}
-            show={showRecommendations}
-          />
-        </>
+        </CardContent>
+      </Card>
+
+      {/* Feedback Section */}
+      {showFeedback && (
+        <Card>
+          <CardContent className="pt-6">
+            <FeedbackSection
+              recommendations={recommendations}
+              onFeedbackSubmit={onFeedbackSubmit}
+              onContinue={onContinue}
+              mode={mode}
+            />
+          </CardContent>
+        </Card>
       )}
-    </>
+
+      {/* Recommendations */}
+      {showRecommendations && recommendations && (
+        <Card>
+          <CardContent className="pt-6">
+            <RecommendationsViewer recommendations={recommendations} mode={mode} />
+          </CardContent>
+        </Card>
+      )}
+    </div>
   );
 };

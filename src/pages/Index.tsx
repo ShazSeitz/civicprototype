@@ -1,81 +1,67 @@
-
 import { useRef } from 'react';
 import Navbar from '../components/Navbar';
-import { ApiStatusChecker } from '@/components/ApiStatusChecker';
 import { VoterFormContainer } from '@/components/VoterFormContainer';
 import { RecommendationsList } from '@/components/RecommendationsList';
-import { ErrorAlert } from '@/components/ErrorAlert';
-import { usePrioritiesAnalysis } from '@/hooks/use-priorities-analysis';
+import { usePrioritiesAnalysis } from '@/hooks/priorities-analysis/use-priorities-analysis';
 import { AnalysisCard } from '@/components/priorities/AnalysisCard';
 import { RecommendationsHeader } from '@/components/priorities/RecommendationsHeader';
+import { useMode } from '@/contexts/ModeContext';
 
 const Index = () => {
+  const { mode } = useMode();
   const {
-    formData,
-    recommendations,
     isLoading,
-    isError,
-    error,
-    refetch,
-    apiStatus,
-    showRecommendations,
-    handleSubmit,
-    handleFeedback,
-    handleContinue,
-    updateApiStatus,
-    feedbackPriorities
+    recommendations,
+    feedbackPriorities,
+    submitCount,
+    analyzePriorities,
+    addFeedbackPriority,
+    removeFeedbackPriority
   } = usePrioritiesAnalysis();
   
   const priorityMappingsRef = useRef<HTMLDivElement>(null);
+
+  const handleSubmit = async (values: { zipCode: string; priorities: string[] }) => {
+    await analyzePriorities(values);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
       <Navbar />
       
       <div className="container mx-auto px-4 pt-6 pb-8">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-4xl mx-auto space-y-8">
           <h1 className="text-4xl font-bold text-center mb-4 animate-fade-up">
             Voter Information Tool
           </h1>
           
-          <ApiStatusChecker 
-            initialGoogleCivicStatus={apiStatus.googleCivic}
-            initialFecStatus={apiStatus.fec}
-            onStatusChange={updateApiStatus}
-          />
-          
           <VoterFormContainer 
             isLoading={isLoading}
             recommendations={recommendations}
-            showRecommendations={showRecommendations}
-            formValues={formData}
+            showRecommendations={!!recommendations}
+            formValues={{}}
             onSubmit={handleSubmit}
-            onFeedbackSubmit={handleFeedback}
-            onContinue={handleContinue}
+            onFeedbackSubmit={addFeedbackPriority}
+            onContinue={() => {}}
           />
-          
-          {isError && (
-            <ErrorAlert error={error} onRetry={refetch} />
-          )}
-          
-          {recommendations && showRecommendations && (
-            <div ref={priorityMappingsRef} className="space-y-6 mt-8">
+
+          {recommendations && (
+            <div className="space-y-8 animate-fade-up">
               <RecommendationsHeader
                 recommendationsData={recommendations}
-                zipCode={formData?.zipCode}
-                userPriorities={formData?.priorities}
+                zipCode={recommendations.zipCode}
+                userPriorities={recommendations.analysis.priorities}
                 userClarifications={feedbackPriorities}
               />
               
-              {/* Priority mapping analysis card */}
               <AnalysisCard
                 analysis={recommendations.analysis}
-                priorityMappings={recommendations.priorityMappings}
+                priorityMappings={recommendations.mappedPriorities}
               />
               
               <RecommendationsList 
                 recommendations={recommendations} 
-                onFeedbackSubmit={handleFeedback}
+                onFeedbackSubmit={addFeedbackPriority}
               />
             </div>
           )}
